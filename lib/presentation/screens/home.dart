@@ -439,10 +439,11 @@ class _HomePageState extends State<HomePage> {
 }
 
 class NewEventScreen extends StatefulWidget {
+  const NewEventScreen({super.key});
+
   @override
   _NewEventScreenState createState() => _NewEventScreenState();
 }
-
 class _NewEventScreenState extends State<NewEventScreen> {
   bool isAllDay = false;
   TimeOfDay startTime = TimeOfDay(hour: 9, minute: 0);
@@ -543,19 +544,24 @@ class _NewEventScreenState extends State<NewEventScreen> {
       return;
     }
 
-    // Create event object
-    Map<String, dynamic> newEvent = {
-      "title": titleController.text,
-      "date": selectedDate,
-      "startTime": startTime.format(context),
-      "endTime": endTime.format(context),
-      "allDay": isAllDay,
-      "repeat": repeatOption,
-      "description": descriptionController.text,
-    };
+    setState(() {
+      savedEvents.add({
+        "title": titleController.text,
+        "date": selectedDate,
+        "startTime": startTime.format(context),
+        "endTime": endTime.format(context),
+        "allDay": isAllDay,
+        "repeat": repeatOption,
+        "description": descriptionController.text,
+      });
+    });
 
-    // Pass event back to HomePage
-    Navigator.pop(context, newEvent);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Event Saved!")),
+    );
+
+    titleController.clear();
+    descriptionController.clear();
   }
 
   // Function to Build Event Details
@@ -645,7 +651,6 @@ class _NewEventScreenState extends State<NewEventScreen> {
       child: TextField(
         controller: descriptionController,
         decoration: InputDecoration(
-          icon: Icon(Icons.menu),
           hintText: "Description",
           border: InputBorder.none,
         ),
@@ -673,7 +678,6 @@ class _NewEventScreenState extends State<NewEventScreen> {
           )
         ],
       ),
-      
       body: Padding(
         padding: EdgeInsets.all(16.0),
         child: Column(
@@ -719,4 +723,3 @@ class _NewEventScreenState extends State<NewEventScreen> {
     );
   }
 }
-
