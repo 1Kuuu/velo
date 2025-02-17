@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:velo/core/configs/theme/app_fonts.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -63,41 +62,41 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _fetchPlansForSelectedDate() async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user != null) {
-    try {
-      // Create the start and end of the selected day for comparison
-      final startOfDay = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
-      final endOfDay = startOfDay.add(Duration(days: 1));
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        // Create the start and end of the selected day for comparison
+        final startOfDay = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+        final endOfDay = startOfDay.add(Duration(days: 1));
 
-      // Query to get plans for the selected date
-      final snapshot = await FirebaseFirestore.instance
-          .collection('user_plans')
-          .doc(user.uid)
-          .collection('plans')
-          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where('date', isLessThan: Timestamp.fromDate(endOfDay))
-          .get();
+        // Query to get plans for the selected date
+        final snapshot = await FirebaseFirestore.instance
+            .collection('user_plans')
+            .doc(user.uid)
+            .collection('plans')
+            .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+            .where('date', isLessThan: Timestamp.fromDate(endOfDay))
+            .get();
 
-      setState(() {
-        plansByTime = {
-          for (var doc in snapshot.docs)
-            doc['time'] as String: doc['description'] as String
-        };
-      });
-    } catch (e) {
-      // Handle errors (e.g., network issues, permission issues)
+        setState(() {
+          plansByTime = {
+            for (var doc in snapshot.docs)
+              doc['time'] as String: doc['description'] as String
+          };
+        });
+      } catch (e) {
+        // Handle errors (e.g., network issues, permission issues)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error fetching plans: $e")),
+        );
+      }
+    } else {
+      // Handle the case where the user is not logged in
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error fetching plans: $e")),
+        SnackBar(content: Text("User not logged in")),
       );
     }
-  } else {
-    // Handle the case where the user is not logged in
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("User not logged in")),
-    );
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -130,28 +129,48 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          _buildWeeklyProgress(),
-          _buildCalendar(),
-          Expanded(child: _buildTimeSlots()),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.black,
-        onPressed: _addActivity,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xFF561C24),
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white70,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.message), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: ''),
+          Column(
+            children: [
+              _buildWeeklyProgress(),
+              _buildCalendar(),
+              Expanded(child: _buildTimeSlots()),
+            ],
+          ),
+          Positioned(
+            bottom: 70,
+            right: 20,
+            child: FloatingActionButton(
+              backgroundColor: Colors.black,
+              child: Icon(Icons.add, color: Colors.white),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => NewEventScreen()),
+                );
+              },
+            ),
+          ),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              color: const Color(0xFF561C24),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Icon(Icons.home, color: Colors.white),
+                  Icon(Icons.work, color: Colors.white),
+                  Icon(Icons.calendar_today, color: Colors.white),
+                  Icon(Icons.chat_bubble_outline, color: Colors.white),
+                  Icon(Icons.settings, color: Colors.white),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -368,23 +387,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _addActivity() async {
-    // This is a simple implementation. You might want to create a more detailed form.
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await FirebaseFirestore.instance
-          .collection('user_activities')
-          .doc(user.uid)
-          .collection('activities')
-          .add({
-        'date': Timestamp.fromDate(selectedDate),
-        'duration': 30, // 30 minutes as an example
-        'distance': 2.5, // 2.5 km as an example
-      });
-      _fetchWeeklyProgress(); // Refresh the weekly progress
-    }
-  }
-
   void _showAddPlanDialog(String time) {
     final TextEditingController controller = TextEditingController(text: plansByTime[time] ?? '');
     showDialog(
@@ -431,6 +433,288 @@ class _HomePageState extends State<HomePage> {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+class NewEventScreen extends StatefulWidget {
+  @override
+  _NewEventScreenState createState() => _NewEventScreenState();
+}
+
+class _NewEventScreenState extends State<NewEventScreen> {
+  bool isAllDay = false;
+  TimeOfDay startTime = TimeOfDay(hour: 9, minute: 0);
+  TimeOfDay endTime = TimeOfDay(hour: 9, minute: 0);
+  DateTime selectedDate = DateTime.now();
+  String repeatOption = "Does not repeat";
+  TextEditingController descriptionController = TextEditingController();
+  TextEditingController titleController = TextEditingController(); // For event title
+
+  // List of repeat options
+  final List<String> repeatOptions = [
+    "Does not repeat",
+    "Daily",
+    "Weekly",
+    "Monthly",
+    "Yearly",
+    "Custom"
+  ];
+
+  List<Map<String, dynamic>> savedEvents = []; // To store events
+
+  // Function to Pick Date
+  Future<void> _pickDate(BuildContext context) async {
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (pickedDate != null) {
+      setState(() {
+        selectedDate = pickedDate;
+      });
+    }
+  }
+
+  // Function to Pick Time
+  Future<void> _pickTime(bool isStart) async {
+    TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: isStart ? startTime : endTime,
+    );
+    if (pickedTime != null) {
+      setState(() {
+        if (isStart) {
+          startTime = pickedTime;
+        } else {
+          endTime = pickedTime;
+        }
+      });
+    }
+  }
+
+  // Function to Show Repeat Options
+  void _selectRepeatOption() {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          padding: EdgeInsets.all(10),
+          height: 300,
+          child: Column(
+            children: [
+              Text(
+                "Repeat Options",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              Divider(),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: repeatOptions.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      title: Text(repeatOptions[index]),
+                      onTap: () {
+                        setState(() {
+                          repeatOption = repeatOptions[index];
+                        });
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Function to Save Event
+  void _saveEvent() {
+    if (titleController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Please enter an event title")),
+      );
+      return;
+    }
+
+    // Create event object
+    Map<String, dynamic> newEvent = {
+      "title": titleController.text,
+      "date": selectedDate,
+      "startTime": startTime.format(context),
+      "endTime": endTime.format(context),
+      "allDay": isAllDay,
+      "repeat": repeatOption,
+      "description": descriptionController.text,
+    };
+
+    // Pass event back to HomePage
+    Navigator.pop(context, newEvent);
+  }
+
+  // Function to Build Event Details
+  Widget _buildEventDetails() {
+    return Container(
+      padding: EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        children: [
+          // Time Pickers
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              GestureDetector(
+                onTap: () => _pickTime(true),
+                child: Row(
+                  children: [
+                    Icon(Icons.access_time),
+                    SizedBox(width: 8),
+                    Text(startTime.format(context)),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_right_alt),
+              GestureDetector(
+                onTap: () => _pickTime(false),
+                child: Row(
+                  children: [
+                    Icon(Icons.access_time),
+                    SizedBox(width: 8),
+                    Text(endTime.format(context)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          Divider(),
+
+          // Date Picker
+          ListTile(
+            leading: Icon(Icons.calendar_today),
+            title: Text(
+              DateFormat('EEEE, MMMM d').format(selectedDate), // Format: "Thursday, December 5"
+              style: TextStyle(fontSize: 16),
+            ),
+            trailing: Icon(Icons.arrow_drop_down),
+            onTap: () => _pickDate(context),
+          ),
+          Divider(),
+
+          // All Day Toggle
+          SwitchListTile(
+            title: Text("All day"),
+            value: isAllDay,
+            onChanged: (value) {
+              setState(() {
+                isAllDay = value;
+              });
+            },
+          ),
+          Divider(),
+
+          // Repeat Option
+          ListTile(
+            leading: Icon(Icons.refresh),
+            title: Text(repeatOption),
+            trailing: Icon(Icons.arrow_drop_down),
+            onTap: _selectRepeatOption,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Function to Build Description Field
+  Widget _buildDescription() {
+    return Container(
+      height: 100,
+      padding: EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: TextField(
+        controller: descriptionController,
+        decoration: InputDecoration(
+          icon: Icon(Icons.menu),
+          hintText: "Description",
+          border: InputBorder.none,
+        ),
+        maxLines: null,
+        keyboardType: TextInputType.multiline,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Cancel', style: TextStyle(color: Colors.red)),
+        ),
+        title: Text("New Event", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        actions: [
+          TextButton(
+            onPressed: _saveEvent, // Call save function here
+            child: Text("Save", style: TextStyle(color: Colors.green)),
+          )
+        ],
+      ),
+      
+      body: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Event Title Input
+            TextField(
+              controller: titleController,
+              decoration: InputDecoration(
+                hintText: "HAPPIEST DAY ON EARTH!!",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 20),
+
+            // Event Details
+            _buildEventDetails(),
+            SizedBox(height: 20),
+
+            // Description Field
+            _buildDescription(),
+            SizedBox(height: 20),
+
+            // Saved Events Display
+            Text("Saved Events:", style: TextStyle(fontWeight: FontWeight.bold)),
+            Expanded(
+              child: ListView.builder(
+                itemCount: savedEvents.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text(savedEvents[index]["title"]),
+                    subtitle: Text(
+                      "${DateFormat('EEEE, MMMM d').format(savedEvents[index]["date"])} - "
+                      "${savedEvents[index]["startTime"]} to ${savedEvents[index]["endTime"]}",
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

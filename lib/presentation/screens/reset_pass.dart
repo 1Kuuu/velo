@@ -5,7 +5,7 @@ import 'package:velo/presentation/widgets/reusable_wdgts.dart';
 import 'package:velo/core/utils/validators.dart';
 
 class ResetPasswordPage extends StatefulWidget {
-  const ResetPasswordPage({super.key});
+  const ResetPasswordPage({super.key}); 
 
   @override
   ResetPasswordPageState createState() => ResetPasswordPageState();
@@ -18,11 +18,11 @@ class ResetPasswordPageState extends State<ResetPasswordPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   void submitForm() {
-    if (_formKey.currentState!.validate()) {
+    if (_formKey.currentState!.validate()) { 
+    
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Password reset successful!")),
       );
-
       Navigator.pop(context);
     }
   }
@@ -42,7 +42,7 @@ class ResetPasswordPageState extends State<ResetPasswordPage> {
                   alignment: Alignment.topLeft,
                   child: IconButton(
                     icon:
-                        const Icon(Icons.arrow_back, color: AppColors.primary),
+                        const Icon(Icons.arrow_back, color: AppColors.primary), 
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
