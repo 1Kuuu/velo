@@ -7,12 +7,14 @@ class GetStarted extends StatefulWidget {
   const GetStarted({super.key});
 
   @override
-  State<GetStarted> createState() => _GetStartedState();
+  State<GetStarted> createState() =>
+      _GetStartedState(); //missing "=>" which is after the getstarted state, comes in the extended class _getstarted
 }
 
 class _GetStartedState extends State<GetStarted> {
   final PageController _pageController = PageController();
-  int _currentPage = 0;
+  int _currentPage =
+      0; //0 is the default starting page once you're at the onboarding pages
 
   final List<OnboardingContent> _contents = [
     OnboardingContent(
@@ -27,6 +29,7 @@ class _GetStartedState extends State<GetStarted> {
       image: "assets/images/image2.png",
       buttonText: "Next",
     ),
+    //"OnboardingContent: content of the class GetstartedState"
     OnboardingContent(
       title: "SHARE",
       subtitle: "the experience and\nyour journey with\nVELORA",
@@ -48,6 +51,7 @@ class _GetStartedState extends State<GetStarted> {
     }
   }
 
+//missing @override to startup the build
   @override
   Widget build(BuildContext context) {
     return Scaffold(

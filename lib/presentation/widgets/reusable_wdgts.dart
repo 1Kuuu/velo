@@ -188,9 +188,9 @@ class _InputFieldState extends State<InputField> {
             filled: true,
             fillColor: Colors.white,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8), // Keep original radius
+              borderRadius: BorderRadius.circular(8),
               borderSide: const BorderSide(
-                  color: Colors.black, width: 1), // Keep original width
+                  color: Colors.black, width: 1), 
             ),
             suffixIcon: widget.obscureText
                 ? IconButton(
@@ -200,7 +200,7 @@ class _InputFieldState extends State<InputField> {
                     ),
                     onPressed: _toggleObscureText,
                   )
-                : null, // Show icon only for password fields
+                : null,
           ),
           validator: widget.validator,
         ),

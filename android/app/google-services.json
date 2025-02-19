@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "144243140512-ejnn7o2gppqq35dllo78qtbrbqlpu45q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.velo",
+            "certificate_hash": "bc47b32d14aba8efc6f19ff01ce398b440b58338"
+          }
+        },
+        {
           "client_id": "144243140512-gdhu9ckalf8om00bipfm1ukpbacd47jd.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -37,6 +45,13 @@
             {
               "client_id": "144243140512-gdhu9ckalf8om00bipfm1ukpbacd47jd.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "144243140512-d5675v0bu3jcd3u1km5jc2md06cjvo61.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.velo"
+              }
             }
           ]
         }
