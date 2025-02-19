@@ -77,6 +77,9 @@ flutter:
     - assets/images/image3.png
     - assets/images/logo.png
     - assets/images/Google.png
+    - assets/images/mb.png
+    - assets/images/mb1.png
+    - assets/images/fx1.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
