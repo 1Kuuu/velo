@@ -13,8 +13,16 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final List<String> timeSlots = [
-    '8:00AM', '9:00AM', '10:00AM', '11:00AM', '12:00PM',
-    '1:00PM', '2:00PM', '3:00PM', '4:00PM', '5:00PM'
+    '8:00AM',
+    '9:00AM',
+    '10:00AM',
+    '11:00AM',
+    '12:00PM',
+    '1:00PM',
+    '2:00PM',
+    '3:00PM',
+    '4:00PM',
+    '5:00PM'
   ];
 
   late DateTime selectedDate;
@@ -35,7 +43,8 @@ class _HomePageState extends State<HomePage> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final weekStart = selectedDate.subtract(Duration(days: selectedDate.weekday - 1));
+        final weekStart =
+            selectedDate.subtract(Duration(days: selectedDate.weekday - 1));
         final weekEnd = weekStart.add(const Duration(days: 7));
 
         final snapshot = await FirebaseFirestore.instance
@@ -47,8 +56,10 @@ class _HomePageState extends State<HomePage> {
             .get();
 
         int totalActivities = snapshot.docs.length;
-        int totalMinutes = snapshot.docs.fold(0, (sum, doc) => sum + (doc['duration'] as int));
-        double totalDistance = snapshot.docs.fold(0.0, (sum, doc) => sum + (doc['distance'] as double));
+        int totalMinutes =
+            snapshot.docs.fold(0, (sum, doc) => sum + (doc['duration'] as int));
+        double totalDistance = snapshot.docs
+            .fold(0.0, (sum, doc) => sum + (doc['distance'] as double));
 
         setState(() {
           activities = totalActivities;
@@ -66,7 +77,8 @@ class _HomePageState extends State<HomePage> {
     if (user != null) {
       try {
         // Create the start and end of the selected day for comparison
-        final startOfDay = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+        final startOfDay =
+            DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
         final endOfDay = startOfDay.add(Duration(days: 1));
 
         // Query to get plans for the selected date
@@ -74,7 +86,8 @@ class _HomePageState extends State<HomePage> {
             .collection('user_plans')
             .doc(user.uid)
             .collection('plans')
-            .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+            .where('date',
+                isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
             .where('date', isLessThan: Timestamp.fromDate(endOfDay))
             .get();
 
@@ -105,10 +118,11 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF561C24),
         elevation: 0,
-        title: Text('HOME', style: AppFonts.bold.copyWith(
-          color: Colors.white,
-          fontWeight: FontWeight.w600,
-        )),
+        title: Text('HOME',
+            style: AppFonts.bold.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            )),
         actions: [
           IconButton(
             icon: const Icon(Icons.cloud_outlined, color: Colors.white),
@@ -145,10 +159,7 @@ class _HomePageState extends State<HomePage> {
               backgroundColor: Colors.black,
               child: Icon(Icons.add, color: Colors.white),
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => NewEventScreen()),
-                );
+                _showAddEventDialog();
               },
             ),
           ),
@@ -201,7 +212,8 @@ class _HomePageState extends State<HomePage> {
             children: [
               _buildProgressItem('Activities', activities.toString(), '0'),
               _buildProgressItem('Time', time, '0'),
-              _buildProgressItem('Distance', '${distance.toStringAsFixed(2)}km', '0'),
+              _buildProgressItem(
+                  'Distance', '${distance.toStringAsFixed(2)}km', '0'),
             ],
           ),
         ],
@@ -239,8 +251,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildCalendar() {
-    final weekStart = selectedDate.subtract(Duration(days: selectedDate.weekday - 1));
-    final days = List.generate(7, (index) => weekStart.add(Duration(days: index)));
+    final weekStart =
+        selectedDate.subtract(Duration(days: selectedDate.weekday - 1));
+    final days =
+        List.generate(7, (index) => weekStart.add(Duration(days: index)));
 
     return Container(
       color: Colors.white,
@@ -295,7 +309,8 @@ class _HomePageState extends State<HomePage> {
                     width: 50,
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     decoration: BoxDecoration(
-                      border: Border.all(color: isSelected ? Colors.blue : Colors.grey[300]!),
+                      border: Border.all(
+                          color: isSelected ? Colors.blue : Colors.grey[300]!),
                       borderRadius: BorderRadius.circular(8),
                       color: isSelected ? Colors.blue.withOpacity(0.1) : null,
                     ),
@@ -338,33 +353,35 @@ class _HomePageState extends State<HomePage> {
         itemBuilder: (context, index) {
           final time = timeSlots[index];
           final plan = plansByTime[time] ?? '';
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: Colors.grey[300]!),
+          return GestureDetector(
+            onTap: () => _showAddPlanDialog(time),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: Colors.grey[300]!),
+                ),
               ),
-            ),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 70,
-                  child: Text(
-                    time,
-                    style: AppFonts.light.copyWith(
-                      fontSize: 14,
-                      color: Colors.black87,
-                      fontWeight: FontWeight.w500,
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 70,
+                    child: Text(
+                      time,
+                      style: AppFonts.light.copyWith(
+                        fontSize: 14,
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _showAddPlanDialog(time),
+                  Expanded(
                     child: Container(
                       height: 24,
                       decoration: BoxDecoration(
-                        color: plan.isNotEmpty ? Colors.blue.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                        color: plan.isNotEmpty
+                            ? Colors.blue.withOpacity(0.1)
+                            : Colors.grey.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Center(
@@ -372,14 +389,16 @@ class _HomePageState extends State<HomePage> {
                           plan.isNotEmpty ? plan : 'Add plan',
                           style: AppFonts.regular.copyWith(
                             fontSize: 12,
-                            color: plan.isNotEmpty ? Colors.black87 : Colors.grey[600],
+                            color: plan.isNotEmpty
+                                ? Colors.black87
+                                : Colors.grey[600],
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },
@@ -388,7 +407,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showAddPlanDialog(String time) {
-    final TextEditingController controller = TextEditingController(text: plansByTime[time] ?? '');
+    final TextEditingController controller =
+        TextEditingController(text: plansByTime[time] ?? '');
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -415,7 +435,8 @@ class _HomePageState extends State<HomePage> {
                       .collection('plans')
                       .doc('${selectedDate.toIso8601String()}_$time')
                       .set({
-                    'date': Timestamp.fromDate(DateTime(selectedDate.year, selectedDate.month, selectedDate.day)),
+                    'date': Timestamp.fromDate(DateTime(selectedDate.year,
+                        selectedDate.month, selectedDate.day)),
                     'time': time,
                     'description': controller.text,
                   });
@@ -436,22 +457,40 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+
+  void _showAddEventDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AddEventDialog(
+        onSave: (title, description, date, startTime, endTime) {
+          setState(() {
+            plansByTime[startTime.format(context)] = title;
+          });
+          _fetchPlansForSelectedDate();
+        },
+      ),
+    );
+  }
 }
 
-class NewEventScreen extends StatefulWidget {
-  const NewEventScreen({super.key});
+class AddEventDialog extends StatefulWidget {
+  final Function(String, String, DateTime, TimeOfDay, TimeOfDay) onSave;
+
+  const AddEventDialog({required this.onSave, super.key});
 
   @override
-  _NewEventScreenState createState() => _NewEventScreenState();
+  _AddEventDialogState createState() => _AddEventDialogState();
 }
-class _NewEventScreenState extends State<NewEventScreen> {
+
+class _AddEventDialogState extends State<AddEventDialog> {
   bool isAllDay = false;
   TimeOfDay startTime = TimeOfDay(hour: 9, minute: 0);
   TimeOfDay endTime = TimeOfDay(hour: 9, minute: 0);
   DateTime selectedDate = DateTime.now();
   String repeatOption = "Does not repeat";
   TextEditingController descriptionController = TextEditingController();
-  TextEditingController titleController = TextEditingController(); // For event title
+  TextEditingController titleController =
+      TextEditingController(); // For event title
 
   // List of repeat options
   final List<String> repeatOptions = [
@@ -462,8 +501,6 @@ class _NewEventScreenState extends State<NewEventScreen> {
     "Yearly",
     "Custom"
   ];
-
-  List<Map<String, dynamic>> savedEvents = []; // To store events
 
   // Function to Pick Date
   Future<void> _pickDate(BuildContext context) async {
@@ -544,24 +581,19 @@ class _NewEventScreenState extends State<NewEventScreen> {
       return;
     }
 
-    setState(() {
-      savedEvents.add({
-        "title": titleController.text,
-        "date": selectedDate,
-        "startTime": startTime.format(context),
-        "endTime": endTime.format(context),
-        "allDay": isAllDay,
-        "repeat": repeatOption,
-        "description": descriptionController.text,
-      });
-    });
+    widget.onSave(
+      titleController.text,
+      descriptionController.text,
+      selectedDate,
+      startTime,
+      endTime,
+    );
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Event Saved!")),
     );
 
-    titleController.clear();
-    descriptionController.clear();
+    Navigator.of(context).pop();
   }
 
   // Function to Build Event Details
@@ -607,7 +639,8 @@ class _NewEventScreenState extends State<NewEventScreen> {
           ListTile(
             leading: Icon(Icons.calendar_today),
             title: Text(
-              DateFormat('EEEE, MMMM d').format(selectedDate), // Format: "Thursday, December 5"
+              DateFormat('EEEE, MMMM d')
+                  .format(selectedDate), // Format: "Thursday, December 5"
               style: TextStyle(fontSize: 16),
             ),
             trailing: Icon(Icons.arrow_drop_down),
@@ -639,38 +672,22 @@ class _NewEventScreenState extends State<NewEventScreen> {
     );
   }
 
-  // Function to Build Description Field
-  Widget _buildDescription() {
-    return Container(
-      height: 100,
-      padding: EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: TextField(
-        controller: descriptionController,
-        decoration: InputDecoration(
-          hintText: "Description",
-          border: InputBorder.none,
-        ),
-        maxLines: null,
-        keyboardType: TextInputType.multiline,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: TextButton(
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.red),
           onPressed: () => Navigator.pop(context),
-          child: Text('Cancel', style: TextStyle(color: Colors.red)),
         ),
-        title: Text("New Event", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: Center(
+          child: Text(
+            "New Event",
+            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: _saveEvent, // Call save function here
@@ -687,7 +704,7 @@ class _NewEventScreenState extends State<NewEventScreen> {
             TextField(
               controller: titleController,
               decoration: InputDecoration(
-                hintText: "HAPPIEST DAY ON EARTH!!",
+                hintText: "What's the event?",
                 border: OutlineInputBorder(),
               ),
             ),
@@ -698,23 +715,21 @@ class _NewEventScreenState extends State<NewEventScreen> {
             SizedBox(height: 20),
 
             // Description Field
-            _buildDescription(),
-            SizedBox(height: 20),
-
-            // Saved Events Display
-            Text("Saved Events:", style: TextStyle(fontWeight: FontWeight.bold)),
-            Expanded(
-              child: ListView.builder(
-                itemCount: savedEvents.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text(savedEvents[index]["title"]),
-                    subtitle: Text(
-                      "${DateFormat('EEEE, MMMM d').format(savedEvents[index]["date"])} - "
-                      "${savedEvents[index]["startTime"]} to ${savedEvents[index]["endTime"]}",
-                    ),
-                  );
-                },
+            Container(
+              height: 100,
+              padding: EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: TextField(
+                controller: descriptionController,
+                decoration: InputDecoration(
+                  hintText: "Description",
+                  border: InputBorder.none,
+                ),
+                maxLines: null,
+                keyboardType: TextInputType.multiline,
               ),
             ),
           ],

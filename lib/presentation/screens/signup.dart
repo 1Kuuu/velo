@@ -18,7 +18,8 @@ class _SignupState extends State<Signup> {
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
@@ -70,13 +71,15 @@ class _SignupState extends State<Signup> {
 
       GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser != null) {
-        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        final GoogleSignInAuthentication googleAuth =
+            await googleUser.authentication;
         final OAuthCredential credential = GoogleAuthProvider.credential(
           accessToken: googleAuth.accessToken,
           idToken: googleAuth.idToken,
         );
 
-        UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+        UserCredential userCredential =
+            await FirebaseAuth.instance.signInWithCredential(credential);
 
         if (userCredential.user != null && mounted) {
           Navigator.pushReplacement(
@@ -107,11 +110,11 @@ class _SignupState extends State<Signup> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const AppLogo(),
-                CustomTitleText(text: 'SIGN UP'),
+                TitleText(text: 'SIGN UP'),
                 const SizedBox(height: 2),
 
                 // Username Input with Validation
-                CustomInputField(
+                InputField(
                   label: 'USERNAME',
                   controller: usernameController,
                   hintText: 'Enter your username',
@@ -126,7 +129,7 @@ class _SignupState extends State<Signup> {
                 const SizedBox(height: 16),
 
                 // Email Input with Validation
-                CustomInputField(
+                InputField(
                   label: 'EMAIL',
                   controller: emailController,
                   hintText: 'Enter your email',
@@ -134,7 +137,8 @@ class _SignupState extends State<Signup> {
                     if (value == null || value.isEmpty) {
                       return 'Email is required';
                     }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                        .hasMatch(value)) {
                       return 'Enter a valid email';
                     }
                     return null;
@@ -144,7 +148,7 @@ class _SignupState extends State<Signup> {
                 const SizedBox(height: 16),
 
                 // Password Input with Validation
-                CustomInputField(
+                InputField(
                   label: 'PASSWORD',
                   controller: passwordController,
                   hintText: 'Enter your password',
@@ -163,7 +167,7 @@ class _SignupState extends State<Signup> {
                 const SizedBox(height: 16),
 
                 // Confirm Password Input with Validation
-                CustomInputField(
+                InputField(
                   label: 'CONFIRM PASSWORD',
                   controller: confirmPasswordController,
                   hintText: 'Re-enter your password',
@@ -183,19 +187,19 @@ class _SignupState extends State<Signup> {
 
                 // Signup Button
                 Center(
-                  child: CustomButton(
+                  child: Button(
                     text: 'SIGN UP',
                     onPressed: _signup,
                   ),
                 ),
 
                 const SizedBox(height: 24),
-                Center(child: CustomDivider()),
+                Center(child: OrDivider()),
                 const SizedBox(height: 24),
 
                 // Google Sign-Up Button
                 Center(
-                  child: CustomButton(
+                  child: Button(
                     text: 'With Google',
                     onPressed: _signInWithGoogle,
                     iconPath: 'assets/images/Google.png',
@@ -211,7 +215,8 @@ class _SignupState extends State<Signup> {
                   onPressed: () {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => const LoginPage()),
+                      MaterialPageRoute(
+                          builder: (context) => const LoginPage()),
                     );
                   },
                 ),

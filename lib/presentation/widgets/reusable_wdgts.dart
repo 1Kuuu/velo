@@ -3,12 +3,12 @@ import 'package:velo/core/configs/theme/app_fonts.dart';
 import 'package:velo/core/configs/theme/app_colors.dart';
 
 //Buttons
-class CustomButton extends StatelessWidget {
+class Button extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
   final String? iconPath;
 
-  const CustomButton({
+  const Button({
     super.key,
     required this.text,
     required this.onPressed,
@@ -75,10 +75,10 @@ class AppLogo extends StatelessWidget {
 }
 
 //Titles
-class CustomTitleText extends StatelessWidget {
+class TitleText extends StatelessWidget {
   final String text;
 
-  const CustomTitleText({super.key, required this.text});
+  const TitleText({super.key, required this.text});
 
   @override
   Widget build(BuildContext context) {
@@ -94,9 +94,9 @@ class CustomTitleText extends StatelessWidget {
 }
 
 //subTitles
-class CustomSubtitleText extends StatelessWidget {
+class SubtitleText extends StatelessWidget {
   final String text;
-  const CustomSubtitleText({super.key, required this.text});
+  const SubtitleText({super.key, required this.text});
 
   @override
   Widget build(BuildContext context) {
@@ -112,8 +112,8 @@ class CustomSubtitleText extends StatelessWidget {
 }
 
 //-or-
-class CustomDivider extends StatelessWidget {
-  const CustomDivider({super.key});
+class OrDivider extends StatelessWidget {
+  const OrDivider({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -133,14 +133,14 @@ class CustomDivider extends StatelessWidget {
 }
 
 //Text Fields || Text Box
-class CustomInputField extends StatefulWidget {
+class InputField extends StatefulWidget {
   final String label;
   final TextEditingController controller;
   final String hintText;
   final bool obscureText;
   final String? Function(String?)? validator;
 
-  const CustomInputField({
+  const InputField({
     super.key,
     required this.label,
     required this.controller,
@@ -150,10 +150,10 @@ class CustomInputField extends StatefulWidget {
   });
 
   @override
-  _CustomInputFieldState createState() => _CustomInputFieldState();
+  _InputFieldState createState() => _InputFieldState();
 }
 
-class _CustomInputFieldState extends State<CustomInputField> {
+class _InputFieldState extends State<InputField> {
   late bool _obscureText;
 
   @override

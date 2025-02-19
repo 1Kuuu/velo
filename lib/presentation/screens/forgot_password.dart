@@ -63,14 +63,14 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              CustomInputField(
+              InputField(
                 label: 'EMAIL',
                 controller: emailController,
                 hintText: 'Enter your email',
               ),
               const SizedBox(height: 32),
               Center(
-                child: CustomButton(
+                child: Button(
                   text: 'RESET PASSWORD',
                   onPressed: _resetPassword,
                 ),

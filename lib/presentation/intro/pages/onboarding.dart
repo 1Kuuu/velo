@@ -75,9 +75,9 @@ class _GetStartedState extends State<GetStarted> {
                       height: 40,
                     ),
                     const SizedBox(height: 0),
-                    CustomTitleText(text: content.title),
+                    TitleText(text: content.title),
                     const SizedBox(height: 0),
-                    CustomSubtitleText(text: content.subtitle),
+                    SubtitleText(text: content.subtitle),
                     Expanded(
                       child: Center(
                         child: Image.asset(
@@ -120,7 +120,7 @@ class _GetStartedState extends State<GetStarted> {
             left: 20,
             right: 20,
             child: Center(
-              child: CustomButton(
+              child: Button(
                 text: _contents[_currentPage].buttonText,
                 onPressed: _onButtonPressed,
               ),

@@ -28,7 +28,7 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  /// 🔹 Email & Password Login
+  /// Email & Password Login
   void _login() async {
     if (_formKey.currentState!.validate()) {
       try {
@@ -55,7 +55,7 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  /// 🔹 Google Sign-In (Force Account Selection)
+  /// Google Sign-In (Force Account Selection)
   void _signInWithGoogle() async {
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn();
@@ -64,14 +64,16 @@ class _LoginPageState extends State<LoginPage> {
       GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
       if (googleUser != null) {
-        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        final GoogleSignInAuthentication googleAuth =
+            await googleUser.authentication;
 
         final OAuthCredential credential = GoogleAuthProvider.credential(
           accessToken: googleAuth.accessToken,
           idToken: googleAuth.idToken,
         );
 
-        UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+        UserCredential userCredential =
+            await FirebaseAuth.instance.signInWithCredential(credential);
 
         if (userCredential.user != null && mounted) {
           Navigator.pushReplacement(
@@ -102,11 +104,11 @@ class _LoginPageState extends State<LoginPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const AppLogo(),
-                CustomTitleText(text: 'LOGIN'),
+                TitleText(text: 'LOGIN'),
                 const SizedBox(height: 32),
 
                 // Email Input with Validation
-                CustomInputField(
+                InputField(
                   label: 'EMAIL',
                   controller: emailController,
                   hintText: 'ENTER EMAIL',
@@ -114,7 +116,8 @@ class _LoginPageState extends State<LoginPage> {
                     if (value == null || value.isEmpty) {
                       return 'Email is required';
                     }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                        .hasMatch(value)) {
                       return 'Enter a valid email';
                     }
                     return null;
@@ -124,7 +127,7 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 16),
 
                 // Password Input with Validation
-                CustomInputField(
+                InputField(
                   label: 'PASSWORD',
                   controller: passwordController,
                   hintText: 'ENTER PASSWORD',
@@ -164,19 +167,19 @@ class _LoginPageState extends State<LoginPage> {
 
                 // Login Button
                 Center(
-                  child: CustomButton(
+                  child: Button(
                     text: 'LOGIN',
                     onPressed: _login,
                   ),
                 ),
 
                 const SizedBox(height: 24),
-                Center(child: CustomDivider()),
+                Center(child: OrDivider()),
                 const SizedBox(height: 24),
 
                 // Google Sign-In Button
                 Center(
-                  child: CustomButton(
+                  child: Button(
                     text: 'With Google',
                     onPressed: _signInWithGoogle,
                     iconPath: 'assets/images/Google.png',
