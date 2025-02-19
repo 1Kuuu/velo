@@ -14,8 +14,16 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final List<String> timeSlots = [
-    '8:00AM', '9:00AM', '10:00AM', '11:00AM', '12:00PM',
-    '1:00PM', '2:00PM', '3:00PM', '4:00PM', '5:00PM'
+    '8:00AM',
+    '9:00AM',
+    '10:00AM',
+    '11:00AM',
+    '12:00PM',
+    '1:00PM',
+    '2:00PM',
+    '3:00PM',
+    '4:00PM',
+    '5:00PM'
   ];
 
   late DateTime selectedDate;
@@ -36,7 +44,8 @@ class _HomePageState extends State<HomePage> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final weekStart = selectedDate.subtract(Duration(days: selectedDate.weekday - 1));
+        final weekStart =
+            selectedDate.subtract(Duration(days: selectedDate.weekday - 1));
         final weekEnd = weekStart.add(const Duration(days: 7));
 
         final snapshot = await FirebaseFirestore.instance
@@ -48,8 +57,10 @@ class _HomePageState extends State<HomePage> {
             .get();
 
         int totalActivities = snapshot.docs.length;
-        int totalMinutes = snapshot.docs.fold(0, (sum, doc) => sum + (doc['duration'] as int));
-        double totalDistance = snapshot.docs.fold(0.0, (sum, doc) => sum + (doc['distance'] as double));
+        int totalMinutes =
+            snapshot.docs.fold(0, (sum, doc) => sum + (doc['duration'] as int));
+        double totalDistance = snapshot.docs
+            .fold(0.0, (sum, doc) => sum + (doc['distance'] as double));
 
         setState(() {
           activities = totalActivities;
@@ -63,53 +74,58 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _fetchPlansForSelectedDate() async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user != null) {
-    try {
-      // Create the start and end of the selected day for comparison
-      final startOfDay = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
-      final endOfDay = startOfDay.add(Duration(days: 1));
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        // Create the start and end of the selected day for comparison
+        final startOfDay =
+            DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+        final endOfDay = startOfDay.add(Duration(days: 1));
 
-      // Query to get plans for the selected date
-      final snapshot = await FirebaseFirestore.instance
-          .collection('user_plans')
-          .doc(user.uid)
-          .collection('plans')
-          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where('date', isLessThan: Timestamp.fromDate(endOfDay))
-          .get();
+        // Query to get plans for the selected date
+        final snapshot = await FirebaseFirestore.instance
+            .collection('user_plans')
+            .doc(user.uid)
+            .collection('plans')
+            .where('date',
+                isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+            .where('date', isLessThan: Timestamp.fromDate(endOfDay))
+            .get();
 
-      setState(() {
-        plansByTime = {
-          for (var doc in snapshot.docs)
-            doc['time'] as String: doc['description'] as String
-        };
-      });
-    } catch (e) {
-      // Handle errors (e.g., network issues, permission issues)
+        setState(() {
+          plansByTime = {
+            for (var doc in snapshot.docs)
+              doc['time'] as String: doc['description'] as String
+          };
+        });
+      } catch (e) {
+        // Handle errors (e.g., network issues, permission issues)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error fetching plans: $e")),
+        );
+      }
+    } else {
+      // Handle the case where the user is not logged in
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error fetching plans: $e")),
+        SnackBar(content: Text("User not logged in")),
       );
     }
-  } else {
-    // Handle the case where the user is not logged in
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("User not logged in")),
-    );
   }
-}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF561C24),
       appBar: AppBar(
+        automaticallyImplyLeading:
+            false, // 👈 Prevents the back button from showing
         backgroundColor: const Color(0xFF561C24),
         elevation: 0,
-        title: Text('HOME', style: AppFonts.bold.copyWith(
-          color: Colors.white,
-          fontWeight: FontWeight.w600,
-        )),
+        title: Text('HOME',
+            style: AppFonts.bold.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            )),
         actions: [
           IconButton(
             icon: const Icon(Icons.cloud_outlined, color: Colors.white),
@@ -182,7 +198,8 @@ class _HomePageState extends State<HomePage> {
             children: [
               _buildProgressItem('Activities', activities.toString(), '0'),
               _buildProgressItem('Time', time, '0'),
-              _buildProgressItem('Distance', '${distance.toStringAsFixed(2)}km', '0'),
+              _buildProgressItem(
+                  'Distance', '${distance.toStringAsFixed(2)}km', '0'),
             ],
           ),
         ],
@@ -220,8 +237,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildCalendar() {
-    final weekStart = selectedDate.subtract(Duration(days: selectedDate.weekday - 1));
-    final days = List.generate(7, (index) => weekStart.add(Duration(days: index)));
+    final weekStart =
+        selectedDate.subtract(Duration(days: selectedDate.weekday - 1));
+    final days =
+        List.generate(7, (index) => weekStart.add(Duration(days: index)));
 
     return Container(
       color: Colors.white,
@@ -276,7 +295,8 @@ class _HomePageState extends State<HomePage> {
                     width: 50,
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     decoration: BoxDecoration(
-                      border: Border.all(color: isSelected ? Colors.blue : Colors.grey[300]!),
+                      border: Border.all(
+                          color: isSelected ? Colors.blue : Colors.grey[300]!),
                       borderRadius: BorderRadius.circular(8),
                       color: isSelected ? Colors.blue.withOpacity(0.1) : null,
                     ),
@@ -345,7 +365,9 @@ class _HomePageState extends State<HomePage> {
                     child: Container(
                       height: 24,
                       decoration: BoxDecoration(
-                        color: plan.isNotEmpty ? Colors.blue.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                        color: plan.isNotEmpty
+                            ? Colors.blue.withOpacity(0.1)
+                            : Colors.grey.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Center(
@@ -353,7 +375,9 @@ class _HomePageState extends State<HomePage> {
                           plan.isNotEmpty ? plan : 'Add plan',
                           style: AppFonts.regular.copyWith(
                             fontSize: 12,
-                            color: plan.isNotEmpty ? Colors.black87 : Colors.grey[600],
+                            color: plan.isNotEmpty
+                                ? Colors.black87
+                                : Colors.grey[600],
                           ),
                         ),
                       ),
@@ -386,7 +410,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showAddPlanDialog(String time) {
-    final TextEditingController controller = TextEditingController(text: plansByTime[time] ?? '');
+    final TextEditingController controller =
+        TextEditingController(text: plansByTime[time] ?? '');
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -413,7 +438,8 @@ class _HomePageState extends State<HomePage> {
                       .collection('plans')
                       .doc('${selectedDate.toIso8601String()}_$time')
                       .set({
-                    'date': Timestamp.fromDate(DateTime(selectedDate.year, selectedDate.month, selectedDate.day)),
+                    'date': Timestamp.fromDate(DateTime(selectedDate.year,
+                        selectedDate.month, selectedDate.day)),
                     'time': time,
                     'description': controller.text,
                   });
@@ -435,4 +461,3 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
-

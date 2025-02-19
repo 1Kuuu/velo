@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:velo/core/configs/theme/app_colors.dart';
+import 'package:velo/presentation/intro/pages/what_screen.dart';
 import 'package:velo/presentation/widgets/reusable_wdgts.dart';
 import 'package:velo/data/sources/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'login.dart';
-import 'bike_survey.dart';
 
 class Signup extends StatefulWidget {
   const Signup({super.key});
@@ -84,7 +84,7 @@ class _SignupState extends State<Signup> {
         if (userCredential.user != null && mounted) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => BikeSelectionScreen()),
+            MaterialPageRoute(builder: (context) => WhatScreen()),
           );
         }
       }
