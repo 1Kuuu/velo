@@ -72,7 +72,7 @@ class _BikeSelectionScreenState extends State<BikeSelectionScreen> {
                 color: Colors.black54,
               ),
             ),
-            SizedBox(height: 40),
+            SizedBox(height: 30),
             buildBikeOption('Roadbike', 'assets/images/mb.png'),
             buildBikeOption('Mountainbike', 'assets/images/mb1.png'),
             buildBikeOption('Fixie', 'assets/images/fx1.png'),
