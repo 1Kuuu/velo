@@ -9,7 +9,7 @@ import 'package:velo/presentation/screens/login.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(); // Initialize Firebase
+  await Firebase.initializeApp();
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -32,7 +32,7 @@ class MyApp extends StatelessWidget {
         primaryColor: const Color(0xFF672A2A),
         scaffoldBackgroundColor: Colors.grey[100],
       ),
-      home: const SplashScreen(), // Start with SplashScreen
+      home: const SplashScreen(),
       routes: {
         '/getstarted': (context) => const GetStarted(),
         '/home': (context) => const HomePage(),
@@ -49,19 +49,17 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Future.delayed(const Duration(seconds: 2), () {
-      // Check if user is already logged in
       User? user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        Navigator.pushReplacementNamed(context, '/home'); // Go to Home if logged in
+        Navigator.pushReplacementNamed(context, '/home');
       } else {
-        Navigator.pushReplacementNamed(context, '/getstarted'); // Otherwise, Onboarding
+        Navigator.pushReplacementNamed(context, '/getstarted');
       }
     });
 
     return Scaffold(
       body: Center(
-        child: Image.asset('assets/images/logo.png',
-            width: 150, height: 150), // Splash logo
+        child: Image.asset('assets/images/logo.png', width: 150, height: 150),
       ),
     );
   }
