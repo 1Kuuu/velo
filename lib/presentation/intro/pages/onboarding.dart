@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:velo/presentation/screens/login.dart';
-import 'package:velo/presentation/widgets/reusable_wdgts.dart';
-import 'package:velo/core/configs/theme/app_colors.dart';
+import 'package:velora/presentation/screens/Auth/login.dart';
+import 'package:velora/presentation/widgets/reusable_wdgts.dart';
+import 'package:velora/core/configs/theme/app_colors.dart';
 
 class GetStarted extends StatefulWidget {
   const GetStarted({super.key});

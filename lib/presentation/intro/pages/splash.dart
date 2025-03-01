@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:velo/presentation/screens/login.dart';
+import 'package:velora/presentation/screens/Auth/login.dart';
 
 class SplashPage extends StatelessWidget {
   const SplashPage({super.key});

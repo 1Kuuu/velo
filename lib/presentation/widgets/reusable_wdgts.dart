@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:velo/core/configs/theme/app_fonts.dart';
-import 'package:velo/core/configs/theme/app_colors.dart';
+import 'package:velora/core/configs/theme/app_fonts.dart';
+import 'package:velora/core/configs/theme/app_colors.dart';
 
 //Buttons
 class CustomButton extends StatelessWidget {
@@ -242,3 +242,61 @@ class AccountNavigationRow extends StatelessWidget {
     );
   }
 }
+
+//Animated Bottom Bar
+class AnimatedBottomBarButton extends StatelessWidget {
+  final int index;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const AnimatedBottomBarButton({
+    super.key,
+    required this.index,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        padding: EdgeInsets.only(top: isSelected ? 0 : 6),
+        child: Icon(
+          icon,
+          size: isSelected ? 34 : 28,
+          color: isSelected ? Colors.white : Colors.grey,
+        ),
+      ),
+    );
+  }
+}
+
+//Floating Action Button ( "+" & OpenAI)
+class TheFloatingActionButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  const TheFloatingActionButton({
+    super.key,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 3),
+      child: FloatingActionButton(
+        onPressed: onPressed,
+        backgroundColor: Colors.black,
+        child: Icon(icon, size: 28, color: Colors.white),
+      ),
+    );
+  }
+}
+

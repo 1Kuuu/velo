@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:velo/presentation/intro/pages/onboarding.dart';
-import 'package:velo/presentation/screens/home.dart';
-import 'package:velo/presentation/screens/signup.dart';
-import 'package:velo/presentation/screens/login.dart';
+import 'package:velora/presentation/intro/pages/onboarding.dart';
+import 'package:velora/presentation/screens/Home/home.dart';
+import 'package:velora/presentation/screens/Auth/signup.dart';
+import 'package:velora/presentation/screens/Auth/login.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
