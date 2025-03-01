@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/presentation/screens/0Auth/login.dart';
 import 'package:velora/presentation/screens/5Settings/editprofile.dart';
@@ -12,6 +13,9 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool isDarkMode = false;
+
+  // Get the logged-in user details
+  final User? user = FirebaseAuth.instance.currentUser;
 
   @override
   Widget build(BuildContext context) {
@@ -51,12 +55,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _buildListTile(
                       Icons.description_outlined, "Terms & Condition"),
                   _buildListTile(Icons.info_outline, "About"),
-                  _buildListTile(Icons.logout, "Logout", onTap: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const LoginPage()),
-                    );
+                  _buildListTile(Icons.logout, "Logout", onTap: () async {
+                    await FirebaseAuth.instance.signOut();
+                    if (mounted) {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const LoginPage()),
+                      );
+                    }
                   }),
                   const SizedBox(height: 20),
                 ],
@@ -73,18 +80,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.symmetric(vertical: 20),
       child: Column(
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             radius: 50,
-            backgroundImage: AssetImage("assets/profile.jpg"),
+            backgroundImage: user?.photoURL != null
+                ? NetworkImage(user!.photoURL!) // Load profile image
+                : const AssetImage("assets/profile.jpg")
+                    as ImageProvider, // Default image
           ),
           const SizedBox(height: 10),
-          const Text("Indie Lucero",
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold)),
-          const Text("@luceroindie17",
-              style: TextStyle(color: Colors.white70, fontSize: 14)),
+          Text(
+            user?.displayName ?? "Indie Lucero", // Show Google name or default
+            style: const TextStyle(
+                color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            user?.email ?? "@luceroindie17", // Show email or default username
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
+          ),
           const SizedBox(height: 5),
           const Text("Drop a gear and Disappear.",
               style: TextStyle(color: Colors.white70, fontSize: 12)),

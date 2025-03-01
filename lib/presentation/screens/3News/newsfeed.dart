@@ -1,22 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:velora/core/configs/theme/app_colors.dart';
+import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
-class NewsFeed extends StatefulWidget {
-  const NewsFeed({super.key});
+class NewsFeedPageContent extends StatelessWidget {
+  const NewsFeedPageContent({super.key});
 
-  @override
-  _NewsFeedState createState() => _NewsFeedState();
-}
-
-class _NewsFeedState extends State<NewsFeed> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('News Feed'),
+      backgroundColor: AppColors.lightBackground,
+      appBar: MyAppBar(
+        title: "News Feed",
+        actions: [
+          AppBarIcon(
+            icon: Icons.cloud_outlined,
+            onTap: () => print("Weather Tapped"),
+            showBadge: false,
+          ),
+          AppBarIcon(
+            icon: Icons.notifications_outlined,
+            onTap: () => print("Notifications Tapped"),
+          ),
+          AppBarIcon(
+            icon: Icons.person_outline,
+            onTap: () => print("Profile Tapped"),
+          ),
+        ],
       ),
-      body: const Center(
-        child: Text('News Feed Page'),
-      ),
+      body: const Center(child: Text("Welcome to News Feed")),
     );
   }
 }

@@ -14,13 +14,13 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0; // Track the selected tab
+  int _selectedIndex = 0;
 
   final List<Widget> _screens = [
     const HomePageContent(),
-    const Toolbox(),
-    const NewsFeed(),
-    const ChatPage(),
+    const ToolboxPageContent(),
+    const NewsFeedPageContent(),
+    const ChatPageContent(),
     const SettingsScreen(),
   ];
 
@@ -28,13 +28,13 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return AnimatedBottomBarButton(
       body: IndexedStack(
-        index: _selectedIndex, // Maintain state of each screen
+        index: _selectedIndex,
         children: _screens,
       ),
       selectedIndex: _selectedIndex,
       onItemTapped: (index) {
         setState(() {
-          _selectedIndex = index; // Update selected page
+          _selectedIndex = index;
         });
       },
     );
@@ -48,8 +48,32 @@ class HomePageContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
-      appBar: AppBar(title: const Text("Home")),
+      appBar: MyAppBar(
+        title: "Home",
+        actions: [
+          AppBarIcon(
+            icon: Icons.cloud_outlined,
+            onTap: () => print("Weather Tapped"),
+            showBadge: false,
+          ),
+          AppBarIcon(
+            icon: Icons.notifications_outlined,
+            onTap: () => print("Notifications Tapped"),
+          ),
+          AppBarIcon(
+            icon: Icons.person_outline,
+            onTap: () => print("Profile Tapped"),
+          ),
+        ],
+      ),
       body: const Center(child: Text("Welcome to Home Page")),
+      floatingActionButton: TheFloatingActionButton(
+        icon: Icons.add, // Example icon
+        onPressed: () {
+          print("Floating Action Button Tapped");
+          // Handle the action you want when the button is tapped
+        },
+      ),
     );
   }
 }

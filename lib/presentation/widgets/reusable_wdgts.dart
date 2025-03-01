@@ -244,6 +244,92 @@ class AccountNavigationRow extends StatelessWidget {
   }
 }
 
+//App Bar
+class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
+  final String title;
+  final VoidCallback? onWeatherTap;
+  final VoidCallback? onNotificationTap;
+  final VoidCallback? onProfileTap;
+  final bool hasWeatherAlert;
+  final List<Widget>? actions; // Accept custom actions
+
+  const MyAppBar({
+    super.key,
+    required this.title,
+    this.onWeatherTap,
+    this.onNotificationTap,
+    this.onProfileTap,
+    this.hasWeatherAlert = false,
+    this.actions, // Accept a list of action widgets
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return AppBar(
+      backgroundColor: theme.primaryColor,
+      elevation: 0,
+      title: Text(
+        title,
+        style: theme.textTheme.titleLarge?.copyWith(
+          color: theme.colorScheme.onPrimary,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          bottom: Radius.circular(18), // Adjust curve radius as needed
+        ),
+      ),
+
+      actions: actions ?? [], // Ensure actions are properly set
+    );
+  }
+
+  @override
+  Size get preferredSize => const Size.fromHeight(67.0);
+}
+
+//App Bar Icons
+class AppBarIcon extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool showBadge;
+
+  const AppBarIcon({
+    super.key,
+    required this.icon,
+    required this.onTap,
+    this.showBadge = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        IconButton(
+          icon: Icon(icon, color: Colors.white), // Ensure icon color is visible
+          onPressed: onTap,
+        ),
+        if (showBadge)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 //Animated Bottom Bar
 class AnimatedBottomBarButton extends StatelessWidget {
   final Widget body;

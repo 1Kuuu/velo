@@ -1,22 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:velora/core/configs/theme/app_colors.dart';
+import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
-class ChatPage extends StatefulWidget {
-  const ChatPage({super.key});
+class ChatPageContent extends StatelessWidget {
+  const ChatPageContent({super.key});
 
-  @override
-  _ChatPageState createState() => _ChatPageState();
-}
-
-class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Chat'),
+      backgroundColor: AppColors.lightBackground,
+      appBar: MyAppBar(
+        title: "Chat",
+        actions: [
+          AppBarIcon(
+            icon: Icons.cloud_outlined,
+            onTap: () => print("Weather Tapped"),
+            showBadge: false,
+          ),
+          AppBarIcon(
+            icon: Icons.notifications_outlined,
+            onTap: () => print("Notifications Tapped"),
+          ),
+          AppBarIcon(
+            icon: Icons.person_outline,
+            onTap: () => print("Profile Tapped"),
+          ),
+        ],
       ),
-      body: const Center(
-        child: Text('Chat Page'),
-      ),
+      body: const Center(child: Text("Welcome to Chat Page")),
     );
   }
 }

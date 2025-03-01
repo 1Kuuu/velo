@@ -1,22 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:velora/core/configs/theme/app_colors.dart';
+import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
-class Toolbox extends StatefulWidget {
-  const Toolbox({super.key});
+class ToolboxPageContent extends StatelessWidget {
+  const ToolboxPageContent({super.key});
 
-  @override
-  _ToolboxState createState() => _ToolboxState();
-}
-
-class _ToolboxState extends State<Toolbox> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Toolbox'),
+      backgroundColor: AppColors.lightBackground,
+      appBar: MyAppBar(
+        title: "Toolbox",
+        actions: [
+          AppBarIcon(
+            icon: Icons.cloud_outlined,
+            onTap: () => print("Weather Tapped"),
+            showBadge: false,
+          ),
+          AppBarIcon(
+            icon: Icons.notifications_outlined,
+            onTap: () => print("Notifications Tapped"),
+          ),
+          AppBarIcon(
+            icon: Icons.person_outline,
+            onTap: () => print("Profile Tapped"),
+          ),
+        ],
       ),
-      body: const Center(
-        child: Text('Toolbox Page'),
-      ),
+      body: const Center(child: Text("Welcome to Toolbox")),
     );
   }
 }
