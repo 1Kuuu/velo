@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:velora/core/configs/theme/app_fonts.dart';
-import 'package:velora/presentation/screens/NewEventScreen.dart';
+import 'package:velora/presentation/screens/Home/neweventscreen.dart';
 import 'package:velora/presentation/screens/Settings/setting.dart';
 
 class HomePage extends StatefulWidget {
