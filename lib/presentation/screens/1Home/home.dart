@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
+import 'package:velora/presentation/screens/1Home/newevent.dart';
 import 'package:velora/presentation/screens/2ToolBox/toolbox.dart';
 import 'package:velora/presentation/screens/3News/newsfeed.dart';
 import 'package:velora/presentation/screens/4Chat/chat.dart';
 import 'package:velora/presentation/screens/5Settings/setting.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
+import 'package:velora/presentation/screens/1Home/newevent.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -71,7 +73,9 @@ class HomePageContent extends StatelessWidget {
         icon: Icons.add, // Example icon
         onPressed: () {
           print("Floating Action Button Tapped");
-          // Handle the action you want when the button is tapped
+
+          Navigator.push(context,
+              MaterialPageRoute(builder: (context) => const NewEventScreen()));
         },
       ),
     );
