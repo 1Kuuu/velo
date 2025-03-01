@@ -1,3 +1,4 @@
+import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
@@ -245,32 +246,37 @@ class AccountNavigationRow extends StatelessWidget {
 
 //Animated Bottom Bar
 class AnimatedBottomBarButton extends StatelessWidget {
-  final int index;
-  final IconData icon;
-  final bool isSelected;
-  final VoidCallback onTap;
+  final Widget body;
+  final int selectedIndex;
+  final ValueChanged<int>? onItemTapped; // Callback for tab change
 
   const AnimatedBottomBarButton({
     super.key,
-    required this.index,
-    required this.icon,
-    required this.isSelected,
-    required this.onTap,
+    required this.body,
+    required this.selectedIndex,
+    this.onItemTapped,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        padding: EdgeInsets.only(top: isSelected ? 0 : 6),
-        child: Icon(
-          icon,
-          size: isSelected ? 34 : 28,
-          color: isSelected ? Colors.white : Colors.grey,
-        ),
+    return Scaffold(
+      body: body,
+      bottomNavigationBar: CurvedNavigationBar(
+        backgroundColor: Colors.white,
+        color: AppColors.primary,
+        animationCurve: Curves.easeOut,
+        maxWidth: 450,
+        height: 60,
+        animationDuration: const Duration(milliseconds: 600),
+        index: selectedIndex,
+        items: const [
+          Icon(Icons.home, color: Colors.white),
+          Icon(Icons.work, color: Colors.white),
+          Icon(Icons.calendar_today, color: Colors.white),
+          Icon(Icons.chat_bubble_outline, color: Colors.white),
+          Icon(Icons.settings, color: Colors.white),
+        ],
+        onTap: onItemTapped, // Use callback to update state
       ),
     );
   }
@@ -299,4 +305,3 @@ class TheFloatingActionButton extends StatelessWidget {
     );
   }
 }
-

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:velora/presentation/intro/pages/onboarding.dart';
-import 'package:velora/presentation/screens/Home/home.dart';
-import 'package:velora/presentation/screens/Auth/signup.dart';
-import 'package:velora/presentation/screens/Auth/login.dart';
+import 'package:velora/presentation/intro/onboarding.dart';
+import 'package:velora/presentation/screens/1Home/home.dart';
+import 'package:velora/presentation/screens/0Auth/signup.dart';
+import 'package:velora/presentation/screens/0Auth/login.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,9 +52,11 @@ class SplashScreen extends StatelessWidget {
       // Check if user is already logged in
       User? user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        Navigator.pushReplacementNamed(context, '/home'); // Go to Home if logged in
+        Navigator.pushReplacementNamed(
+            context, '/home'); // Go to Home if logged in
       } else {
-        Navigator.pushReplacementNamed(context, '/getstarted'); // Otherwise, Onboarding
+        Navigator.pushReplacementNamed(
+            context, '/getstarted'); // Otherwise, Onboarding
       }
     });
 
