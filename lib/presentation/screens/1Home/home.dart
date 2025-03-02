@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
+import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/screens/2ToolBox/toolbox.dart';
 import 'package:velora/presentation/screens/3News/newsfeed.dart';
 import 'package:velora/presentation/screens/4Chat/chat.dart';
@@ -63,7 +64,10 @@ class _HomePageContentState extends State<HomePageContent> {
         actions: [
           AppBarIcon(icon: Icons.cloud_outlined, onTap: () => print("Weather Tapped")),
           AppBarIcon(icon: Icons.notifications_outlined, onTap: () => print("Notifications Tapped")),
-          AppBarIcon(icon: Icons.person_outline, onTap: () => print("Profile Tapped")),
+          AppBarIcon(icon: Icons.person_outline, onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => ProfilePage()),
+      )),
         ],
       ),
       body: const Center(child: Text("Welcome to Home Page")),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
+import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
 class ChatPageContent extends StatelessWidget {
@@ -23,7 +24,10 @@ class ChatPageContent extends StatelessWidget {
           ),
           AppBarIcon(
             icon: Icons.person_outline,
-            onTap: () => print("Profile Tapped"),
+            onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => ProfilePage()),
+      )
           ),
         ],
       ),

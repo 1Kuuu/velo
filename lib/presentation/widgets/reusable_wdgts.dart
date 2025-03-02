@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 
-//Buttons
+// ---------------------- BUTTON ----------------------
 class CustomButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
@@ -58,7 +58,7 @@ class CustomButton extends StatelessWidget {
   }
 }
 
-//Velora_Logo
+// ---------------------- VELORA LOGO ----------------------
 class AppLogo extends StatelessWidget {
   const AppLogo({super.key});
 
@@ -75,7 +75,7 @@ class AppLogo extends StatelessWidget {
   }
 }
 
-//Titles
+// ---------------------- TITLES ----------------------
 class CustomTitleText extends StatelessWidget {
   final String text;
 
@@ -94,7 +94,7 @@ class CustomTitleText extends StatelessWidget {
   }
 }
 
-//subTitles
+// ---------------------- SUBTITLES ----------------------
 class CustomSubtitleText extends StatelessWidget {
   final String text;
   const CustomSubtitleText({super.key, required this.text});
@@ -112,7 +112,7 @@ class CustomSubtitleText extends StatelessWidget {
   }
 }
 
-//-or-
+// ---------------------- -OR- ----------------------
 class CustomDivider extends StatelessWidget {
   const CustomDivider({super.key});
 
@@ -133,7 +133,7 @@ class CustomDivider extends StatelessWidget {
   }
 }
 
-//Text Fields || Text Box
+// ---------------------- TEXT FIELD || TEXT BOX ----------------------
 class CustomInputField extends StatefulWidget {
   final String label;
   final TextEditingController controller;
@@ -210,7 +210,7 @@ class _CustomInputFieldState extends State<CustomInputField> {
   }
 }
 
-//Don't || Already ... Have an Account
+// ---------------------- DON'T || ALREADY ... HAVE AN ACCOUNT ----------------------
 class AccountNavigationRow extends StatelessWidget {
   final String questionText;
   final String actionText;
@@ -244,7 +244,7 @@ class AccountNavigationRow extends StatelessWidget {
   }
 }
 
-//App Bar
+// ---------------------- APP BAR ----------------------
 class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final VoidCallback? onWeatherTap;
@@ -291,7 +291,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(67.0);
 }
 
-//App Bar Icons
+// ---------------------- APP BAR ICON ----------------------
 class AppBarIcon extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
@@ -330,7 +330,7 @@ class AppBarIcon extends StatelessWidget {
   }
 }
 
-//Animated Bottom Bar
+// ---------------------- ANIMATED BOTTOM NAV BAR ----------------------
 class AnimatedBottomBarButton extends StatelessWidget {
   final Widget body;
   final int selectedIndex;
@@ -368,7 +368,7 @@ class AnimatedBottomBarButton extends StatelessWidget {
   }
 }
 
-//Floating Action Button ( "+" & OpenAI)
+// ---------------------- FAB ----------------------
 class TheFloatingActionButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onPressed;

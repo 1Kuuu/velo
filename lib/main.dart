@@ -60,11 +60,6 @@ class SplashScreen extends StatelessWidget {
       }
     });
 
-    return Scaffold(
-      body: Center(
-        child: Image.asset('assets/images/logo.png',
-            width: 150, height: 150), // Splash logo
-      ),
-    );
+    return const SizedBox.shrink(); // Remove UI completely
   }
 }
