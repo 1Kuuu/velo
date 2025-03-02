@@ -1,11 +1,16 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/presentation/screens/0Auth/login.dart';
 import 'package:velora/presentation/screens/5Settings/editprofile.dart';
-import 'package:velora/presentation/screens/5Settings/setting_screen.dart';
 
-// ignore: unused_element
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  _SettingsScreenState createState() => _SettingsScreenState();
+}
+
 class _SettingsScreenState extends State<SettingsScreen> {
   bool isDarkMode = false;
   final User? user = FirebaseAuth.instance.currentUser;
@@ -126,8 +131,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Ensure the returned data is a map and contains 'name' and 'bio' keys
               if (updatedUser != null && updatedUser is Map<String, String>) {
                 setState(() {
-                  displayName = updatedUser['name'] ?? "User Name";  // Use 'name' key here
-                  bio = updatedUser['bio'] ?? "No bio available";    // Use 'bio' key here
+                  displayName = updatedUser['name'] ?? "User Name";
+                  bio = updatedUser['bio'] ?? "No bio available";
                 });
               }
             },
