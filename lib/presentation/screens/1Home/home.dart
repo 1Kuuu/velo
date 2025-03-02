@@ -5,7 +5,7 @@ import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/screens/2ToolBox/toolbox.dart';
 import 'package:velora/presentation/screens/3News/newsfeed.dart';
 import 'package:velora/presentation/screens/4Chat/chat.dart';
-import 'package:velora/presentation/screens/5Settings/setting.dart';
+import 'package:velora/presentation/screens/5Settings/setting_screen.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
 class HomePage extends StatefulWidget {

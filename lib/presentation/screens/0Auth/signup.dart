@@ -1,10 +1,13 @@
+import 'package:delightful_toast/delight_toast.dart';
+import 'package:delightful_toast/toast/components/toast_card.dart';
+import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:flutter/material.dart';
-import 'package:velora/core/configs/theme/app_colors.dart';
-import 'package:velora/presentation/widgets/reusable_wdgts.dart';
-import 'package:velora/data/sources/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import '../1Home/home.dart';
+import 'package:velora/core/configs/theme/app_colors.dart';
+import 'package:velora/data/sources/auth_service.dart';
+import 'package:velora/presentation/intro/what_screen.dart';
+import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 import 'login.dart';
 
 class Signup extends StatefulWidget {
@@ -32,7 +35,7 @@ class _SignupState extends State<Signup> {
   }
 
   /// 🔹 Email & Password Signup with Validation
-  void _signup() async {
+  Future<bool> _signup() async {
     if (_formKey.currentState!.validate()) {
       try {
         await FirebaseServices.signup(
@@ -53,18 +56,21 @@ class _SignupState extends State<Signup> {
             MaterialPageRoute(builder: (context) => const LoginPage()),
           );
         }
+        return true;
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Signup failed: $e")),
           );
         }
+        return false;
       }
     }
+    return false;
   }
 
   /// 🔹 Google Sign-Up (Force Account Selection)
-  void _signInWithGoogle() async {
+  Future<bool> _signInWithGoogle() async {
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn();
       await googleSignIn.signOut(); // Ensure user selects an account
@@ -84,9 +90,10 @@ class _SignupState extends State<Signup> {
         if (userCredential.user != null && mounted) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const HomePage()),
+            MaterialPageRoute(builder: (context) => WhatScreen()),
           );
         }
+        return true;
       }
     } catch (e) {
       if (mounted) {
@@ -95,6 +102,7 @@ class _SignupState extends State<Signup> {
         );
       }
     }
+    return false;
   }
 
   @override
@@ -189,11 +197,28 @@ class _SignupState extends State<Signup> {
                 Center(
                   child: CustomButton(
                     text: 'SIGN UP',
-                    onPressed: _signup,
+                    onPressed: () async {
+                      bool isSuccess = await _signup();
+                      if (isSuccess) {
+                        DelightToastBar(
+                          builder: (context) {
+                            return ToastCard(
+                              title: const Text('Success'),
+                              leading:
+                                  Icon(Icons.check_circle, color: Colors.green),
+                            );
+                          },
+                          position: DelightSnackbarPosition.top,
+                          autoDismiss: true,
+                          snackbarDuration: Durations.extralong4,
+                        ).show(context);
+                      }
+                    },
                   ),
                 ),
 
                 const SizedBox(height: 24),
+
                 Center(child: CustomDivider()),
                 const SizedBox(height: 24),
 
@@ -201,7 +226,23 @@ class _SignupState extends State<Signup> {
                 Center(
                   child: CustomButton(
                     text: 'With Google',
-                    onPressed: _signInWithGoogle,
+                    onPressed: () async {
+                      var isSuccess = await _signInWithGoogle();
+                      if (isSuccess) {
+                        DelightToastBar(
+                          builder: (context) {
+                            return ToastCard(
+                              title: const Text('Success'),
+                              leading:
+                                  Icon(Icons.check_circle, color: Colors.green),
+                            );
+                          },
+                          position: DelightSnackbarPosition.top,
+                          autoDismiss: true,
+                          snackbarDuration: Durations.extralong4,
+                        ).show(context);
+                      }
+                    },
                     iconPath: 'assets/images/Google.png',
                   ),
                 ),
