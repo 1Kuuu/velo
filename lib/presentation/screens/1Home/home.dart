@@ -52,6 +52,7 @@ class Event {
   final bool isAllDay;
   final String repeatStatus;
   final Color color;
+  final String id; // Add an ID to uniquely identify each event
 
   Event({
     required this.title,
@@ -62,7 +63,32 @@ class Event {
     required this.isAllDay,
     required this.repeatStatus,
     required this.color,
+    required this.id,
   });
+
+  // Create a copy of the event with updated fields
+  Event copyWith({
+    String? title,
+    String? description,
+    DateTime? date,
+    TimeOfDay? startTime,
+    TimeOfDay? endTime,
+    bool? isAllDay,
+    String? repeatStatus,
+    Color? color,
+  }) {
+    return Event(
+      id: this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      date: date ?? this.date,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
+      isAllDay: isAllDay ?? this.isAllDay,
+      repeatStatus: repeatStatus ?? this.repeatStatus,
+      color: color ?? this.color,
+    );
+  }
 }
 
 class HomePageContent extends StatefulWidget {
@@ -101,6 +127,67 @@ class _HomePageContentState extends State<HomePageContent> {
         _selectedDate = picked; // Updates the selected date from picker
       });
     }
+  }
+
+  // Delete an event
+  void _deleteEvent(String eventId) {
+    setState(() {
+      _events.removeWhere((event) => event.id == eventId);
+    });
+  }
+
+  // Show delete confirmation dialog
+  Future<void> _showDeleteConfirmation(BuildContext context, Event event) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // User must tap button to close dialog
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Delete Event'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('Are you sure you want to delete "${event.title}"?'),
+                Text('This action cannot be undone.'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Delete', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                _deleteEvent(event.id);
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${event.title} deleted'),
+                    action: SnackBarAction(
+                      label: 'UNDO',
+                      onPressed: () {
+                        setState(() {
+                          _events.add(event);
+                        });
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Edit an event
+  void _editEvent(Event event) {
+    showNewEventModal(context, existingEvent: event);
   }
 
   @override
@@ -212,6 +299,12 @@ class _HomePageContentState extends State<HomePageContent> {
                     _selectedDate.month == currentDate.month &&
                     _selectedDate.year == currentDate.year;
 
+                // Check if there are events on this day
+                bool hasEvents = _events.any((event) =>
+                    event.date.day == currentDate.day &&
+                    event.date.month == currentDate.month &&
+                    event.date.year == currentDate.year);
+
                 return GestureDetector(
                   onTap: () => _onDateSelected(currentDate),
                   child: Column(
@@ -221,20 +314,37 @@ class _HomePageContentState extends State<HomePageContent> {
                         style: const TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                       const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: isSelected ? Colors.brown : Colors.transparent,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Text(
-                          currentDate.day.toString(), // "20", "21", etc.
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: isSelected ? Colors.white : Colors.black,
+                      Stack(
+                        alignment: Alignment.bottomCenter,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: isSelected ? Colors.brown : Colors.transparent,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              currentDate.day.toString(), // "20", "21", etc.
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected ? Colors.white : Colors.black,
+                              ),
+                            ),
                           ),
-                        ),
+                          if (hasEvents)
+                            Positioned(
+                              bottom: 0,
+                              child: Container(
+                                width: 4,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ),
@@ -245,31 +355,104 @@ class _HomePageContentState extends State<HomePageContent> {
 
           // Display Events for the Selected Date
           Expanded(
-            child: ListView.builder(
-              itemCount: filteredEvents.length,
-              itemBuilder: (context, index) {
-                Event event = filteredEvents[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
+            child: filteredEvents.isEmpty
+                ? Center(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        Icon(Icons.event_note, size: 48, color: Colors.grey),
+                        SizedBox(height: 16),
                         Text(
-                          event.title,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          "No events for ${DateFormat('EEEE, MMMM d').format(_selectedDate)}",
+                          style: TextStyle(color: Colors.grey),
                         ),
-                        const SizedBox(height: 4),
-                        Text("${DateFormat('EEEE, MMMM d').format(event.date)} | ${_formatTimeOfDay(event.startTime)} - ${_formatTimeOfDay(event.endTime)}"),
-                        const SizedBox(height: 4),
-                        Text(event.description),
+                        SizedBox(height: 8),
+                        Text(
+                          "Tap + to add a new event",
+                          style: TextStyle(color: Colors.grey),
+                        ),
                       ],
                     ),
+                  )
+                : ListView.builder(
+                    itemCount: filteredEvents.length,
+                    itemBuilder: (context, index) {
+                      Event event = filteredEvents[index];
+                      return Dismissible(
+                        key: Key(event.id),
+                        background: Container(
+                          color: Colors.red,
+                          alignment: Alignment.centerRight,
+                          padding: EdgeInsets.only(right: 20),
+                          child: Icon(Icons.delete, color: Colors.white),
+                        ),
+                        direction: DismissDirection.endToStart,
+                        onDismissed: (direction) {
+                          _deleteEvent(event.id);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('${event.title} deleted'),
+                              action: SnackBarAction(
+                                label: 'UNDO',
+                                onPressed: () {
+                                  setState(() {
+                                    _events.add(event);
+                                  });
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                        child: Card(
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          color: event.color, // Use the event's color as the card background
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        event.title,
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                      ),
+                                    ),
+                                    Row(
+                                      children: [
+                                        // Edit button
+                                        IconButton(
+                                          icon: Icon(Icons.edit, size: 20),
+                                          onPressed: () => _editEvent(event),
+                                          padding: EdgeInsets.zero,
+                                          constraints: BoxConstraints(),
+                                        ),
+                                        SizedBox(width: 16), // Space between buttons
+                                        // Delete button
+                                        IconButton(
+                                          icon: Icon(Icons.delete, size: 20),
+                                          onPressed: () => _showDeleteConfirmation(context, event),
+                                          padding: EdgeInsets.zero,
+                                          constraints: BoxConstraints(),
+                                          color: Colors.red[700],
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text("${DateFormat('EEEE, MMMM d').format(event.date)} | ${_formatTimeOfDay(event.startTime)} - ${_formatTimeOfDay(event.endTime)}"),
+                                const SizedBox(height: 4),
+                                Text(event.description),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),
@@ -295,17 +478,18 @@ class _HomePageContentState extends State<HomePageContent> {
     return format.format(dateTime);
   }
 
-  void showNewEventModal(BuildContext context) {
-    DateTime selectedDate = DateTime.now();
-    bool isAllDay = false;
-    String repeatStatus = "None";
-    TimeOfDay startTime = TimeOfDay.now();
-    TimeOfDay endTime = TimeOfDay(hour: startTime.hour + 1, minute: startTime.minute);
-    Color selectedColor = Colors.black;
+  void showNewEventModal(BuildContext context, {Event? existingEvent}) {
+    // If editing an existing event, use its values, otherwise use defaults
+    DateTime selectedDate = existingEvent?.date ?? _selectedDate;
+    bool isAllDay = existingEvent?.isAllDay ?? false;
+    String repeatStatus = existingEvent?.repeatStatus ?? "None";
+    TimeOfDay startTime = existingEvent?.startTime ?? TimeOfDay.now();
+    TimeOfDay endTime = existingEvent?.endTime ?? TimeOfDay(hour: TimeOfDay.now().hour + 1, minute: TimeOfDay.now().minute);
+    Color selectedColor = existingEvent?.color ?? Colors.blue; // Default color
 
     // Controllers for text fields
-    final TextEditingController _titleController = TextEditingController();
-    final TextEditingController _descriptionController = TextEditingController();
+    final TextEditingController _titleController = TextEditingController(text: existingEvent?.title ?? "");
+    final TextEditingController _descriptionController = TextEditingController(text: existingEvent?.description ?? "");
 
     showModalBottomSheet(
       context: context,
@@ -336,27 +520,50 @@ class _HomePageContentState extends State<HomePageContent> {
                           onPressed: () => Navigator.pop(context),
                           child: const Text("Cancel", style: TextStyle(color: Colors.red)),
                         ),
-                        const Text(
-                          "New Event",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        Text(
+                          existingEvent != null ? "Edit Event" : "New Event",
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         TextButton(
                           onPressed: () {
-                            // Create a new event and add it to the list
-                            final newEvent = Event(
-                              title: _titleController.text.isEmpty ? "Untitled Event" : _titleController.text,
-                              description: _descriptionController.text,
-                              date: selectedDate,
-                              startTime: startTime,
-                              endTime: endTime,
-                              isAllDay: isAllDay,
-                              repeatStatus: repeatStatus,
-                              color: selectedColor,
-                            );
+                            if (existingEvent != null) {
+                              // Update existing event
+                              final updatedEvent = existingEvent.copyWith(
+                                title: _titleController.text.isEmpty ? "Untitled Event" : _titleController.text,
+                                description: _descriptionController.text,
+                                date: selectedDate,
+                                startTime: startTime,
+                                endTime: endTime,
+                                isAllDay: isAllDay,
+                                repeatStatus: repeatStatus,
+                                color: selectedColor,
+                              );
 
-                            setState(() {
-                              _events.add(newEvent); // Add the new event to the list
-                            });
+                              setState(() {
+                                // Find and replace the existing event
+                                final index = _events.indexWhere((e) => e.id == existingEvent.id);
+                                if (index != -1) {
+                                  _events[index] = updatedEvent;
+                                }
+                              });
+                            } else {
+                              // Create a new event
+                              final newEvent = Event(
+                                id: DateTime.now().millisecondsSinceEpoch.toString(), // Generate a unique ID
+                                title: _titleController.text.isEmpty ? "Untitled Event" : _titleController.text,
+                                description: _descriptionController.text,
+                                date: selectedDate,
+                                startTime: startTime,
+                                endTime: endTime,
+                                isAllDay: isAllDay,
+                                repeatStatus: repeatStatus,
+                                color: selectedColor, // Save the selected color
+                              );
+
+                              setState(() {
+                                _events.add(newEvent); // Add the new event to the list
+                              });
+                            }
 
                             Navigator.pop(context);
                           },
@@ -484,6 +691,229 @@ class _HomePageContentState extends State<HomePageContent> {
                           border: InputBorder.none,
                         ),
                         maxLines: 3,
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // Color Selection
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Select Task Color",
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  setModalState(() {
+                                    selectedColor = Colors.red;
+                                  });
+                                },
+                                child: Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: selectedColor == Colors.red ? Colors.white : Colors.transparent,
+                                      width: 2,
+                                    ),
+                                    boxShadow: selectedColor == Colors.red
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.3),
+                                              blurRadius: 4,
+                                              spreadRadius: 1,
+                                            )
+                                          ]
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  setModalState(() {
+                                    selectedColor = Colors.blue;
+                                  });
+                                },
+                                child: Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: selectedColor == Colors.blue ? Colors.white : Colors.transparent,
+                                      width: 2,
+                                    ),
+                                    boxShadow: selectedColor == Colors.blue
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.3),
+                                              blurRadius: 4,
+                                              spreadRadius: 1,
+                                            )
+                                          ]
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  setModalState(() {
+                                    selectedColor = Colors.green;
+                                  });
+                                },
+                                child: Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: Colors.green,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: selectedColor == Colors.green ? Colors.white : Colors.transparent,
+                                      width: 2,
+                                    ),
+                                    boxShadow: selectedColor == Colors.green
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.3),
+                                              blurRadius: 4,
+                                              spreadRadius: 1,
+                                            )
+                                          ]
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  setModalState(() {
+                                    selectedColor = Colors.orange;
+                                  });
+                                },
+                                child: Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: selectedColor == Colors.orange ? Colors.white : Colors.transparent,
+                                      width: 2,
+                                    ),
+                                    boxShadow: selectedColor == Colors.orange
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.3),
+                                              blurRadius: 4,
+                                              spreadRadius: 1,
+                                            )
+                                          ]
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  setModalState(() {
+                                    selectedColor = Colors.purple;
+                                  });
+                                },
+                                child: Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: Colors.purple,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: selectedColor == Colors.purple ? Colors.white : Colors.transparent,
+                                      width: 2,
+                                    ),
+                                    boxShadow: selectedColor == Colors.purple
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.3),
+                                              blurRadius: 4,
+                                              spreadRadius: 1,
+                                            )
+                                          ]
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  setModalState(() {
+                                    selectedColor = Colors.teal;
+                                  });
+                                },
+                                child: Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: Colors.teal,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: selectedColor == Colors.teal ? Colors.white : Colors.transparent,
+                                      width: 2,
+                                    ),
+                                    boxShadow: selectedColor == Colors.teal
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.3),
+                                              blurRadius: 4,
+                                              spreadRadius: 1,
+                                            )
+                                          ]
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  setModalState(() {
+                                    selectedColor = Colors.brown;
+                                  });
+                                },
+                                child: Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: Colors.brown,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: selectedColor == Colors.brown ? Colors.white : Colors.transparent,
+                                      width: 2,
+                                    ),
+                                    boxShadow: selectedColor == Colors.brown
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.3),
+                                              blurRadius: 4,
+                                              spreadRadius: 1,
+                                            )
+                                          ]
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                   ],
