@@ -26,6 +26,8 @@ class _HomePageState extends State<HomePage> {
     const SettingsScreen(),
   ];
 
+
+//ANIMATED NAVIGATION BAR
   @override
   Widget build(BuildContext context) {
     return AnimatedBottomBarButton(
@@ -41,6 +43,7 @@ class _HomePageState extends State<HomePage> {
       },
     );
   }
+//END HERE
 }
 
 class HomePageContent extends StatefulWidget {
@@ -62,19 +65,24 @@ class _HomePageContentState extends State<HomePageContent> {
       appBar: MyAppBar(
         title: "Home",
         actions: [
-          AppBarIcon(icon: Icons.cloud_outlined, onTap: () => print("Weather Tapped")),
-          AppBarIcon(icon: Icons.notifications_outlined, onTap: () => print("Notifications Tapped")),
-          AppBarIcon(icon: Icons.person_outline, onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => ProfilePage()),
-      )),
+          AppBarIcon(
+              icon: Icons.cloud_outlined, onTap: () => print("Weather Tapped")),
+          AppBarIcon(
+              icon: Icons.notifications_outlined,
+              onTap: () => print("Notifications Tapped")),
+          AppBarIcon(
+              icon: Icons.person_outline,
+              onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => ProfilePage()),
+                  )),
         ],
       ),
       body: const Center(child: Text("Welcome to Home Page")),
       // Floating Action Button (+)
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.black,
-        child: Icon(Icons.add,color: Colors.white),
+        child: Icon(Icons.add, color: Colors.white),
         onPressed: () {
           showModalBottomSheet(
             context: context,
@@ -97,12 +105,16 @@ class _HomePageContentState extends State<HomePageContent> {
                           children: [
                             TextButton(
                               onPressed: () => Navigator.pop(context),
-                              child: Text("Cancel", style: TextStyle(color: Colors.red)),
+                              child: Text("Cancel",
+                                  style: TextStyle(color: Colors.red)),
                             ),
-                            Text("New Event", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            Text("New Event",
+                                style: TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.bold)),
                             TextButton(
                               onPressed: () {},
-                              child: Text("Save", style: TextStyle(color: Colors.green)),
+                              child: Text("Save",
+                                  style: TextStyle(color: Colors.green)),
                             ),
                           ],
                         ),
@@ -127,7 +139,8 @@ class _HomePageContentState extends State<HomePageContent> {
                             children: [
                               // Time Row
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
                                 children: [
                                   Chip(label: Text("09:00")),
                                   Icon(Icons.arrow_right_alt),
@@ -139,7 +152,8 @@ class _HomePageContentState extends State<HomePageContent> {
                               _buildTile(
                                 icon: Icons.calendar_today,
                                 text: selectedDate != null
-                                    ? DateFormat('EEEE, MMMM d').format(selectedDate!)
+                                    ? DateFormat('EEEE, MMMM d')
+                                        .format(selectedDate!)
                                     : "Thursday, December 5",
                                 onTap: () async {
                                   DateTime? pickedDate = await showDatePicker(
@@ -207,7 +221,8 @@ class _HomePageContentState extends State<HomePageContent> {
   }
 
   // Custom Tile with border styling
-  Widget _buildTile({required IconData icon, required String text, VoidCallback? onTap}) {
+  Widget _buildTile(
+      {required IconData icon, required String text, VoidCallback? onTap}) {
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey.shade300), // Adds border
@@ -224,7 +239,11 @@ class _HomePageContentState extends State<HomePageContent> {
   }
 
   // Custom Switch Tile with border
-  Widget _buildSwitchTile({required IconData icon, required String text, required bool value, required Function(bool) onChanged}) {
+  Widget _buildSwitchTile(
+      {required IconData icon,
+      required String text,
+      required bool value,
+      required Function(bool) onChanged}) {
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey.shade300), // Adds border
@@ -241,7 +260,10 @@ class _HomePageContentState extends State<HomePageContent> {
   }
 
   // Custom Dropdown Tile for "Repeat" selection
-  Widget _buildDropdownTile({required IconData icon, required String selectedValue, required Function(String?) onChanged}) {
+  Widget _buildDropdownTile(
+      {required IconData icon,
+      required String selectedValue,
+      required Function(String?) onChanged}) {
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey.shade300),

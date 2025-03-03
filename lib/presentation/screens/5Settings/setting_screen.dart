@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/presentation/screens/0Auth/login.dart';
 import 'package:velora/presentation/screens/5Settings/editprofile.dart';
+import 'package:velora/presentation/widgets/widgets.dart'; // Import the extracted widgets
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -13,6 +14,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool isDarkMode = false;
+  bool isNotificationsEnabled = true; // Notification toggle state
   final User? user = FirebaseAuth.instance.currentUser;
 
   String displayName = "Loading...";
@@ -51,7 +53,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       backgroundColor: AppColors.primary,
       appBar: AppBar(
-        title: const Text("Settings", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text("Settings",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.primary,
         elevation: 0,
       ),
@@ -68,25 +71,80 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: ListView(
                 children: [
                   const SizedBox(height: 20),
-                  _buildSectionTitle("Content"),
-                  _buildListTile(Icons.bookmark_border, "Saved"),
-                  _buildDarkModeTile(),
+                  buildSectionTitle("Content"),
+                  buildListTile(
+                    icon: Icons.bookmark_border,
+                    title: "Saved",
+                    onTap: () {
+                      // Navigate to Saved Page
+                      Navigator.pushNamed(context, '/saved');
+                    },
+                  ),
+                  buildToggleTile(
+                    title: "Dark Mode",
+                    value: isDarkMode,
+                    onChanged: (value) {
+                      setState(() {
+                        isDarkMode = value;
+                      });
+                    },
+                    icon: Icons.dark_mode_outlined,
+                  ),
+                  buildToggleTile(
+                    title: "Notification",
+                    value: isNotificationsEnabled,
+                    onChanged: (value) {
+                      setState(() {
+                        isNotificationsEnabled = value;
+                      });
+                    },
+                    icon: Icons.notifications_none,
+                  ),
                   const SizedBox(height: 10),
-                  _buildSectionTitle("General"),
-                  _buildListTile(Icons.language, "Language", trailingText: "English"),
-                  _buildListTile(Icons.notifications_none, "Notification", trailingText: "Enabled"),
-                  _buildListTile(Icons.help_outline, "Help & Support"),
-                  _buildListTile(Icons.description_outlined, "Terms & Condition"),
-                  _buildListTile(Icons.info_outline, "About"),
-                  _buildListTile(Icons.logout, "Logout", onTap: () async {
-                    await FirebaseAuth.instance.signOut();
-                    if (mounted) {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => const LoginPage()),
-                      );
-                    }
-                  }),
+                  buildSectionTitle("General"),
+                  buildListTile(
+                    icon: Icons.language,
+                    title: "Language",
+                    trailingText: "English",
+                    onTap: () {
+                      Navigator.pushNamed(context, '/language');
+                    },
+                  ),
+                  buildListTile(
+                    icon: Icons.help_outline,
+                    title: "Help & Support",
+                    onTap: () {
+                      Navigator.pushNamed(context, '/help_support');
+                    },
+                  ),
+                  buildListTile(
+                    icon: Icons.description_outlined,
+                    title: "Terms & Conditions",
+                    onTap: () {
+                      Navigator.pushNamed(context, '/terms_conditions');
+                    },
+                  ),
+                  buildListTile(
+                    icon: Icons.info_outline,
+                    title: "About",
+                    onTap: () {
+                      Navigator.pushNamed(context, '/about');
+                    },
+                  ),
+                  buildListTile(
+                    icon: Icons.logout,
+                    title: "Logout",
+                    onTap: () async {
+                      await FirebaseAuth.instance.signOut();
+                      if (mounted) {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const LoginPage()),
+                        );
+                      }
+                    },
+                  ),
                   const SizedBox(height: 20),
                 ],
               ),
@@ -112,23 +170,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 10),
           Text(
             displayName,
-            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+                color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
           ),
           Text(
             user?.email ?? "@luceroindie17",
             style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 5),
-          Text(bio, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+          Text(bio,
+              style: const TextStyle(color: Colors.white70, fontSize: 12)),
           const SizedBox(height: 10),
           ElevatedButton(
             onPressed: () async {
               final updatedUser = await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const EditProfileScreen()),
+                MaterialPageRoute(
+                    builder: (context) => const EditProfileScreen()),
               );
 
-              // Ensure the returned data is a map and contains 'name' and 'bio' keys
               if (updatedUser != null && updatedUser is Map<String, String>) {
                 setState(() {
                   displayName = updatedUser['name'] ?? "User Name";
@@ -138,49 +198,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text("Edit Profile", style: TextStyle(color: Colors.white)),
+            child: const Text("Edit Profile",
+                style: TextStyle(color: Colors.white)),
           ),
         ],
-      ),
-    );
-  }
-
-  // Section Title for lists
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8, top: 10, bottom: 5),
-      child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
-    );
-  }
-
-  // List Tile for each option in the settings menu
-  Widget _buildListTile(IconData icon, String title, {String? trailingText, VoidCallback? onTap}) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.black),
-      title: Text(title, style: const TextStyle(fontSize: 16)),
-      trailing: trailingText != null
-          ? Text(trailingText, style: const TextStyle(fontSize: 14, color: Colors.grey))
-          : const Icon(Icons.chevron_right, color: Colors.grey),
-      onTap: onTap,
-    );
-  }
-
-  // Dark Mode Toggle
-  Widget _buildDarkModeTile() {
-    return ListTile(
-      leading: const Icon(Icons.dark_mode_outlined, color: Colors.black),
-      title: const Text("Dark Mode", style: TextStyle(fontSize: 16)),
-      trailing: Switch(
-        value: isDarkMode,
-        onChanged: (value) {
-          setState(() {
-            isDarkMode = value;
-          });
-        },
-        activeColor: Colors.black,
       ),
     );
   }
