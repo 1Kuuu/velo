@@ -3,7 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class ProfilePage extends StatelessWidget {
   final User? user =
-      FirebaseAuth.instance.currentUser; // Fetch the logged-in user
+      FirebaseAuth.instance.currentUser;
+
+   ProfilePage({super.key}); // Fetch the logged-in user
 
   @override
   Widget build(BuildContext context) {

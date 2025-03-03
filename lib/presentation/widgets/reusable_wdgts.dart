@@ -376,7 +376,7 @@ class TheFloatingActionButton extends StatelessWidget {
   const TheFloatingActionButton({
     super.key,
     required this.icon,
-    required this.onPressed,
+    required this.onPressed, required Color backgroundColor,
   });
 
   @override
