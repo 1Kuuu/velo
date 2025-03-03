@@ -363,12 +363,12 @@ class _HomePageContentState extends State<HomePageContent> {
                         Icon(Icons.event_note, size: 48, color: Colors.grey),
                         SizedBox(height: 16),
                         Text(
-                          "No events for ${DateFormat('EEEE, MMMM d').format(_selectedDate)}",
+                          "No Tasks for ${DateFormat('EEEE, MMMM d').format(_selectedDate)}",
                           style: TextStyle(color: Colors.grey),
                         ),
                         SizedBox(height: 8),
                         Text(
-                          "Tap + to add a new event",
+                          "Tap + to add a new Task",
                           style: TextStyle(color: Colors.grey),
                         ),
                       ],
@@ -521,7 +521,7 @@ class _HomePageContentState extends State<HomePageContent> {
                           child: const Text("Cancel", style: TextStyle(color: Colors.red)),
                         ),
                         Text(
-                          existingEvent != null ? "Edit Event" : "New Event",
+                          existingEvent != null ? "Edit Task" : "New Task",
                           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         TextButton(
@@ -529,7 +529,7 @@ class _HomePageContentState extends State<HomePageContent> {
                             if (existingEvent != null) {
                               // Update existing event
                               final updatedEvent = existingEvent.copyWith(
-                                title: _titleController.text.isEmpty ? "Untitled Event" : _titleController.text,
+                                title: _titleController.text.isEmpty ? "Untitled Task" : _titleController.text,
                                 description: _descriptionController.text,
                                 date: selectedDate,
                                 startTime: startTime,
@@ -550,7 +550,7 @@ class _HomePageContentState extends State<HomePageContent> {
                               // Create a new event
                               final newEvent = Event(
                                 id: DateTime.now().millisecondsSinceEpoch.toString(), // Generate a unique ID
-                                title: _titleController.text.isEmpty ? "Untitled Event" : _titleController.text,
+                                title: _titleController.text.isEmpty ? "Untitled Task" : _titleController.text,
                                 description: _descriptionController.text,
                                 date: selectedDate,
                                 startTime: startTime,
