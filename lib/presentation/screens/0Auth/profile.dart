@@ -1,85 +1,82 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class ProfilePage extends StatelessWidget {
-  final User? user =
-      FirebaseAuth.instance.currentUser;
+  final String? userId; // Accepts userId as a parameter
 
-   ProfilePage({super.key}); // Fetch the logged-in user
+  const ProfilePage({super.key, this.userId});
 
   @override
   Widget build(BuildContext context) {
-    print("User's profile image URL: ${user?.photoURL}"); // Debugging print
+    return FutureBuilder<DocumentSnapshot>(
+      future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            appBar: AppBar(title: Text("Profile")),
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          "Profile",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-        elevation: 0,
-        backgroundColor: Colors.white,
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: Colors.black54),
-        ),
-      ),
-      body: Column(
-        children: [
-          _buildProfileSection(),
-        ],
-      ),
-      backgroundColor: Colors.white,
+        if (!snapshot.hasData || !snapshot.data!.exists) {
+          return Scaffold(
+            appBar: AppBar(title: Text("Profile")),
+            body: Center(child: Text("User not found")),
+          );
+        }
+
+        var userData = snapshot.data!.data() as Map<String, dynamic>;
+
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(
+              userData['userName'] ?? "User Profile",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            centerTitle: true,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back),
+              onPressed: () => Navigator.pop(context),
+            ),
+            elevation: 0,
+            backgroundColor: Colors.white,
+            bottom: PreferredSize(
+              preferredSize: Size.fromHeight(1),
+              child: Divider(height: 1, color: Colors.black54),
+            ),
+          ),
+          body: Column(
+            children: [
+              _buildProfileSection(userData),
+            ],
+          ),
+          backgroundColor: Colors.white,
+        );
+      },
     );
   }
 
-  Widget _buildProfileSection() {
+  Widget _buildProfileSection(Map<String, dynamic> userData) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
       child: Row(
         children: [
-          Stack(
-            children: [
-              CircleAvatar(
-                radius: 40,
-                backgroundColor:
-                    Colors.grey[300], // Placeholder background color
-                backgroundImage: (user?.photoURL != null &&
-                        user!.photoURL!.isNotEmpty)
-                    ? NetworkImage(
-                        user!.photoURL!) // Fetch profile image from Firebase
-                    : AssetImage("assets/profile.jpg")
-                        as ImageProvider, // Default image
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  padding: EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.camera_alt,
-                    size: 18,
-                    color: Colors.black54,
-                  ),
-                ),
-              ),
-            ],
+          CircleAvatar(
+            radius: 40,
+            backgroundColor: Colors.grey[300],
+            backgroundImage: (userData.containsKey('profileUrl') &&
+                    userData['profileUrl'] != null &&
+                    userData['profileUrl'].isNotEmpty)
+                ? NetworkImage(userData['profileUrl'])
+                : AssetImage("assets/profile.jpg")
+                    as ImageProvider, // Default image
           ),
           const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                user?.displayName ?? "Indie Lucero",
+                userData['userName'] ?? "Unknown User",
                 style: const TextStyle(
                   color: Colors.black,
                   fontSize: 18,
@@ -87,7 +84,7 @@ class ProfilePage extends StatelessWidget {
                 ),
               ),
               Text(
-                "Manila, Caloocan, Philippines",
+                userData['location'] ?? "Unknown Location",
                 style: const TextStyle(
                   color: Colors.black54,
                   fontSize: 14,

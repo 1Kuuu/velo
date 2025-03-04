@@ -1,3 +1,6 @@
+import 'package:delightful_toast/delight_toast.dart';
+import 'package:delightful_toast/toast/components/toast_card.dart';
+import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:flutter/material.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/presentation/screens/0Auth/reset_pass.dart';
@@ -23,12 +26,24 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     String email = emailController.text.trim();
 
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter your email")),
-      );
+      DelightToastBar(
+        builder: (context) {
+          return const ToastCard(
+            title: Text("Error"),
+            subtitle: Text("Please enter your email"),
+            leading: Icon(Icons.error, color: Colors.red),
+          );
+        },
+        position: DelightSnackbarPosition.top,
+        autoDismiss: true,
+        snackbarDuration: const Duration(seconds: 2), // ✅ Must be longer
+        animationDuration:
+            const Duration(milliseconds: 300), // ✅ Shorter duration
+      ).show(context);
       return;
     }
 
+    // Navigate to Reset Password Page
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const ResetPasswordPage()),
@@ -50,7 +65,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 onPressed: () => Navigator.pop(context),
               ),
               const SizedBox(height: 20),
-              Center(child: const AppLogo()),
+              const Center(child: AppLogo()),
               const SizedBox(height: 40),
               Center(
                 child: Text(

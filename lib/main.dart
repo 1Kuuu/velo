@@ -32,34 +32,31 @@ class MyApp extends StatelessWidget {
         primaryColor: const Color(0xFF672A2A),
         scaffoldBackgroundColor: Colors.grey[100],
       ),
-      home: const SplashScreen(), // Start with SplashScreen
+      home: AuthWrapper(), // Handles initial navigation
       routes: {
         '/getstarted': (context) => const GetStarted(),
         '/home': (context) => const HomePage(),
-        '/signup': (context) => const Signup(),
+        '/signup': (context) => const SignupPage(),
         '/login': (context) => const LoginPage(),
       },
     );
   }
 }
 
-class SplashScreen extends StatelessWidget {
-  const SplashScreen({super.key});
-
+class AuthWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    Future.delayed(const Duration(seconds: 2), () {
-      // Check if user is already logged in
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        Navigator.pushReplacementNamed(
-            context, '/home'); // Go to Home if logged in
-      } else {
-        Navigator.pushReplacementNamed(
-            context, '/getstarted'); // Otherwise, Onboarding
-      }
-    });
-
-    return const SizedBox.shrink(); // Remove UI completely
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasData) {
+          return const HomePage(); // User is logged in
+        } else {
+          return const GetStarted(); // No user, go to onboarding
+        }
+      },
+    );
   }
 }

@@ -24,15 +24,20 @@ class ToolboxPageContent extends StatelessWidget {
           ),
           AppBarIcon(
             icon: Icons.person_outline,
-            onTap: () =>Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => ProfilePage()),
-        )
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ProfilePage()),
+            ),
           ),
         ],
       ),
       body: const Center(child: Text("Welcome to Toolbox")),
+      floatingActionButton: TheFloatingActionButton(
+        svgAsset: 'assets/svg/white-m.svg',
+        onPressed: () => print("FAB Pressed"),
+        backgroundColor: Colors.black,
+        heroTag: 'openai_fab',
+      ),
     );
   }
 }
-

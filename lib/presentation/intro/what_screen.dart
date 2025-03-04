@@ -1,6 +1,10 @@
+import 'package:delightful_toast/delight_toast.dart';
+import 'package:delightful_toast/toast/components/toast_card.dart';
+import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:velora/presentation/intro/when_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class WhatScreen extends StatefulWidget {
   const WhatScreen({super.key});
@@ -18,17 +22,56 @@ class _WhatScreenState extends State<WhatScreen> {
       selectedBike = bikeType;
     });
 
-    // Store selection in Firebase
-    await _firestore.collection('user_preferences').doc('current_user').set({
-      'bike_type': bikeType,
-    }, SetOptions(merge: true));
+    try {
+      // Store selection in Firebase
+      await _firestore
+          .collection('user_preferences')
+          .doc(FirebaseAuth.instance.currentUser?.uid)
+          .set({
+        'bike_type': bikeType,
+      }, SetOptions(merge: true));
 
-    // Navigate to next screen
-    if (mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const WhenScreen()),
-      );
+      // 🎉 Show success toast
+      if (mounted) {
+        DelightToastBar(
+          builder: (context) {
+            return ToastCard(
+              title: const Text('Saved!'),
+              subtitle: Text("You've selected: $bikeType"),
+              leading: const Icon(Icons.check_circle, color: Colors.green),
+            );
+          },
+          position: DelightSnackbarPosition.top,
+          autoDismiss: true,
+          snackbarDuration: const Duration(seconds: 2),
+          animationDuration: const Duration(milliseconds: 300),
+        ).show(context);
+      }
+
+      // Navigate to next screen
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const WhenScreen()),
+        );
+      }
+    } catch (e) {
+      // ❌ Show error toast
+      if (mounted) {
+        DelightToastBar(
+          builder: (context) {
+            return ToastCard(
+              title: const Text('Error'),
+              subtitle: Text("Failed to save: $e"),
+              leading: const Icon(Icons.error, color: Colors.red),
+            );
+          },
+          position: DelightSnackbarPosition.top,
+          autoDismiss: true,
+          snackbarDuration: const Duration(seconds: 2),
+          animationDuration: const Duration(milliseconds: 300),
+        ).show(context);
+      }
     }
   }
 

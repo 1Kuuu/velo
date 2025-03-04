@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
+import 'package:velora/presentation/screens/3News/search_view.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
 class NewsFeedPageContent extends StatelessWidget {
@@ -11,11 +12,14 @@ class NewsFeedPageContent extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
       appBar: MyAppBar(
-        title: "News Feed",
+        title: "Velora",
         actions: [
           AppBarIcon(
-            icon: Icons.cloud_outlined,
-            onTap: () => print("Weather Tapped"),
+            icon: Icons.search,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => SearchView()),
+            ),
             showBadge: false,
           ),
           AppBarIcon(
@@ -23,12 +27,11 @@ class NewsFeedPageContent extends StatelessWidget {
             onTap: () => print("Notifications Tapped"),
           ),
           AppBarIcon(
-            icon: Icons.person_outline,
-            onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => ProfilePage()),
-      )
-          ),
+              icon: Icons.person_outline,
+              onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => ProfilePage()),
+                  )),
         ],
       ),
       body: const Center(child: Text("Welcome to News Feed")),

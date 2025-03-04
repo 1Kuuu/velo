@@ -1,5 +1,6 @@
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 
@@ -370,13 +371,19 @@ class AnimatedBottomBarButton extends StatelessWidget {
 
 // ---------------------- FAB ----------------------
 class TheFloatingActionButton extends StatelessWidget {
-  final IconData icon;
+  final String? svgAsset;
+  final IconData? icon;
   final VoidCallback onPressed;
+  final Color backgroundColor;
+  final String? heroTag;
 
   const TheFloatingActionButton({
     super.key,
-    required this.icon,
-    required this.onPressed, required Color backgroundColor,
+    this.svgAsset,
+    this.icon,
+    required this.onPressed,
+    required this.backgroundColor,
+    this.heroTag,
   });
 
   @override
@@ -384,9 +391,16 @@ class TheFloatingActionButton extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 3),
       child: FloatingActionButton(
+        heroTag: heroTag ?? (svgAsset ?? icon.toString()),
         onPressed: onPressed,
-        backgroundColor: Colors.black,
-        child: Icon(icon, size: 28, color: Colors.white),
+        backgroundColor: backgroundColor,
+        child: svgAsset != null
+            ? SvgPicture.asset(
+                svgAsset!,
+                width: 40,
+                height: 40,
+              )
+            : Icon(icon, size: 1, color: Colors.white),
       ),
     );
   }

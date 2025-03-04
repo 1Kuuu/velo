@@ -1,7 +1,10 @@
+import 'package:delightful_toast/delight_toast.dart';
+import 'package:delightful_toast/toast/components/toast_card.dart';
+import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:velora/presentation/screens/1Home/home.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -13,31 +16,44 @@ class WelcomeScreen extends StatelessWidget {
         child: StreamBuilder<DocumentSnapshot>(
           stream: FirebaseFirestore.instance
               .collection('user_preferences')
-              .doc('current_user')
+              .doc(FirebaseAuth.instance.currentUser?.uid)
               .snapshots(),
           builder: (context, snapshot) {
-            if (!snapshot.hasData) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            final data = snapshot.data!.data() as Map<String, dynamic>;
-            final bikeType = data['bike_type'] as String;
-            final timePrefs = data['time_preferences'] as Map<String, dynamic>;
+            if (snapshot.hasError) {
+              _showErrorToast(context, 'Failed to load data.');
+              return const Center(child: Text('Something went wrong!'));
+            }
+
+            if (!snapshot.hasData || !snapshot.data!.exists) {
+              _showErrorToast(context, 'User preferences not found.');
+              return const Center(child: Text('No data available!'));
+            }
+
+            final data = snapshot.data!.data() as Map<String, dynamic>?;
+
+            if (data == null) {
+              _showErrorToast(context, 'Invalid data format.');
+              return const Center(child: Text('Data error!'));
+            }
+
+            final bikeType = data['bike_type'] as String? ?? 'Unknown';
+            final timePrefs =
+                (data['time_preferences'] as Map<String, dynamic>?) ?? {};
             final locationPrefs =
-                data['location_preferences'] as Map<String, dynamic>;
+                (data['location_preferences'] as Map<String, dynamic>?) ?? {};
 
             return Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Positioned(
-                    top: 52.5,
-                    left: 15,
-                    child: Image.asset(
-                      'assets/images/logo.png',
-                      height: 30,
-                    ),
+                  Image.asset(
+                    'assets/images/logo.png',
+                    height: 30,
                   ),
                   const SizedBox(height: 20),
                   const Text(
@@ -55,7 +71,6 @@ class WelcomeScreen extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 20),
                   const SizedBox(height: 20),
                   _buildSummaryCard(bikeType),
                   const SizedBox(height: 20),
@@ -70,8 +85,7 @@ class WelcomeScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const HomePage(),
-                          ),
+                              builder: (context) => const HomePage()),
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -84,10 +98,7 @@ class WelcomeScreen extends StatelessWidget {
                       child: const Text(
                         'START',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.white,
-                        ),
+                        style: TextStyle(fontSize: 18, color: Colors.white),
                       ),
                     ),
                   ),
@@ -100,6 +111,22 @@ class WelcomeScreen extends StatelessWidget {
     );
   }
 
+  void _showErrorToast(BuildContext context, String message) {
+    DelightToastBar(
+      builder: (context) {
+        return ToastCard(
+          title: const Text('Error'),
+          subtitle: Text(message),
+          leading: const Icon(Icons.error, color: Colors.red),
+        );
+      },
+      position: DelightSnackbarPosition.top,
+      autoDismiss: true,
+      snackbarDuration: const Duration(seconds: 2),
+      animationDuration: const Duration(milliseconds: 300),
+    ).show(context);
+  }
+
   Widget _buildSummaryCard(String bikeType) {
     return Container(
       padding: const EdgeInsets.all(15),
@@ -108,22 +135,20 @@ class WelcomeScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
         children: [
           Image.asset(
             'assets/images/${bikeType.toLowerCase()}.png',
-            width: double.infinity, // Adjust width as needed
-            fit: BoxFit.cover, // Ensures the image fills the box
+            width: double.infinity,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return const Icon(Icons.directions_bike,
+                  size: 100, color: Colors.grey);
+            },
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-          ),
+          const SizedBox(height: 8),
           Text(
             bikeType,
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -142,10 +167,7 @@ class WelcomeScreen extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
         Wrap(
@@ -153,10 +175,7 @@ class WelcomeScreen extends StatelessWidget {
           runSpacing: 10,
           children: selectedPreferences.map((pref) {
             return Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 15,
-                vertical: 8,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.grey[400],
                 borderRadius: BorderRadius.circular(20),

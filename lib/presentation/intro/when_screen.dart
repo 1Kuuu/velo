@@ -1,6 +1,10 @@
+import 'package:delightful_toast/delight_toast.dart';
+import 'package:delightful_toast/toast/components/toast_card.dart';
+import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:velora/presentation/intro/where_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class WhenScreen extends StatefulWidget {
   const WhenScreen({super.key});
@@ -22,16 +26,56 @@ class _WhenScreenState extends State<WhenScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   void _saveAndNavigate() async {
-    // Store preferences in Firebase
-    await _firestore.collection('user_preferences').doc('current_user').set({
-      'time_preferences': timePreferences,
-    }, SetOptions(merge: true));
+    try {
+      // Store preferences in Firebase
+      await _firestore
+          .collection('user_preferences')
+          .doc(FirebaseAuth.instance.currentUser?.uid)
+          .set({
+        'time_preferences': timePreferences,
+      }, SetOptions(merge: true));
 
-    if (mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const WhereScreen()),
-      );
+      // 🎉 Show success toast
+      if (mounted) {
+        DelightToastBar(
+          builder: (context) {
+            return ToastCard(
+              title: const Text('Saved!'),
+              subtitle: const Text("Your time preferences have been saved."),
+              leading: const Icon(Icons.check_circle, color: Colors.green),
+            );
+          },
+          position: DelightSnackbarPosition.top,
+          autoDismiss: true,
+          snackbarDuration: const Duration(seconds: 2),
+          animationDuration: const Duration(milliseconds: 300),
+        ).show(context);
+      }
+
+      // Navigate to next screen
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const WhereScreen()),
+        );
+      }
+    } catch (e) {
+      // ❌ Show error toast
+      if (mounted) {
+        DelightToastBar(
+          builder: (context) {
+            return ToastCard(
+              title: const Text('Error'),
+              subtitle: Text("Failed to save: $e"),
+              leading: const Icon(Icons.error, color: Colors.red),
+            );
+          },
+          position: DelightSnackbarPosition.top,
+          autoDismiss: true,
+          snackbarDuration: const Duration(seconds: 2),
+          animationDuration: const Duration(milliseconds: 300),
+        ).show(context);
+      }
     }
   }
 

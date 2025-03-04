@@ -1,13 +1,12 @@
+import 'package:delightful_toast/delight_toast.dart';
+import 'package:delightful_toast/toast/components/toast_card.dart';
+import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:flutter/material.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
-import 'package:velora/core/configs/theme/app_fonts.dart';
-import 'package:velora/presentation/screens/0Auth/forgot_password.dart';
-import 'package:velora/presentation/screens/1Home/home.dart';
-import 'package:velora/presentation/screens/0Auth/signup.dart';
-import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 import 'package:velora/data/sources/auth_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:velora/presentation/screens/0Auth/forgot_password.dart';
+import 'package:velora/presentation/widgets/reusable_wdgts.dart';
+import 'package:velora/presentation/intro/what_screen.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -21,6 +20,9 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
+  // 🔹 Create an instance of AuthService
+  final AuthService _authService = AuthService();
+
   @override
   void dispose() {
     emailController.dispose();
@@ -29,64 +31,96 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   /// 🔹 Email & Password Login
-  void _login() async {
+  Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       try {
-        await FirebaseServices.login(
-          context: context,
-          emailController: emailController,
-          passwordController: passwordController,
+        await _authService.loginWithEmail(
+          context: context, // 👈 FIX: Pass the context
+          email: emailController.text.trim(),
+          password: passwordController.text.trim(),
         );
 
-        User? user = FirebaseAuth.instance.currentUser;
-        if (user != null) {
+        if (mounted) {
+          DelightToastBar(
+            builder: (context) {
+              return const ToastCard(
+                title: Text('Success'),
+                subtitle: Text('Login successful!'),
+                leading: Icon(Icons.check_circle, color: Colors.green),
+              );
+            },
+            position: DelightSnackbarPosition.top,
+            autoDismiss: true,
+            snackbarDuration: const Duration(seconds: 2),
+            animationDuration: const Duration(milliseconds: 300),
+          ).show(context);
+
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const HomePage()),
+            MaterialPageRoute(builder: (context) => const WhatScreen()),
           );
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Login failed: $e")),
-          );
+          DelightToastBar(
+            builder: (context) {
+              return ToastCard(
+                title: const Text('Error'),
+                subtitle: Text("Login failed: $e"),
+                leading: const Icon(Icons.error, color: Colors.red),
+              );
+            },
+            position: DelightSnackbarPosition.top,
+            autoDismiss: true,
+            snackbarDuration: const Duration(seconds: 2),
+            animationDuration: const Duration(milliseconds: 300),
+          ).show(context);
         }
       }
     }
   }
 
-  /// 🔹 Google Sign-In (Force Account Selection)
-  void _signInWithGoogle() async {
+  /// 🔹 Google Sign-In
+  Future<void> _signInWithGoogle() async {
     try {
-      final GoogleSignIn googleSignIn = GoogleSignIn();
-      await googleSignIn.signOut(); // Ensure the user is signed out first
+      await _authService.signInWithGoogle(
+          context); // 🔹 Ensure `context` is passed if required
 
-      GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      if (mounted) {
+        DelightToastBar(
+          builder: (context) {
+            return const ToastCard(
+              title: Text('Success'),
+              subtitle: Text('Google login successful!'),
+              leading: Icon(Icons.check_circle, color: Colors.green),
+            );
+          },
+          position: DelightSnackbarPosition.top,
+          autoDismiss: true,
+          snackbarDuration: const Duration(seconds: 2),
+          animationDuration: const Duration(milliseconds: 300),
+        ).show(context); // 🔹 Ensure `context` is passed
 
-      if (googleUser != null) {
-        final GoogleSignInAuthentication googleAuth =
-            await googleUser.authentication;
-
-        final OAuthCredential credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const WhatScreen()),
         );
-
-        UserCredential userCredential =
-            await FirebaseAuth.instance.signInWithCredential(credential);
-
-        if (userCredential.user != null && mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const HomePage()),
-          );
-        }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Google Sign-In failed: $e")),
-        );
+        DelightToastBar(
+          builder: (context) {
+            return ToastCard(
+              title: const Text('Error'),
+              subtitle: Text("Google Sign-In failed: $e"),
+              leading: const Icon(Icons.error, color: Colors.red),
+            );
+          },
+          position: DelightSnackbarPosition.top,
+          autoDismiss: true,
+          snackbarDuration: const Duration(seconds: 2),
+          animationDuration: const Duration(milliseconds: 300),
+        ).show(context); // 🔹 Ensure `context` is passed
       }
     }
   }
@@ -105,13 +139,13 @@ class _LoginPageState extends State<LoginPage> {
               children: [
                 const AppLogo(),
                 CustomTitleText(text: 'LOGIN'),
-                const SizedBox(height: 32),
+                const SizedBox(height: 2),
 
-                // Email Input with Validation
+                // Email Input
                 CustomInputField(
                   label: 'EMAIL',
                   controller: emailController,
-                  hintText: 'ENTER EMAIL',
+                  hintText: 'Enter your email',
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Email is required';
@@ -126,11 +160,11 @@ class _LoginPageState extends State<LoginPage> {
 
                 const SizedBox(height: 16),
 
-                // Password Input with Validation
+                // Password Input
                 CustomInputField(
                   label: 'PASSWORD',
                   controller: passwordController,
-                  hintText: 'ENTER PASSWORD',
+                  hintText: 'Enter your password',
                   obscureText: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -143,27 +177,7 @@ class _LoginPageState extends State<LoginPage> {
                   },
                 ),
 
-                const SizedBox(height: 2),
-
-                // Forgot Password Button
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const ForgotPasswordPage()),
-                    );
-                  },
-                  child: Text(
-                    'Forgot Password?',
-                    style: AppFonts.light.copyWith(
-                      color: Colors.blue,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 64),
+                const SizedBox(height: 24),
 
                 // Login Button
                 Center(
@@ -173,7 +187,31 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
 
+                const SizedBox(height: 16),
+
+                // Forgot Password
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const ForgotPasswordPage()),
+                      );
+                    },
+                    child: const Text(
+                      'Forgot Password?',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+
                 const SizedBox(height: 24),
+
                 Center(child: CustomDivider()),
                 const SizedBox(height: 24),
 
@@ -188,15 +226,12 @@ class _LoginPageState extends State<LoginPage> {
 
                 const SizedBox(height: 24),
 
-                // Signup Navigation
+                // Sign Up Navigation
                 AccountNavigationRow(
                   questionText: "Don't have an account?",
                   actionText: "Sign Up",
                   onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => const Signup()),
-                    );
+                    Navigator.pushReplacementNamed(context, '/signup');
                   },
                 ),
               ],

@@ -40,7 +40,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _profileImageUrl = user.photoURL;
 
         DocumentSnapshot userDoc =
-            await _firestore.collection('users').doc(user.uid).get();
+            await _firestore.collection('user_profile').doc(user.uid).get();
         if (userDoc.exists) {
           setState(() {
             _originalName = userDoc['name'] ?? '';
@@ -50,18 +50,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           });
         }
       } catch (e) {
-        DelightToastBar(
-          builder: (context) {
-            return ToastCard(
-              title: const Text('Error'),
-              leading: Icon(Icons.error, color: Colors.red),
-              subtitle: Text("Error loading user data: $e"),
-            );
-          },
-          position: DelightSnackbarPosition.top,
-          autoDismiss: true,
-          snackbarDuration: Durations.extralong4,
-        ).show(context);
+        _showToast("Error loading user data: $e", Icons.error, Colors.red);
       }
     }
 
@@ -75,34 +64,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     String newBio = _bioController.text.trim();
 
     if (newName.isEmpty || newBio.isEmpty) {
-      DelightToastBar(
-        builder: (context) {
-          return ToastCard(
-            title: const Text('Error'),
-            leading: Icon(Icons.warning, color: Colors.orange),
-            subtitle: const Text("Fields cannot be empty!"),
-          );
-        },
-        position: DelightSnackbarPosition.top,
-        autoDismiss: true,
-        snackbarDuration: Durations.extralong4,
-      ).show(context);
+      _showToast("Fields cannot be empty!", Icons.warning, Colors.orange);
       return;
     }
 
     if (newName == _originalName && newBio == _originalBio) {
-      DelightToastBar(
-        builder: (context) {
-          return ToastCard(
-            title: const Text('Nothing Changed'),
-            leading: Icon(Icons.sentiment_satisfied, color: Colors.blue),
-            subtitle: const Text("Nothing changed  ¯\\_(ツ)_/¯"),
-          );
-        },
-        position: DelightSnackbarPosition.top,
-        autoDismiss: true,
-        snackbarDuration: Durations.extralong4,
-      ).show(context);
+      _showToast("Nothing changed  ¯\\_(ツ)_/¯", Icons.sentiment_satisfied,
+          Colors.blue);
       return;
     }
 
@@ -110,44 +78,49 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _isLoading = true;
     });
 
-    try {
-      await _firestore.collection('users').doc(_auth.currentUser!.uid).set({
-        'name': newName,
-        'bio': newBio,
-      }, SetOptions(merge: true));
+    User? user = _auth.currentUser;
+    if (user == null) {
+      _showToast("User not found. Please re-login.", Icons.error, Colors.red);
+      return;
+    }
 
-      DelightToastBar(
-        builder: (context) {
-          return ToastCard(
-            title: const Text('Success'),
-            leading: Icon(Icons.check_circle, color: Colors.green),
-            subtitle: const Text("Profile updated successfully!"),
-          );
-        },
-        position: DelightSnackbarPosition.top,
-        autoDismiss: true,
-        snackbarDuration: Durations.extralong4,
-      ).show(context);
+    try {
+      await _firestore.collection('user_profile').doc(user.uid).set(
+        {'name': newName, 'bio': newBio},
+        SetOptions(merge: true),
+      );
+
+      _showToast(
+          "Profile updated successfully!", Icons.check_circle, Colors.green);
+
+      setState(() {
+        _originalName = newName;
+        _originalBio = newBio;
+      });
 
       Navigator.pop(context, {'name': newName, 'bio': newBio});
     } catch (e) {
-      DelightToastBar(
-        builder: (context) {
-          return ToastCard(
-            title: const Text('Error'),
-            leading: Icon(Icons.error, color: Colors.red),
-            subtitle: Text("Error updating profile: $e"),
-          );
-        },
-        position: DelightSnackbarPosition.top,
-        autoDismiss: true,
-        snackbarDuration: Durations.extralong4,
-      ).show(context);
+      _showToast("Error updating profile: $e", Icons.error, Colors.red);
     }
 
     setState(() {
       _isLoading = false;
     });
+  }
+
+  void _showToast(String message, IconData icon, Color color) {
+    DelightToastBar(
+      builder: (context) {
+        return ToastCard(
+          title: const Text('Notification'),
+          leading: Icon(icon, color: color),
+          subtitle: Text(message),
+        );
+      },
+      position: DelightSnackbarPosition.top,
+      autoDismiss: true,
+      snackbarDuration: Durations.extralong4,
+    ).show(context);
   }
 
   @override

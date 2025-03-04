@@ -2,28 +2,27 @@ import 'package:delightful_toast/delight_toast.dart';
 import 'package:delightful_toast/toast/components/toast_card.dart';
 import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/data/sources/auth_service.dart';
 import 'package:velora/presentation/intro/what_screen.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 import 'login.dart';
 
-class Signup extends StatefulWidget {
-  const Signup({super.key});
+class SignupPage extends StatefulWidget {
+  const SignupPage({super.key});
 
   @override
-  State<Signup> createState() => _SignupState();
+  State<SignupPage> createState() => _SignupPageState();
 }
 
-class _SignupState extends State<Signup> {
+class _SignupPageState extends State<SignupPage> {
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController =
       TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final AuthService _authService = AuthService();
 
   @override
   void dispose() {
@@ -34,75 +33,62 @@ class _SignupState extends State<Signup> {
     super.dispose();
   }
 
-  /// 🔹 Email & Password Signup with Validation
-  Future<bool> _signup() async {
+  /// 🔹 Email & Password Signup with Firestore Storage
+  Future<void> _signup() async {
     if (_formKey.currentState!.validate()) {
-      try {
-        await FirebaseServices.signup(
-          context: context,
-          usernameController: usernameController,
-          emailController: emailController,
-          passwordController: passwordController,
-          confirmPasswordController: confirmPasswordController,
+      final result = await _authService.signUpWithEmail(
+        context: context,
+        username: usernameController.text.trim(),
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+        confirmPassword: confirmPasswordController.text.trim(),
+      );
+
+      if (mounted && result == true) {
+        DelightToastBar(
+          builder: (context) {
+            return const ToastCard(
+              title: Text('Success'),
+              leading: Icon(Icons.check_circle, color: Colors.green),
+            );
+          },
+          position: DelightSnackbarPosition.top,
+          autoDismiss: true,
+          snackbarDuration: const Duration(seconds: 2),
+          animationDuration: const Duration(milliseconds: 300),
+        ).show(context);
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const WhatScreen()),
         );
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Signup successful! Please log in.")),
-          );
-
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const LoginPage()),
-          );
-        }
-        return true;
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Signup failed: $e")),
-          );
-        }
-        return false;
       }
     }
-    return false;
   }
 
-  /// 🔹 Google Sign-Up (Force Account Selection)
-  Future<bool> _signInWithGoogle() async {
-    try {
-      final GoogleSignIn googleSignIn = GoogleSignIn();
-      await googleSignIn.signOut(); // Ensure user selects an account
+  /// 🔹 Google Sign-Up with Firestore Storage
+  Future<void> _signInWithGoogle() async {
+    final user = await _authService.signInWithGoogle(context);
 
-      GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-      if (googleUser != null) {
-        final GoogleSignInAuthentication googleAuth =
-            await googleUser.authentication;
-        final OAuthCredential credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
-        );
-
-        UserCredential userCredential =
-            await FirebaseAuth.instance.signInWithCredential(credential);
-
-        if (userCredential.user != null && mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => WhatScreen()),
+    if (mounted && user != null) {
+      DelightToastBar(
+        builder: (context) {
+          return const ToastCard(
+            title: Text('Success'),
+            leading: Icon(Icons.check_circle, color: Colors.green),
           );
-        }
-        return true;
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Google Sign-In failed: $e")),
-        );
-      }
+        },
+        position: DelightSnackbarPosition.top,
+        autoDismiss: true,
+        snackbarDuration: const Duration(seconds: 2),
+        animationDuration: const Duration(milliseconds: 300),
+      ).show(context);
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const WhatScreen()),
+      );
     }
-    return false;
   }
 
   @override
@@ -126,12 +112,9 @@ class _SignupState extends State<Signup> {
                   label: 'USERNAME',
                   controller: usernameController,
                   hintText: 'Enter your username',
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Username is required';
-                    }
-                    return null;
-                  },
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Username is required'
+                      : null,
                 ),
 
                 const SizedBox(height: 16),
@@ -142,9 +125,8 @@ class _SignupState extends State<Signup> {
                   controller: emailController,
                   hintText: 'Enter your email',
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
+                    if (value == null || value.isEmpty)
                       return 'Email is required';
-                    }
                     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                         .hasMatch(value)) {
                       return 'Enter a valid email';
@@ -161,15 +143,9 @@ class _SignupState extends State<Signup> {
                   controller: passwordController,
                   hintText: 'Enter your password',
                   obscureText: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Password is required';
-                    }
-                    if (value.length < 8) {
-                      return 'Password must be at least 8 characters';
-                    }
-                    return null;
-                  },
+                  validator: (value) => (value == null || value.length < 8)
+                      ? 'Password must be at least 8 characters'
+                      : null,
                 ),
 
                 const SizedBox(height: 16),
@@ -180,15 +156,9 @@ class _SignupState extends State<Signup> {
                   controller: confirmPasswordController,
                   hintText: 'Re-enter your password',
                   obscureText: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Confirm password is required';
-                    }
-                    if (value != passwordController.text) {
-                      return 'Passwords do not match';
-                    }
-                    return null;
-                  },
+                  validator: (value) => (value != passwordController.text)
+                      ? 'Passwords do not match'
+                      : null,
                 ),
 
                 const SizedBox(height: 24),
@@ -197,23 +167,7 @@ class _SignupState extends State<Signup> {
                 Center(
                   child: CustomButton(
                     text: 'SIGN UP',
-                    onPressed: () async {
-                      bool isSuccess = await _signup();
-                      if (isSuccess) {
-                        DelightToastBar(
-                          builder: (context) {
-                            return ToastCard(
-                              title: const Text('Success'),
-                              leading:
-                                  Icon(Icons.check_circle, color: Colors.green),
-                            );
-                          },
-                          position: DelightSnackbarPosition.top,
-                          autoDismiss: true,
-                          snackbarDuration: Durations.extralong4,
-                        ).show(context);
-                      }
-                    },
+                    onPressed: _signup,
                   ),
                 ),
 
@@ -226,23 +180,7 @@ class _SignupState extends State<Signup> {
                 Center(
                   child: CustomButton(
                     text: 'With Google',
-                    onPressed: () async {
-                      var isSuccess = await _signInWithGoogle();
-                      if (isSuccess) {
-                        DelightToastBar(
-                          builder: (context) {
-                            return ToastCard(
-                              title: const Text('Success'),
-                              leading:
-                                  Icon(Icons.check_circle, color: Colors.green),
-                            );
-                          },
-                          position: DelightSnackbarPosition.top,
-                          autoDismiss: true,
-                          snackbarDuration: Durations.extralong4,
-                        ).show(context);
-                      }
-                    },
+                    onPressed: _signInWithGoogle,
                     iconPath: 'assets/images/Google.png',
                   ),
                 ),
