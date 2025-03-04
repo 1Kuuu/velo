@@ -125,8 +125,9 @@ class _SignupPageState extends State<SignupPage> {
                   controller: emailController,
                   hintText: 'Enter your email',
                   validator: (value) {
-                    if (value == null || value.isEmpty)
+                    if (value == null || value.isEmpty) {
                       return 'Email is required';
+                    }
                     if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                         .hasMatch(value)) {
                       return 'Enter a valid email';

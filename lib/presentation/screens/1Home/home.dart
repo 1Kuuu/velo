@@ -78,7 +78,7 @@ class Event {
     Color? color,
   }) {
     return Event(
-      id: this.id,
+      id: id,
       title: title ?? this.title,
       description: description ?? this.description,
       date: date ?? this.date,
@@ -100,7 +100,7 @@ class HomePageContent extends StatefulWidget {
 
 class _HomePageContentState extends State<HomePageContent> {
   DateTime _selectedDate = DateTime.now(); // Default to today's date
-  List<Event> _events = []; // List to store all events
+  final List<Event> _events = []; // List to store all events
 
   List<DateTime> getWeekDays(DateTime date) {
     int weekday = date.weekday; // Monday = 1, Sunday = 7
@@ -488,8 +488,8 @@ class _HomePageContentState extends State<HomePageContent> {
     Color selectedColor = existingEvent?.color ?? Colors.blue; // Default color
 
     // Controllers for text fields
-    final TextEditingController _titleController = TextEditingController(text: existingEvent?.title ?? "");
-    final TextEditingController _descriptionController = TextEditingController(text: existingEvent?.description ?? "");
+    final TextEditingController titleController = TextEditingController(text: existingEvent?.title ?? "");
+    final TextEditingController descriptionController = TextEditingController(text: existingEvent?.description ?? "");
 
     showModalBottomSheet(
       context: context,
@@ -529,8 +529,8 @@ class _HomePageContentState extends State<HomePageContent> {
                             if (existingEvent != null) {
                               // Update existing event
                               final updatedEvent = existingEvent.copyWith(
-                                title: _titleController.text.isEmpty ? "Untitled Task" : _titleController.text,
-                                description: _descriptionController.text,
+                                title: titleController.text.isEmpty ? "Untitled Task" : titleController.text,
+                                description: descriptionController.text,
                                 date: selectedDate,
                                 startTime: startTime,
                                 endTime: endTime,
@@ -550,8 +550,8 @@ class _HomePageContentState extends State<HomePageContent> {
                               // Create a new event
                               final newEvent = Event(
                                 id: DateTime.now().millisecondsSinceEpoch.toString(), // Generate a unique ID
-                                title: _titleController.text.isEmpty ? "Untitled Task" : _titleController.text,
-                                description: _descriptionController.text,
+                                title: titleController.text.isEmpty ? "Untitled Task" : titleController.text,
+                                description: descriptionController.text,
                                 date: selectedDate,
                                 startTime: startTime,
                                 endTime: endTime,
@@ -574,7 +574,7 @@ class _HomePageContentState extends State<HomePageContent> {
 
                     // Event Title Input
                     TextField(
-                      controller: _titleController,
+                      controller: titleController,
                       decoration: const InputDecoration(
                         hintText: "Enter event title",
                         border: OutlineInputBorder(),
@@ -597,7 +597,7 @@ class _HomePageContentState extends State<HomePageContent> {
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
                               _buildTimeButton(
-                                "${startTime.format(context)}",
+                                startTime.format(context),
                                 onTap: () async {
                                   TimeOfDay? pickedTime = await showTimePicker(
                                     context: context,
@@ -612,7 +612,7 @@ class _HomePageContentState extends State<HomePageContent> {
                               ),
                               const Icon(Icons.arrow_right_alt),
                               _buildTimeButton(
-                                "${endTime.format(context)}",
+                                endTime.format(context),
                                 onTap: () async {
                                   TimeOfDay? pickedTime = await showTimePicker(
                                     context: context,
@@ -685,7 +685,7 @@ class _HomePageContentState extends State<HomePageContent> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: TextField(
-                        controller: _descriptionController,
+                        controller: descriptionController,
                         decoration: const InputDecoration(
                           hintText: "Description",
                           border: InputBorder.none,
