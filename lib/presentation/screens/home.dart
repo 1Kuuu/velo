@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:velo/core/configs/theme/app_fonts.dart';
-import 'package:velo/presentation/screens/NewEventScreen.dart';
-import 'package:velo/presentation/screens/setting.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({Key? key}) : super(key: key);
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -15,8 +14,16 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final List<String> timeSlots = [
-    '8:00AM', '9:00AM', '10:00AM', '11:00AM', '12:00PM',
-    '1:00PM', '2:00PM', '3:00PM', '4:00PM', '5:00PM'
+    '8:00AM',
+    '9:00AM',
+    '10:00AM',
+    '11:00AM',
+    '12:00PM',
+    '1:00PM',
+    '2:00PM',
+    '3:00PM',
+    '4:00PM',
+    '5:00PM'
   ];
 
   late DateTime selectedDate;
@@ -37,7 +44,8 @@ class _HomePageState extends State<HomePage> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final weekStart = selectedDate.subtract(Duration(days: selectedDate.weekday - 1));
+        final weekStart =
+            selectedDate.subtract(Duration(days: selectedDate.weekday - 1));
         final weekEnd = weekStart.add(const Duration(days: 7));
 
         final snapshot = await FirebaseFirestore.instance
@@ -49,9 +57,10 @@ class _HomePageState extends State<HomePage> {
             .get();
 
         int totalActivities = snapshot.docs.length;
-        int totalMinutes = snapshot.docs.fold(0, (sum, doc) => sum + (doc['duration'] as int));
-        // ignore: avoid_types_as_parameter_names
-        double totalDistance = snapshot.docs.fold(0.0, (sum, doc) => sum + (doc['distance'] as double));
+        int totalMinutes =
+            snapshot.docs.fold(0, (sum, doc) => sum + (doc['duration'] as int));
+        double totalDistance = snapshot.docs
+            .fold(0.0, (sum, doc) => sum + (doc['distance'] as double));
 
         setState(() {
           activities = totalActivities;
@@ -69,7 +78,8 @@ class _HomePageState extends State<HomePage> {
     if (user != null) {
       try {
         // Create the start and end of the selected day for comparison
-        final startOfDay = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+        final startOfDay =
+            DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
         final endOfDay = startOfDay.add(Duration(days: 1));
 
         // Query to get plans for the selected date
@@ -77,7 +87,8 @@ class _HomePageState extends State<HomePage> {
             .collection('user_plans')
             .doc(user.uid)
             .collection('plans')
-            .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+            .where('date',
+                isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
             .where('date', isLessThan: Timestamp.fromDate(endOfDay))
             .get();
 
@@ -106,12 +117,15 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: const Color(0xFF561C24),
       appBar: AppBar(
+        automaticallyImplyLeading:
+            false, // 👈 Prevents the back button from showing
         backgroundColor: const Color(0xFF561C24),
         elevation: 0,
-        title: Text('HOME', style: AppFonts.bold.copyWith(
-          color: Colors.white,
-          fontWeight: FontWeight.w600,
-        )),
+        title: Text('HOME',
+            style: AppFonts.bold.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            )),
         actions: [
           IconButton(
             icon: const Icon(Icons.cloud_outlined, color: Colors.white),
@@ -132,56 +146,28 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: Stack(
+      body: Column(
         children: [
-          Column(
-            children: [
-              _buildWeeklyProgress(),
-              _buildCalendar(),
-              Expanded(child: _buildTimeSlots()),
-            ],
-          ),
-          Positioned(
-            bottom: 70,
-            right: 20,
-            child: FloatingActionButton(
-              backgroundColor: Colors.black,
-              child: Icon(Icons.add, color: Colors.white),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => NewEventScreen()),
-                );
-              },
-            ),
-          ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              color: const Color(0xFF561C24),
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  Icon(Icons.home, color: Colors.white),
-                  Icon(Icons.work, color: Colors.white),
-                  Icon(Icons.calendar_today, color: Colors.white),
-                  Icon(Icons.chat_bubble_outline, color: Colors.white),
-                  IconButton(
-                    icon: const Icon(Icons.settings, color: Colors.white),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => SettingsScreen()),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
+          _buildWeeklyProgress(),
+          _buildCalendar(),
+          Expanded(child: _buildTimeSlots()),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.black,
+        onPressed: _addActivity,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: const Color(0xFF561C24),
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white70,
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: ''),
+          BottomNavigationBarItem(icon: Icon(Icons.message), label: ''),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: ''),
         ],
       ),
     );
@@ -212,7 +198,8 @@ class _HomePageState extends State<HomePage> {
             children: [
               _buildProgressItem('Activities', activities.toString(), '0'),
               _buildProgressItem('Time', time, '0'),
-              _buildProgressItem('Distance', '${distance.toStringAsFixed(2)}km', '0'),
+              _buildProgressItem(
+                  'Distance', '${distance.toStringAsFixed(2)}km', '0'),
             ],
           ),
         ],
@@ -250,8 +237,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildCalendar() {
-    final weekStart = selectedDate.subtract(Duration(days: selectedDate.weekday - 1));
-    final days = List.generate(7, (index) => weekStart.add(Duration(days: index)));
+    final weekStart =
+        selectedDate.subtract(Duration(days: selectedDate.weekday - 1));
+    final days =
+        List.generate(7, (index) => weekStart.add(Duration(days: index)));
 
     return Container(
       color: Colors.white,
@@ -306,7 +295,8 @@ class _HomePageState extends State<HomePage> {
                     width: 50,
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     decoration: BoxDecoration(
-                      border: Border.all(color: isSelected ? Colors.blue : Colors.grey[300]!),
+                      border: Border.all(
+                          color: isSelected ? Colors.blue : Colors.grey[300]!),
                       borderRadius: BorderRadius.circular(8),
                       color: isSelected ? Colors.blue.withOpacity(0.1) : null,
                     ),
@@ -375,7 +365,9 @@ class _HomePageState extends State<HomePage> {
                     child: Container(
                       height: 24,
                       decoration: BoxDecoration(
-                        color: plan.isNotEmpty ? Colors.blue.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                        color: plan.isNotEmpty
+                            ? Colors.blue.withOpacity(0.1)
+                            : Colors.grey.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Center(
@@ -383,7 +375,9 @@ class _HomePageState extends State<HomePage> {
                           plan.isNotEmpty ? plan : 'Add plan',
                           style: AppFonts.regular.copyWith(
                             fontSize: 12,
-                            color: plan.isNotEmpty ? Colors.black87 : Colors.grey[600],
+                            color: plan.isNotEmpty
+                                ? Colors.black87
+                                : Colors.grey[600],
                           ),
                         ),
                       ),
@@ -398,8 +392,26 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void _addActivity() async {
+    // This is a simple implementation. You might want to create a more detailed form.
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance
+          .collection('user_activities')
+          .doc(user.uid)
+          .collection('activities')
+          .add({
+        'date': Timestamp.fromDate(selectedDate),
+        'duration': 30, // 30 minutes as an example
+        'distance': 2.5, // 2.5 km as an example
+      });
+      _fetchWeeklyProgress(); // Refresh the weekly progress
+    }
+  }
+
   void _showAddPlanDialog(String time) {
-    final TextEditingController controller = TextEditingController(text: plansByTime[time] ?? '');
+    final TextEditingController controller =
+        TextEditingController(text: plansByTime[time] ?? '');
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -426,7 +438,8 @@ class _HomePageState extends State<HomePage> {
                       .collection('plans')
                       .doc('${selectedDate.toIso8601String()}_$time')
                       .set({
-                    'date': Timestamp.fromDate(DateTime(selectedDate.year, selectedDate.month, selectedDate.day)),
+                    'date': Timestamp.fromDate(DateTime(selectedDate.year,
+                        selectedDate.month, selectedDate.day)),
                     'time': time,
                     'description': controller.text,
                   });

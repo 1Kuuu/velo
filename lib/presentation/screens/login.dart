@@ -13,7 +13,7 @@ class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
@@ -22,13 +22,14 @@ class _LoginPageState extends State<LoginPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
+  // void dispose () {
   void dispose() {
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
   }
 
-  /// 🔹 Email & Password Login
+  // void _login() async{
   void _login() async {
     if (_formKey.currentState!.validate()) {
       try {
@@ -38,6 +39,7 @@ class _LoginPageState extends State<LoginPage> {
           passwordController: passwordController,
         );
 
+        //  User? user = FirebaseAuth.instance.currentUser;
         User? user = FirebaseAuth.instance.currentUser;
         if (user != null) {
           Navigator.pushReplacement(
@@ -55,23 +57,24 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  /// 🔹 Google Sign-In (Force Account Selection)
   void _signInWithGoogle() async {
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn();
-      await googleSignIn.signOut(); // Ensure the user is signed out first
+      await googleSignIn.signOut();
 
       GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
       if (googleUser != null) {
-        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        final GoogleSignInAuthentication googleAuth =
+            await googleUser.authentication;
 
         final OAuthCredential credential = GoogleAuthProvider.credential(
           accessToken: googleAuth.accessToken,
           idToken: googleAuth.idToken,
         );
 
-        UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+        UserCredential userCredential =
+            await FirebaseAuth.instance.signInWithCredential(credential);
 
         if (userCredential.user != null && mounted) {
           Navigator.pushReplacement(
@@ -104,8 +107,6 @@ class _LoginPageState extends State<LoginPage> {
                 const AppLogo(),
                 CustomTitleText(text: 'LOGIN'),
                 const SizedBox(height: 32),
-
-                // Email Input with Validation
                 CustomInputField(
                   label: 'EMAIL',
                   controller: emailController,
@@ -114,16 +115,14 @@ class _LoginPageState extends State<LoginPage> {
                     if (value == null || value.isEmpty) {
                       return 'Email is required';
                     }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                        .hasMatch(value)) {
                       return 'Enter a valid email';
                     }
                     return null;
                   },
                 ),
-
                 const SizedBox(height: 16),
-
-                // Password Input with Validation
                 CustomInputField(
                   label: 'PASSWORD',
                   controller: passwordController,
@@ -139,10 +138,7 @@ class _LoginPageState extends State<LoginPage> {
                     return null;
                   },
                 ),
-
                 const SizedBox(height: 2),
-
-                // Forgot Password Button
                 TextButton(
                   onPressed: () {
                     Navigator.push(
@@ -159,22 +155,16 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 64),
-
-                // Login Button
                 Center(
                   child: CustomButton(
                     text: 'LOGIN',
                     onPressed: _login,
                   ),
                 ),
-
                 const SizedBox(height: 24),
                 Center(child: CustomDivider()),
                 const SizedBox(height: 24),
-
-                // Google Sign-In Button
                 Center(
                   child: CustomButton(
                     text: 'With Google',
@@ -182,10 +172,7 @@ class _LoginPageState extends State<LoginPage> {
                     iconPath: 'assets/images/Google.png',
                   ),
                 ),
-
                 const SizedBox(height: 24),
-
-                // Signup Navigation
                 AccountNavigationRow(
                   questionText: "Don't have an account?",
                   actionText: "Sign Up",

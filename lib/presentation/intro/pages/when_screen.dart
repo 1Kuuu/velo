@@ -1,0 +1,125 @@
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:velo/presentation/intro/pages/where_screen.dart';
+
+class WhenScreen extends StatefulWidget {
+  const WhenScreen({super.key});
+
+  @override
+  State<WhenScreen> createState() => _WhenScreenState();
+}
+
+class _WhenScreenState extends State<WhenScreen> {
+  final Map<String, bool> timePreferences = {
+    'Morning': false,
+    'Afternoon': false,
+    'Night': false,
+    'Weekdays': false,
+    'Weekends': false,
+    'Fitness': false,
+  };
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  void _saveAndNavigate() async {
+    // Store preferences in Firebase
+    await _firestore.collection('user_preferences').doc('current_user').set({
+      'time_preferences': timePreferences,
+    }, SetOptions(merge: true));
+
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const WhereScreen()),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Positioned(
+                top: 52.5,
+                left: 15,
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  height: 30,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'WHEN',
+                style: TextStyle(
+                  fontSize: 36,
+                  color: Color(0xFFB22222),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Text(
+                'DO YOU USUALLY RIDE?',
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 30),
+              Expanded(
+                child: ListView(
+                  children: timePreferences.keys.map((String key) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 15.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: CheckboxListTile(
+                          title: Text(
+                            key,
+                            style: const TextStyle(fontSize: 22),
+                          ),
+                          value: timePreferences[key],
+                          onChanged: (bool? value) {
+                            setState(() {
+                              timePreferences[key] = value!;
+                            });
+                          },
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _saveAndNavigate,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4A1818),
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    'Next',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
