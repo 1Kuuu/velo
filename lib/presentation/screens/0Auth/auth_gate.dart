@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:velora/data/sources/firebase_service.dart';
@@ -26,30 +27,32 @@ class AuthGate extends StatelessWidget {
         }
 
         // 🔹 User is authenticated, now check Firestore profile data
-        return FutureBuilder(
+        return FutureBuilder<DocumentSnapshot?>(
           future: FirebaseServices.getUserData(snapshot.data!.uid),
-          builder: (context, AsyncSnapshot userSnapshot) {
-            // 🔸 Show loading while fetching user data
+          builder: (context, AsyncSnapshot<DocumentSnapshot?> userSnapshot) {
+            // 🔹 Show loading while fetching user data
             if (userSnapshot.connectionState == ConnectionState.waiting) {
               return const Scaffold(
                 body: Center(child: CircularProgressIndicator()),
               );
             }
 
-            /* 🔸 If user document does NOT exist or is incomplete, go to WelcomePage
-            if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
+            // 🔹 If user document does NOT exist or is incomplete, go to WelcomePage
+            if (!userSnapshot.hasData ||
+                !(userSnapshot.data?.exists ?? false)) {
               return const WhatScreen();
-            }*/
+            }
 
-            // 🔸 Check if user has complete user_preference data
-            var userData = userSnapshot.data!.data();
+            // 🔹 Extract user data safely
+            var userData = userSnapshot.data!.data() as Map<String, dynamic>?;
+
             if (userData == null ||
                 !userData.containsKey('user_preference') ||
                 userData['user_preference'] == null) {
               return const WhatScreen();
             }
 
-            // 🔸 If user has a complete profile, go to HomePage
+            // 🔹 If user has a complete profile, go to HomePage
             return const HomePage();
           },
         );

@@ -29,11 +29,14 @@ class FirebaseServices {
   }
 
   /// 🔹 Get User Data
-  static Future<Map<String, dynamic>?> getUserData(String uid) async {
+  static Future<DocumentSnapshot?> getUserData(String uid) async {
     try {
       DocumentSnapshot userDoc =
           await _firestore.collection('user_profile').doc(uid).get();
-      return userDoc.exists ? userDoc.data() as Map<String, dynamic> : null;
+
+      print("📌 getUserData fetched: ${userDoc.data()}"); // Debugging line
+
+      return userDoc;
     } catch (e) {
       print("❌ Firestore Error (getUserData): $e");
       return null;
@@ -53,7 +56,7 @@ class FirebaseServices {
   /// 🔹 Check if user has completed onboarding
   static Future<bool> isOnboardingComplete() async {
     if (currentUserId == null) return false;
-    Map<String, dynamic>? userData = await getUserData(currentUserId!);
+    DocumentSnapshot<Object?>? userData = await getUserData(currentUserId!);
     return userData?['setupComplete'] ?? false;
   }
 
