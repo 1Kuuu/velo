@@ -4,9 +4,10 @@ import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:flutter/material.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/data/sources/auth_service.dart';
+import 'package:velora/presentation/screens/0Auth/auth_gate.dart';
 import 'package:velora/presentation/screens/0Auth/forgot_password.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
-import 'package:velora/presentation/intro/what_screen.dart';
+// Import auth_gate.dart
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -20,7 +21,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  // 🔹 Create an instance of AuthService
+  // Create an instance of AuthService
   final AuthService _authService = AuthService();
 
   @override
@@ -30,12 +31,12 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  /// 🔹 Email & Password Login
+  /// Email & Password Login
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       try {
         await _authService.loginWithEmail(
-          context: context, // 👈 FIX: Pass the context
+          context: context, // Pass the context
           email: emailController.text.trim(),
           password: passwordController.text.trim(),
         );
@@ -57,7 +58,8 @@ class _LoginPageState extends State<LoginPage> {
 
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const WhatScreen()),
+            MaterialPageRoute(
+                builder: (context) => const AuthGate()), // Navigate to AuthGate
           );
         }
       } catch (e) {
@@ -80,11 +82,11 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  /// 🔹 Google Sign-In
+  /// Google Sign-In
   Future<void> _signInWithGoogle() async {
     try {
-      await _authService.signInWithGoogle(
-          context); // 🔹 Ensure `context` is passed if required
+      await _authService
+          .signInWithGoogle(context); // Ensure `context` is passed if required
 
       if (mounted) {
         DelightToastBar(
@@ -99,11 +101,12 @@ class _LoginPageState extends State<LoginPage> {
           autoDismiss: true,
           snackbarDuration: const Duration(seconds: 2),
           animationDuration: const Duration(milliseconds: 300),
-        ).show(context); // 🔹 Ensure `context` is passed
+        ).show(context); // Ensure `context` is passed
 
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const WhatScreen()),
+          MaterialPageRoute(
+              builder: (context) => const AuthGate()), // Navigate to AuthGate
         );
       }
     } catch (e) {
@@ -120,7 +123,7 @@ class _LoginPageState extends State<LoginPage> {
           autoDismiss: true,
           snackbarDuration: const Duration(seconds: 2),
           animationDuration: const Duration(milliseconds: 300),
-        ).show(context); // 🔹 Ensure `context` is passed
+        ).show(context); // Ensure `context` is passed
       }
     }
   }

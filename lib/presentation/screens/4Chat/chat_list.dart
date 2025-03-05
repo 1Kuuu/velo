@@ -28,7 +28,12 @@ class ChatListPage extends StatelessWidget {
           ),
           AppBarIcon(
             icon: Icons.person_outline,
-            onTap: () => print("Profile Tapped"), // Add navigation if needed
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ProfilePage()),
+              );
+            },
           ),
         ],
       ),

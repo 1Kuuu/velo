@@ -15,6 +15,7 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  // ignore: unused_field
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _bioController = TextEditingController();
@@ -37,10 +38,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     User? user = _auth.currentUser;
     if (user != null) {
       try {
+        // ✅ Fetch profile image from FirebaseAuth
         _profileImageUrl = user.photoURL;
 
+        // ✅ Fetch name & bio from Firestore (user_profile collection)
         DocumentSnapshot userDoc =
             await _firestore.collection('user_profile').doc(user.uid).get();
+
         if (userDoc.exists) {
           setState(() {
             _originalName = userDoc['name'] ?? '';
@@ -48,10 +52,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             _nameController.text = _originalName!;
             _bioController.text = _originalBio!;
           });
+        } else {
+          print("❌ No user profile data found in Firestore.");
         }
       } catch (e) {
         _showToast("Error loading user data: $e", Icons.error, Colors.red);
       }
+    } else {
+      print("❌ No authenticated user found.");
     }
 
     setState(() {
@@ -81,13 +89,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     User? user = _auth.currentUser;
     if (user == null) {
       _showToast("User not found. Please re-login.", Icons.error, Colors.red);
+      setState(() {
+        _isLoading = false;
+      });
       return;
     }
 
     try {
-      await _firestore.collection('user_profile').doc(user.uid).set(
+      // ✅ Ensure updates are saved in 'user_profile' collection
+      await FirebaseFirestore.instance
+          .collection('user_profile')
+          .doc(user.uid)
+          .set(
         {'name': newName, 'bio': newBio},
-        SetOptions(merge: true),
+        SetOptions(merge: true), // Prevents overwriting other fields
       );
 
       _showToast(

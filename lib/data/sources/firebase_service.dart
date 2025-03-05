@@ -16,12 +16,12 @@ class FirebaseServices {
     String profileUrl = "",
   }) async {
     try {
-      await _firestore.collection('users').doc(uid).set({
-        'userName': username,
+      await _firestore.collection('user_profile').doc(uid).set({
+        'name': username, // Changed 'userName' to 'name'
         'email': email,
         'profileUrl': profileUrl,
+        'bio': "", // Ensure 'bio' field exists
         'createdAt': FieldValue.serverTimestamp(),
-        'setupComplete': false, // Default to false for new users
       }, SetOptions(merge: true)); // Prevents overwriting existing data
     } catch (e) {
       print("❌ Firestore Error (createUserDocument): $e");
@@ -32,7 +32,7 @@ class FirebaseServices {
   static Future<Map<String, dynamic>?> getUserData(String uid) async {
     try {
       DocumentSnapshot userDoc =
-          await _firestore.collection('users').doc(uid).get();
+          await _firestore.collection('user_profile').doc(uid).get();
       return userDoc.exists ? userDoc.data() as Map<String, dynamic> : null;
     } catch (e) {
       print("❌ Firestore Error (getUserData): $e");

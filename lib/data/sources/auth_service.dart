@@ -70,6 +70,25 @@ class AuthService {
         password: password,
       );
 
+      User? user = userCredential.user;
+      if (user != null) {
+        // ✅ Fetch user data from Firestore (user_profile collection)
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('user_profile')
+            .doc(user.uid)
+            .get();
+
+        if (userDoc.exists) {
+          String fetchedName = userDoc['name'] ?? "";
+          // ignore: unused_local_variable
+          String fetchedBio = userDoc['bio'] ?? "";
+
+          // ✅ Update FirebaseAuth profile if necessary
+          await user.updateDisplayName(fetchedName);
+          await user.reload(); // Refresh user info
+        }
+      }
+
       _showToast(
           context, "Login Successful!", Icons.check_circle, Colors.green);
       return userCredential;
