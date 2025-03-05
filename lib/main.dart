@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:velora/presentation/intro/onboarding.dart';
+import 'package:velora/presentation/intro/welcome_screen.dart';
 import 'package:velora/presentation/screens/1Home/home.dart';
 import 'package:velora/presentation/screens/0Auth/signup.dart';
 import 'package:velora/presentation/screens/0Auth/login.dart';
@@ -77,17 +79,19 @@ class AuthWrapper extends StatelessWidget {
             }
 
             if (snapshot.hasData && snapshot.data!.exists) {
-              var userData = snapshot.data!.data() as Map<String, dynamic>;
-              bool setupComplete =
-                  userData['setupComplete'] ?? false; // ✅ Check setup status
+              var userData = snapshot.data!.data()
+                  as Map<String, dynamic>; // Convert to map
+              bool setupComplete = userData.containsKey('setupComplete')
+                  ? userData['setupComplete']
+                  : false; // ✅ Check if field exists
 
               if (setupComplete) {
                 return const HomePage(); // ✅ User setup complete? Go to Home
               } else {
-                return const GetStarted(); // 🚀 Setup incomplete? Go to Onboarding
+                return const HomePage(); // 🚀 Setup incomplete? Go to Welcome
               }
             } else {
-              return const GetStarted(); // New user? Start Onboarding
+              return const WelcomeScreen(); // New user? Go to Setup
             }
           },
         );
