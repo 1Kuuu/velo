@@ -203,7 +203,7 @@ class _LoginPageState extends State<LoginPage> {
                     child: const Text(
                       'Forgot Password?',
                       style: TextStyle(
-                        color: AppColors.primary,
+                        color: AppColors.linkText,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

@@ -1,7 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class FirebaseServices {
+  static final FirebaseAuth _auth = FirebaseAuth.instance;
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  /// 🔹 Get current user ID
+  static String? get currentUserId => _auth.currentUser?.uid;
 
   /// 🔹 Create or Update User Document in Firestore
   static Future<void> createUserDocument({
@@ -16,29 +21,51 @@ class FirebaseServices {
         'email': email,
         'profileUrl': profileUrl,
         'createdAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true)); // Merge prevents overwriting existing data
+        'setupComplete': false, // Default to false for new users
+      }, SetOptions(merge: true)); // Prevents overwriting existing data
     } catch (e) {
       print("❌ Firestore Error (createUserDocument): $e");
     }
   }
 
   /// 🔹 Get User Data
-  static Future<DocumentSnapshot?> getUserData(String uid) async {
+  static Future<Map<String, dynamic>?> getUserData(String uid) async {
     try {
-      return await _firestore.collection('users').doc(uid).get();
+      DocumentSnapshot userDoc =
+          await _firestore.collection('users').doc(uid).get();
+      return userDoc.exists ? userDoc.data() as Map<String, dynamic> : null;
     } catch (e) {
       print("❌ Firestore Error (getUserData): $e");
       return null;
     }
   }
 
-  /// 🔹 Update User Data (e.g., username, profile picture)
+  /// 🔹 Update User Data (e.g., username, profile picture, setupComplete)
   static Future<void> updateUserData(
       String uid, Map<String, dynamic> data) async {
     try {
       await _firestore.collection('users').doc(uid).update(data);
     } catch (e) {
       print("❌ Firestore Error (updateUserData): $e");
+    }
+  }
+
+  /// 🔹 Check if user has completed onboarding
+  static Future<bool> isOnboardingComplete() async {
+    if (currentUserId == null) return false;
+    Map<String, dynamic>? userData = await getUserData(currentUserId!);
+    return userData?['setupComplete'] ?? false;
+  }
+
+  /// 🔹 Mark Setup as Complete
+  static Future<void> completeOnboarding() async {
+    if (currentUserId == null) return;
+    try {
+      await _firestore.collection('users').doc(currentUserId).update({
+        'setupComplete': true,
+      });
+    } catch (e) {
+      print("❌ Firestore Error (completeOnboarding): $e");
     }
   }
 

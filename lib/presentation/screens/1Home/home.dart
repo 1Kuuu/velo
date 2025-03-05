@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/presentation/screens/2ToolBox/toolbox.dart';
 import 'package:velora/presentation/screens/3News/newsfeed.dart';
-import 'package:velora/presentation/screens/4Chat/chat.dart';
+import 'package:velora/presentation/screens/4Chat/chat_list.dart';
 import 'package:velora/presentation/screens/5Settings/setting_screen.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
@@ -21,7 +21,7 @@ class _HomePageState extends State<HomePage> {
     const HomePageContent(),
     const ToolboxPageContent(),
     const NewsFeedPageContent(),
-    const ChatPageContent(),
+    const ChatListPage(),
     const SettingsScreen(),
   ];
 
@@ -137,7 +137,8 @@ class _HomePageContentState extends State<HomePageContent> {
   }
 
   // Show delete confirmation dialog
-  Future<void> _showDeleteConfirmation(BuildContext context, Event event) async {
+  Future<void> _showDeleteConfirmation(
+      BuildContext context, Event event) async {
     return showDialog<void>(
       context: context,
       barrierDismissible: false, // User must tap button to close dialog
@@ -206,9 +207,13 @@ class _HomePageContentState extends State<HomePageContent> {
       appBar: MyAppBar(
         title: "Home",
         actions: [
-          AppBarIcon(icon: Icons.cloud_outlined, onTap: () => print("Weather Tapped")),
-          AppBarIcon(icon: Icons.notifications_outlined, onTap: () => print("Notifications Tapped")),
-          AppBarIcon(icon: Icons.person_outline, onTap: () => print("Profile Tapped")),
+          AppBarIcon(
+              icon: Icons.cloud_outlined, onTap: () => print("Weather Tapped")),
+          AppBarIcon(
+              icon: Icons.notifications_outlined,
+              onTap: () => print("Notifications Tapped")),
+          AppBarIcon(
+              icon: Icons.person_outline, onTap: () => print("Profile Tapped")),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -273,8 +278,10 @@ class _HomePageContentState extends State<HomePageContent> {
                     children: [
                       const SizedBox(width: 4), // Small spacing
                       Text(
-                        DateFormat.yMMMM().format(_selectedDate), // Example: "March 2025"
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        DateFormat.yMMMM()
+                            .format(_selectedDate), // Example: "March 2025"
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       const Icon(Icons.arrow_drop_down), // Dropdown indicator
                     ],
@@ -310,8 +317,10 @@ class _HomePageContentState extends State<HomePageContent> {
                   child: Column(
                     children: [
                       Text(
-                        DateFormat.E().format(currentDate), // "Sun", "Mon", etc.
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        DateFormat.E()
+                            .format(currentDate), // "Sun", "Mon", etc.
+                        style:
+                            const TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                       const SizedBox(height: 4),
                       Stack(
@@ -320,7 +329,9 @@ class _HomePageContentState extends State<HomePageContent> {
                           Container(
                             padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: isSelected ? Colors.brown : Colors.transparent,
+                              color: isSelected
+                                  ? Colors.brown
+                                  : Colors.transparent,
                               shape: BoxShape.circle,
                             ),
                             child: Text(
@@ -404,20 +415,25 @@ class _HomePageContentState extends State<HomePageContent> {
                           );
                         },
                         child: Card(
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          color: event.color, // Use the event's color as the card background
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          color: event
+                              .color, // Use the event's color as the card background
                           child: Padding(
                             padding: const EdgeInsets.all(12.0),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Expanded(
                                       child: Text(
                                         event.title,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16),
                                       ),
                                     ),
                                     Row(
@@ -429,11 +445,14 @@ class _HomePageContentState extends State<HomePageContent> {
                                           padding: EdgeInsets.zero,
                                           constraints: BoxConstraints(),
                                         ),
-                                        SizedBox(width: 16), // Space between buttons
+                                        SizedBox(
+                                            width: 16), // Space between buttons
                                         // Delete button
                                         IconButton(
                                           icon: Icon(Icons.delete, size: 20),
-                                          onPressed: () => _showDeleteConfirmation(context, event),
+                                          onPressed: () =>
+                                              _showDeleteConfirmation(
+                                                  context, event),
                                           padding: EdgeInsets.zero,
                                           constraints: BoxConstraints(),
                                           color: Colors.red[700],
@@ -443,7 +462,8 @@ class _HomePageContentState extends State<HomePageContent> {
                                   ],
                                 ),
                                 const SizedBox(height: 4),
-                                Text("${DateFormat('EEEE, MMMM d').format(event.date)} | ${_formatTimeOfDay(event.startTime)} - ${_formatTimeOfDay(event.endTime)}"),
+                                Text(
+                                    "${DateFormat('EEEE, MMMM d').format(event.date)} | ${_formatTimeOfDay(event.startTime)} - ${_formatTimeOfDay(event.endTime)}"),
                                 const SizedBox(height: 4),
                                 Text(event.description),
                               ],
@@ -473,8 +493,10 @@ class _HomePageContentState extends State<HomePageContent> {
 
   String _formatTimeOfDay(TimeOfDay timeOfDay) {
     final now = DateTime.now();
-    final dateTime = DateTime(now.year, now.month, now.day, timeOfDay.hour, timeOfDay.minute);
-    final format = DateFormat.jm(); // This will give you the time in AM/PM format
+    final dateTime = DateTime(
+        now.year, now.month, now.day, timeOfDay.hour, timeOfDay.minute);
+    final format =
+        DateFormat.jm(); // This will give you the time in AM/PM format
     return format.format(dateTime);
   }
 
@@ -484,12 +506,16 @@ class _HomePageContentState extends State<HomePageContent> {
     bool isAllDay = existingEvent?.isAllDay ?? false;
     String repeatStatus = existingEvent?.repeatStatus ?? "None";
     TimeOfDay startTime = existingEvent?.startTime ?? TimeOfDay.now();
-    TimeOfDay endTime = existingEvent?.endTime ?? TimeOfDay(hour: TimeOfDay.now().hour + 1, minute: TimeOfDay.now().minute);
+    TimeOfDay endTime = existingEvent?.endTime ??
+        TimeOfDay(
+            hour: TimeOfDay.now().hour + 1, minute: TimeOfDay.now().minute);
     Color selectedColor = existingEvent?.color ?? Colors.blue; // Default color
 
     // Controllers for text fields
-    final TextEditingController titleController = TextEditingController(text: existingEvent?.title ?? "");
-    final TextEditingController descriptionController = TextEditingController(text: existingEvent?.description ?? "");
+    final TextEditingController titleController =
+        TextEditingController(text: existingEvent?.title ?? "");
+    final TextEditingController descriptionController =
+        TextEditingController(text: existingEvent?.description ?? "");
 
     showModalBottomSheet(
       context: context,
@@ -518,18 +544,22 @@ class _HomePageContentState extends State<HomePageContent> {
                       children: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text("Cancel", style: TextStyle(color: Colors.red)),
+                          child: const Text("Cancel",
+                              style: TextStyle(color: Colors.red)),
                         ),
                         Text(
                           existingEvent != null ? "Edit Task" : "New Task",
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         TextButton(
                           onPressed: () {
                             if (existingEvent != null) {
                               // Update existing event
                               final updatedEvent = existingEvent.copyWith(
-                                title: titleController.text.isEmpty ? "Untitled Task" : titleController.text,
+                                title: titleController.text.isEmpty
+                                    ? "Untitled Task"
+                                    : titleController.text,
                                 description: descriptionController.text,
                                 date: selectedDate,
                                 startTime: startTime,
@@ -541,7 +571,8 @@ class _HomePageContentState extends State<HomePageContent> {
 
                               setState(() {
                                 // Find and replace the existing event
-                                final index = _events.indexWhere((e) => e.id == existingEvent.id);
+                                final index = _events.indexWhere(
+                                    (e) => e.id == existingEvent.id);
                                 if (index != -1) {
                                   _events[index] = updatedEvent;
                                 }
@@ -549,8 +580,12 @@ class _HomePageContentState extends State<HomePageContent> {
                             } else {
                               // Create a new event
                               final newEvent = Event(
-                                id: DateTime.now().millisecondsSinceEpoch.toString(), // Generate a unique ID
-                                title: titleController.text.isEmpty ? "Untitled Task" : titleController.text,
+                                id: DateTime.now()
+                                    .millisecondsSinceEpoch
+                                    .toString(), // Generate a unique ID
+                                title: titleController.text.isEmpty
+                                    ? "Untitled Task"
+                                    : titleController.text,
                                 description: descriptionController.text,
                                 date: selectedDate,
                                 startTime: startTime,
@@ -561,13 +596,15 @@ class _HomePageContentState extends State<HomePageContent> {
                               );
 
                               setState(() {
-                                _events.add(newEvent); // Add the new event to the list
+                                _events.add(
+                                    newEvent); // Add the new event to the list
                               });
                             }
 
                             Navigator.pop(context);
                           },
-                          child: const Text("Save", style: TextStyle(color: Colors.green)),
+                          child: const Text("Save",
+                              style: TextStyle(color: Colors.green)),
                         ),
                       ],
                     ),
@@ -631,7 +668,8 @@ class _HomePageContentState extends State<HomePageContent> {
                           // Date Picker
                           _buildTile(
                             icon: Icons.calendar_today,
-                            text: DateFormat('EEEE, MMMM d').format(selectedDate),
+                            text:
+                                DateFormat('EEEE, MMMM d').format(selectedDate),
                             onTap: () async {
                               DateTime? pickedDate = await showDatePicker(
                                 context: context,
@@ -639,7 +677,8 @@ class _HomePageContentState extends State<HomePageContent> {
                                 firstDate: DateTime(2000),
                                 lastDate: DateTime(2100),
                               );
-                              if (pickedDate != null && pickedDate != selectedDate) {
+                              if (pickedDate != null &&
+                                  pickedDate != selectedDate) {
                                 setModalState(() {
                                   selectedDate = pickedDate;
                                 });
@@ -708,7 +747,8 @@ class _HomePageContentState extends State<HomePageContent> {
                         children: [
                           const Text(
                             "Select Task Color",
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
                           ),
                           const SizedBox(height: 10),
                           Wrap(
@@ -728,13 +768,16 @@ class _HomePageContentState extends State<HomePageContent> {
                                     color: Colors.red,
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: selectedColor == Colors.red ? Colors.white : Colors.transparent,
+                                      color: selectedColor == Colors.red
+                                          ? Colors.white
+                                          : Colors.transparent,
                                       width: 2,
                                     ),
                                     boxShadow: selectedColor == Colors.red
                                         ? [
                                             BoxShadow(
-                                              color: Colors.black.withOpacity(0.3),
+                                              color:
+                                                  Colors.black.withOpacity(0.3),
                                               blurRadius: 4,
                                               spreadRadius: 1,
                                             )
@@ -756,13 +799,16 @@ class _HomePageContentState extends State<HomePageContent> {
                                     color: Colors.blue,
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: selectedColor == Colors.blue ? Colors.white : Colors.transparent,
+                                      color: selectedColor == Colors.blue
+                                          ? Colors.white
+                                          : Colors.transparent,
                                       width: 2,
                                     ),
                                     boxShadow: selectedColor == Colors.blue
                                         ? [
                                             BoxShadow(
-                                              color: Colors.black.withOpacity(0.3),
+                                              color:
+                                                  Colors.black.withOpacity(0.3),
                                               blurRadius: 4,
                                               spreadRadius: 1,
                                             )
@@ -784,13 +830,16 @@ class _HomePageContentState extends State<HomePageContent> {
                                     color: Colors.green,
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: selectedColor == Colors.green ? Colors.white : Colors.transparent,
+                                      color: selectedColor == Colors.green
+                                          ? Colors.white
+                                          : Colors.transparent,
                                       width: 2,
                                     ),
                                     boxShadow: selectedColor == Colors.green
                                         ? [
                                             BoxShadow(
-                                              color: Colors.black.withOpacity(0.3),
+                                              color:
+                                                  Colors.black.withOpacity(0.3),
                                               blurRadius: 4,
                                               spreadRadius: 1,
                                             )
@@ -812,13 +861,16 @@ class _HomePageContentState extends State<HomePageContent> {
                                     color: Colors.orange,
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: selectedColor == Colors.orange ? Colors.white : Colors.transparent,
+                                      color: selectedColor == Colors.orange
+                                          ? Colors.white
+                                          : Colors.transparent,
                                       width: 2,
                                     ),
                                     boxShadow: selectedColor == Colors.orange
                                         ? [
                                             BoxShadow(
-                                              color: Colors.black.withOpacity(0.3),
+                                              color:
+                                                  Colors.black.withOpacity(0.3),
                                               blurRadius: 4,
                                               spreadRadius: 1,
                                             )
@@ -840,13 +892,16 @@ class _HomePageContentState extends State<HomePageContent> {
                                     color: Colors.purple,
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: selectedColor == Colors.purple ? Colors.white : Colors.transparent,
+                                      color: selectedColor == Colors.purple
+                                          ? Colors.white
+                                          : Colors.transparent,
                                       width: 2,
                                     ),
                                     boxShadow: selectedColor == Colors.purple
                                         ? [
                                             BoxShadow(
-                                              color: Colors.black.withOpacity(0.3),
+                                              color:
+                                                  Colors.black.withOpacity(0.3),
                                               blurRadius: 4,
                                               spreadRadius: 1,
                                             )
@@ -868,13 +923,16 @@ class _HomePageContentState extends State<HomePageContent> {
                                     color: Colors.teal,
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: selectedColor == Colors.teal ? Colors.white : Colors.transparent,
+                                      color: selectedColor == Colors.teal
+                                          ? Colors.white
+                                          : Colors.transparent,
                                       width: 2,
                                     ),
                                     boxShadow: selectedColor == Colors.teal
                                         ? [
                                             BoxShadow(
-                                              color: Colors.black.withOpacity(0.3),
+                                              color:
+                                                  Colors.black.withOpacity(0.3),
                                               blurRadius: 4,
                                               spreadRadius: 1,
                                             )
@@ -896,13 +954,16 @@ class _HomePageContentState extends State<HomePageContent> {
                                     color: Colors.brown,
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: selectedColor == Colors.brown ? Colors.white : Colors.transparent,
+                                      color: selectedColor == Colors.brown
+                                          ? Colors.white
+                                          : Colors.transparent,
                                       width: 2,
                                     ),
                                     boxShadow: selectedColor == Colors.brown
                                         ? [
                                             BoxShadow(
-                                              color: Colors.black.withOpacity(0.3),
+                                              color:
+                                                  Colors.black.withOpacity(0.3),
                                               blurRadius: 4,
                                               spreadRadius: 1,
                                             )
@@ -943,7 +1004,8 @@ class _HomePageContentState extends State<HomePageContent> {
     );
   }
 
-  Widget _buildTile({required IconData icon, required String text, VoidCallback? onTap}) {
+  Widget _buildTile(
+      {required IconData icon, required String text, VoidCallback? onTap}) {
     return ListTile(
       leading: Icon(icon),
       title: Text(text),

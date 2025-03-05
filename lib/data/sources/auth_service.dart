@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/material.dart';
@@ -16,7 +17,7 @@ class AuthService {
   }
 
   /// 🔹 Sign up with email & password
-  Future<UserCredential?> signUpWithEmail({
+  Future<bool> signUpWithEmail({
     required BuildContext context,
     required String username,
     required String email,
@@ -24,25 +25,36 @@ class AuthService {
     required String confirmPassword,
   }) async {
     try {
-      UserCredential userCredential =
-          await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
 
-      // Save user info in Firestore
-      await FirebaseServices.createUserDocument(
-        uid: userCredential.user!.uid,
-        username: username,
-        email: email,
-      );
+      if (userCredential.user != null) {
+        User user = userCredential.user!;
 
-      _showToast(
-          context, "Signup Successful!", Icons.check_circle, Colors.green);
-      return userCredential;
+        // ✅ Update Firebase Auth profile
+        await user.updateDisplayName(username);
+        await user.reload(); // Refresh user info
+
+        print("✅ User profile updated: ${user.displayName}");
+
+        // ✅ Save user info in Firestore
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'userName': username,
+          'email': email,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        print("✅ User data stored in Firestore");
+
+        return true;
+      } else {
+        print("❌ User creation returned null");
+        return false;
+      }
     } catch (e) {
-      _showToast(context, "Signup failed: $e", Icons.error, Colors.red);
-      return null;
+      print("❌ Signup error: $e");
+      return false;
     }
   }
 

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -52,12 +53,44 @@ class AuthWrapper extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasData) {
-          return const HomePage(); // User is logged in
-        } else {
-          return const GetStarted(); // No user, go to onboarding
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
+
+        final user = snapshot.data;
+
+        if (user == null) {
+          return const LoginPage(); // 🚀 Not logged in? Go to Login
+        }
+
+        return FutureBuilder<DocumentSnapshot>(
+          future: FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            if (snapshot.hasData && snapshot.data!.exists) {
+              var userData = snapshot.data!.data() as Map<String, dynamic>;
+              bool setupComplete =
+                  userData['setupComplete'] ?? false; // ✅ Check setup status
+
+              if (setupComplete) {
+                return const HomePage(); // ✅ User setup complete? Go to Home
+              } else {
+                return const GetStarted(); // 🚀 Setup incomplete? Go to Onboarding
+              }
+            } else {
+              return const GetStarted(); // New user? Start Onboarding
+            }
+          },
+        );
       },
     );
   }

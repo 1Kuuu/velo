@@ -4,7 +4,6 @@ import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:flutter/material.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/data/sources/auth_service.dart';
-import 'package:velora/presentation/intro/what_screen.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 import 'login.dart';
 
@@ -44,11 +43,14 @@ class _SignupPageState extends State<SignupPage> {
         confirmPassword: confirmPasswordController.text.trim(),
       );
 
+      print("Signup result: $result"); // Debugging: Check if signup succeeds
+
       if (mounted && result == true) {
+        // ✅ Show Success Toast
         DelightToastBar(
           builder: (context) {
             return const ToastCard(
-              title: Text('Success'),
+              title: Text('Signup Successful!'),
               leading: Icon(Icons.check_circle, color: Colors.green),
             );
           },
@@ -58,10 +60,31 @@ class _SignupPageState extends State<SignupPage> {
           animationDuration: const Duration(milliseconds: 300),
         ).show(context);
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const WhatScreen()),
-        );
+        // ✅ Wait for toast to show before navigating
+        await Future.delayed(const Duration(seconds: 2));
+
+        if (mounted) {
+          print("Navigating to login..."); // Debugging: Ensure this prints
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginPage()),
+          );
+        }
+      } else {
+        // 🔹 Handle signup failure
+        print("Signup failed or returned false");
+        DelightToastBar(
+          builder: (context) {
+            return const ToastCard(
+              title: Text('Signup Failed'),
+              leading: Icon(Icons.error, color: Colors.red),
+            );
+          },
+          position: DelightSnackbarPosition.top,
+          autoDismiss: true,
+          snackbarDuration: const Duration(seconds: 2),
+          animationDuration: const Duration(milliseconds: 300),
+        ).show(context);
       }
     }
   }
@@ -83,11 +106,6 @@ class _SignupPageState extends State<SignupPage> {
         snackbarDuration: const Duration(seconds: 2),
         animationDuration: const Duration(milliseconds: 300),
       ).show(context);
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const WhatScreen()),
-      );
     }
   }
 

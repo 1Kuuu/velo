@@ -1,190 +1,72 @@
-import 'package:delightful_toast/delight_toast.dart';
-import 'package:delightful_toast/toast/components/toast_card.dart';
-import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:velora/presentation/screens/1Home/home.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:velora/core/configs/theme/app_colors.dart';
+import 'package:velora/data/sources/firebase_service.dart';
+import 'package:velora/presentation/intro/what_screen.dart';
+import 'package:velora/presentation/screens/0Auth/login.dart';
+import 'package:velora/presentation/screens/1Home/home.dart';
+import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
+
+  @override
+  _WelcomeScreenState createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _navigateToNextScreen();
+  }
+
+  Future<void> _navigateToNextScreen() async {
+    await Future.delayed(const Duration(seconds: 2));
+
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      // No user logged in, go to Login
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
+      return;
+    }
+
+    // Fetch user data from Firestore
+    final Map<String, dynamic>? userData =
+        await FirebaseServices.getUserData(user.uid);
+
+    // Ensure userData isn't null before accessing properties
+    final bool isSetupComplete = userData?['setupComplete'] ?? false;
+
+    // Navigate based on setup status
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            isSetupComplete ? const HomePage() : const WhatScreen(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: StreamBuilder<DocumentSnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('user_preferences')
-              .doc(FirebaseAuth.instance.currentUser?.uid)
-              .snapshots(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (snapshot.hasError) {
-              _showErrorToast(context, 'Failed to load data.');
-              return const Center(child: Text('Something went wrong!'));
-            }
-
-            if (!snapshot.hasData || !snapshot.data!.exists) {
-              _showErrorToast(context, 'User preferences not found.');
-              return const Center(child: Text('No data available!'));
-            }
-
-            final data = snapshot.data!.data() as Map<String, dynamic>?;
-
-            if (data == null) {
-              _showErrorToast(context, 'Invalid data format.');
-              return const Center(child: Text('Data error!'));
-            }
-
-            final bikeType = data['bike_type'] as String? ?? 'Unknown';
-            final timePrefs =
-                (data['time_preferences'] as Map<String, dynamic>?) ?? {};
-            final locationPrefs =
-                (data['location_preferences'] as Map<String, dynamic>?) ?? {};
-
-            return Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Image.asset(
-                    'assets/images/logo.png',
-                    height: 30,
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'WELCOME!',
-                    style: TextStyle(
-                      fontSize: 36,
-                      color: Color(0xFFB22222),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Text(
-                    'SEEMS LIKE YOU LOVE:',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildSummaryCard(bikeType),
-                  const SizedBox(height: 20),
-                  _buildPreferenceSection('To Ride During:', timePrefs),
-                  const SizedBox(height: 20),
-                  _buildPreferenceSection('In The:', locationPrefs),
-                  const Spacer(),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const HomePage()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4A1818),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text(
-                        'START',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
+      backgroundColor: AppColors.lightBackground,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const AppLogo(), // Reusing AppLogo from reusable_wdgts.dart
+            const SizedBox(height: 20),
+            CustomTitleText(text: "Welcome to Velora"),
+            const SizedBox(height: 10),
+            CustomSubtitleText(text: "Your cycling journey starts here."),
+          ],
         ),
       ),
-    );
-  }
-
-  void _showErrorToast(BuildContext context, String message) {
-    DelightToastBar(
-      builder: (context) {
-        return ToastCard(
-          title: const Text('Error'),
-          subtitle: Text(message),
-          leading: const Icon(Icons.error, color: Colors.red),
-        );
-      },
-      position: DelightSnackbarPosition.top,
-      autoDismiss: true,
-      snackbarDuration: const Duration(seconds: 2),
-      animationDuration: const Duration(milliseconds: 300),
-    ).show(context);
-  }
-
-  Widget _buildSummaryCard(String bikeType) {
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          Image.asset(
-            'assets/images/${bikeType.toLowerCase()}.png',
-            width: double.infinity,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return const Icon(Icons.directions_bike,
-                  size: 100, color: Colors.grey);
-            },
-          ),
-          const SizedBox(height: 8),
-          Text(
-            bikeType,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPreferenceSection(
-      String title, Map<String, dynamic> preferences) {
-    final selectedPreferences = preferences.entries
-        .where((e) => e.value == true)
-        .map((e) => e.key)
-        .toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: selectedPreferences.map((pref) {
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.grey[400],
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(pref),
-            );
-          }).toList(),
-        ),
-      ],
     );
   }
 }
