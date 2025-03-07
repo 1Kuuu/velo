@@ -60,6 +60,7 @@ flutter:
     - assets/svg/black-w.svg
     - assets/svg/white-m.svg
     - assets/svg/white-w.svg
+    - assets/svg/add.svg
 
   fonts:
     - family: Poppins
