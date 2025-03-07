@@ -40,10 +40,10 @@ class _SignupPageState extends State<SignupPage> {
         username: usernameController.text.trim(),
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
-        confirmPassword: confirmPasswordController.text.trim(),
+        confirmPassword: '',
       );
 
-      print("Signup result: $result"); // Debugging: Check if signup succeeds
+      print("Signup result: $result"); // Debugging
 
       if (mounted && result == true) {
         // ✅ Show Success Toast
@@ -60,18 +60,17 @@ class _SignupPageState extends State<SignupPage> {
           animationDuration: const Duration(milliseconds: 300),
         ).show(context);
 
-        // ✅ Wait for toast to show before navigating
+        // ✅ Wait before navigating
         await Future.delayed(const Duration(seconds: 2));
 
         if (mounted) {
-          print("Navigating to login..."); // Debugging: Ensure this prints
+          print("Navigating to login...");
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const LoginPage()),
           );
         }
       } else {
-        // 🔹 Handle signup failure
         print("Signup failed or returned false");
         DelightToastBar(
           builder: (context) {
@@ -175,9 +174,15 @@ class _SignupPageState extends State<SignupPage> {
                   controller: confirmPasswordController,
                   hintText: 'Re-enter your password',
                   obscureText: true,
-                  validator: (value) => (value != passwordController.text)
-                      ? 'Passwords do not match'
-                      : null,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please confirm your password';
+                    }
+                    if (value != passwordController.text) {
+                      return 'Passwords do not match';
+                    }
+                    return null;
+                  },
                 ),
 
                 const SizedBox(height: 24),

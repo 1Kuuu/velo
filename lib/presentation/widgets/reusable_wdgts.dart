@@ -257,6 +257,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onProfileTap;
   final bool hasWeatherAlert;
   final List<Widget>? actions; // Accept custom actions
+  final bool automaticallyImplyLeading; // Added this parameter
 
   const MyAppBar({
     super.key,
@@ -266,6 +267,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.onProfileTap,
     this.hasWeatherAlert = false,
     this.actions, // Accept a list of action widgets
+    this.automaticallyImplyLeading = true, // Default to true
   });
 
   @override
@@ -275,6 +277,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       backgroundColor: theme.primaryColor,
       elevation: 0,
+      automaticallyImplyLeading: automaticallyImplyLeading, // Apply it here
       title: Text(
         title,
         style: theme.textTheme.titleLarge?.copyWith(
@@ -287,7 +290,6 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
           bottom: Radius.circular(18), // Adjust curve radius as needed
         ),
       ),
-
       actions: actions ?? [], // Ensure actions are properly set
     );
   }

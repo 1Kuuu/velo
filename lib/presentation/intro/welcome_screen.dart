@@ -16,7 +16,7 @@ class WelcomeScreen extends StatelessWidget {
       appBar: AppBar(
         automaticallyImplyLeading: false, // Removes back button
         title: const Text('Welcome'),
-        titleTextStyle: const TextStyle( 
+        titleTextStyle: const TextStyle(
             fontFamily: 'Poppins',
             fontSize: 36,
             fontWeight: FontWeight.w600,
@@ -44,18 +44,27 @@ class WelcomeScreen extends StatelessWidget {
               return const Center(child: Text('No data available!'));
             }
 
-            final data = snapshot.data!.data() as Map<String, dynamic>?;
+            final rawData = snapshot.data!.data();
 
-            if (data == null) {
-              _showErrorToast(context, 'Invalid data format.');
-              return const Center(child: Text('Data error!'));
+            // Debugging: Print Firestore data
+            print("Raw Firestore Data: $rawData");
+
+            if (rawData is! Map<String, dynamic>) {
+              _showErrorToast(context, "Unexpected data format.");
+              return const Center(
+                  child: Text("Invalid Firestore data format."));
             }
+
+            final data = rawData; // Now safely casted
 
             final bikeType = data['bike_type'] as String? ?? 'Unknown';
             final timePrefs =
                 (data['time_preferences'] as Map<String, dynamic>?) ?? {};
             final locationPrefs =
-                (data['location_preferences'] as Map<String, dynamic>?) ?? {};
+                (data['location_preferences'] as List<dynamic>?)
+                        ?.whereType<String>()
+                        .toList() ??
+                    [];
 
             return Padding(
               padding: const EdgeInsets.all(20.0),
@@ -166,12 +175,19 @@ class WelcomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPreferenceSection(
-      String title, Map<String, dynamic> preferences) {
-    final selectedPreferences = preferences.entries
-        .where((e) => e.value == true)
-        .map((e) => e.key)
-        .toList();
+  Widget _buildPreferenceSection(String title, dynamic preferences) {
+    List<String> selectedPreferences = [];
+
+    if (preferences is Map<String, dynamic>) {
+      // If it's a Map, extract keys where the value is 'true'
+      selectedPreferences = preferences.entries
+          .where((entry) => entry.value == true)
+          .map((entry) => entry.key)
+          .toList();
+    } else if (preferences is List<dynamic>) {
+      // If it's a List, safely cast it to List<String>
+      selectedPreferences = preferences.whereType<String>().toList();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

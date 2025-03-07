@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:delightful_toast/delight_toast.dart';
 import 'package:delightful_toast/toast/components/toast_card.dart';
 import 'package:delightful_toast/toast/utils/enums.dart';
-import 'package:velora/data/sources/firebase_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:velora/presentation/screens/0Auth/login.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   /// 🔹 Get current user
   User? getCurrentUser() {
@@ -22,11 +24,20 @@ class AuthService {
     required String username,
     required String email,
     required String password,
-    required String confirmPassword,
+    required String confirmPassword, // 👈 Added confirmPassword parameter
   }) async {
     try {
-      UserCredential userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(email: email, password: password);
+      // 🔹 Validate Password Match
+      if (password != confirmPassword) {
+        _showToast(context, "Passwords do not match!", Icons.error, Colors.red);
+        return false;
+      }
+
+      UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
       if (userCredential.user != null) {
         User user = userCredential.user!;
@@ -35,25 +46,21 @@ class AuthService {
         await user.updateDisplayName(username);
         await user.reload(); // Refresh user info
 
-        print("✅ User profile updated: ${user.displayName}");
-
-        // ✅ Save user info in Firestore
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        // ✅ Save user info in Firestore (Unified Collection)
+        await _firestore.collection('users').doc(user.uid).set({
           'uid': user.uid,
           'userName': username,
           'email': email,
           'createdAt': FieldValue.serverTimestamp(),
+          'setupComplete':
+              false, // 👈 Ensure this is false for onboarding logic
         });
 
-        print("✅ User data stored in Firestore");
-
         return true;
-      } else {
-        print("❌ User creation returned null");
-        return false;
       }
+      return false;
     } catch (e) {
-      print("❌ Signup error: $e");
+      _showToast(context, "Signup failed: $e", Icons.error, Colors.red);
       return false;
     }
   }
@@ -70,25 +77,6 @@ class AuthService {
         password: password,
       );
 
-      User? user = userCredential.user;
-      if (user != null) {
-        // ✅ Fetch user data from Firestore (user_profile collection)
-        DocumentSnapshot userDoc = await FirebaseFirestore.instance
-            .collection('user_profile')
-            .doc(user.uid)
-            .get();
-
-        if (userDoc.exists) {
-          String fetchedName = userDoc['name'] ?? "";
-          // ignore: unused_local_variable
-          String fetchedBio = userDoc['bio'] ?? "";
-
-          // ✅ Update FirebaseAuth profile if necessary
-          await user.updateDisplayName(fetchedName);
-          await user.reload(); // Refresh user info
-        }
-      }
-
       _showToast(
           context, "Login Successful!", Icons.check_circle, Colors.green);
       return userCredential;
@@ -101,29 +89,39 @@ class AuthService {
   /// 🔹 Google Sign-In
   Future<UserCredential?> signInWithGoogle(BuildContext context) async {
     try {
+      await _googleSignIn.signOut(); // Ensure fresh login
+
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return null; // User canceled sign-in
+      if (googleUser == null) return null;
 
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
+
+      final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
       UserCredential userCredential =
           await _auth.signInWithCredential(credential);
+      User? user = userCredential.user;
 
-      // Save or update user info in Firestore
-      await FirebaseServices.createUserDocument(
-        uid: userCredential.user!.uid,
-        username: userCredential.user!.displayName ?? "User",
-        email: userCredential.user!.email!,
-        profileUrl: userCredential.user!.photoURL ?? "",
-      );
+      if (user != null) {
+        DocumentSnapshot userDoc =
+            await _firestore.collection('users').doc(user.uid).get();
 
-      _showToast(context, "Google Sign-In Successful!", Icons.check_circle,
-          Colors.green);
+        if (!userDoc.exists) {
+          // 🔹 New Google User → Add Firestore Data
+          await _firestore.collection('users').doc(user.uid).set({
+            'uid': user.uid,
+            'userName': user.displayName ?? "Google User",
+            'email': user.email,
+            'createdAt': FieldValue.serverTimestamp(),
+            'setupComplete': false, // 👈 Ensure onboarding logic works
+          });
+        }
+      }
+
       return userCredential;
     } catch (e) {
       _showToast(context, "Google Sign-In failed: $e", Icons.error, Colors.red);
@@ -131,15 +129,22 @@ class AuthService {
     }
   }
 
-  /// 🔹 Logout
+  /// 🔹 Logout function (Now handles onboarding reset)
   Future<void> signOut(BuildContext context) async {
-    try {
-      await _auth.signOut();
-      await _googleSignIn.signOut();
-      _showToast(
-          context, "Logged out successfully!", Icons.logout, Colors.blue);
-    } catch (e) {
-      _showToast(context, "Logout failed: $e", Icons.error, Colors.red);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('hasCompletedOnboarding'); // ✅ Clear onboarding flag
+
+    await _auth.signOut();
+    await _googleSignIn.signOut();
+
+    // ✅ Ensure auth state change is processed
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    if (context.mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
     }
   }
 
