@@ -1,9 +1,12 @@
+import 'dart:convert';
+
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
+import 'package:http/http.dart' as http;
 
 // ---------------------- BUTTON ----------------------
 class CustomButton extends StatelessWidget {
@@ -408,7 +411,7 @@ class TheFloatingActionButton extends StatelessWidget {
 }
 
 // ---------------------- DATE PICKER ----------------------
-class CustomDatePicker extends StatelessWidget {
+class CustomDatePicker extends StatefulWidget {
   final DateTime initialDate;
   final Function(DateTime) onDateSelected;
   final Widget child;
@@ -420,6 +423,37 @@ class CustomDatePicker extends StatelessWidget {
     required this.child,
   });
 
+  @override
+  _CustomDatePickerState createState() => _CustomDatePickerState();
+}
+
+class _CustomDatePickerState extends State<CustomDatePicker> {
+  List<DateTime> holidayDates = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchHolidays();
+  }
+
+  Future<void> _fetchHolidays() async {
+    final year = DateTime.now().year;
+    final url =
+        Uri.parse('https://date.nager.at/api/v3/PublicHolidays/$year/PH');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final List<dynamic> holidays = jsonDecode(response.body);
+        setState(() {
+          holidayDates =
+              holidays.map((h) => DateTime.parse(h['date'])).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching holidays: $e');
+    }
+  }
+
   void _pickDate(BuildContext context) {
     showDialog(
       context: context,
@@ -430,52 +464,58 @@ class CustomDatePicker extends StatelessWidget {
           ),
           contentPadding: const EdgeInsets.all(16),
           content: SizedBox(
-            width: 320, // Adjust width as needed
+            width: 320,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 📅 Syncfusion Date Picker
                 SfDateRangePicker(
                   selectionMode: DateRangePickerSelectionMode.single,
-                  initialSelectedDate: initialDate,
-                  selectionColor: AppColors.primary, // Use primary color
-
-                  // 🌟 Centered Month & Year
+                  initialSelectedDate: widget.initialDate,
+                  selectionColor: AppColors.primary,
                   headerStyle: const DateRangePickerHeaderStyle(
                     textAlign: TextAlign.center,
                     textStyle:
                         TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-
-                  // 📌 Square Selected Date
                   selectionTextStyle: const TextStyle(
-                    color: Colors.white, // Text color inside selection
+                    color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
-                  selectionShape:
-                      DateRangePickerSelectionShape.rectangle, // Square shape
+                  selectionShape: DateRangePickerSelectionShape.rectangle,
 
+                  // ✅ Correct way to add holiday dates
+                  monthViewSettings: DateRangePickerMonthViewSettings(
+                    specialDates: holidayDates,
+                  ),
+
+                  monthCellStyle: DateRangePickerMonthCellStyle(
+                    specialDatesDecoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    specialDatesTextStyle: const TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   onSelectionChanged:
                       (DateRangePickerSelectionChangedArgs args) {
-                    onDateSelected(args.value);
+                    widget.onDateSelected(args.value);
                     Navigator.pop(context);
                   },
                 ),
-
-                const SizedBox(height: 10), // Small spacing
-
-                // 🎯 Custom "Today" Button
+                const SizedBox(height: 10),
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {
-                      onDateSelected(DateTime.now()); // Set to today
+                      widget.onDateSelected(DateTime.now());
                       Navigator.pop(context);
                     },
                     child: Text(
                       "Today",
                       style: TextStyle(
-                        color: AppColors.primary, // Use primary color
+                        color: AppColors.primary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -493,7 +533,7 @@ class CustomDatePicker extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => _pickDate(context),
-      child: child,
+      child: widget.child,
     );
   }
 }

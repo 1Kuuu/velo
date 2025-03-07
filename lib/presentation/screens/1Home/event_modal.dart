@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
 // Event model to store event data
 class Event {
@@ -224,23 +225,18 @@ class EventModalHelper {
                           ),
 
                           // Date Picker
-                          _buildTile(
-                            icon: Icons.calendar_today,
-                            text: DateFormat('EEEE, MMMM d').format(eventDate!),
-                            onTap: () async {
-                              DateTime? pickedDate = await showDatePicker(
-                                context: context,
-                                initialDate: eventDate,
-                                firstDate: DateTime(2000),
-                                lastDate: DateTime(2100),
-                              );
-                              if (pickedDate != null &&
-                                  pickedDate != eventDate) {
-                                setModalState(() {
-                                  eventDate = pickedDate;
-                                });
-                              }
+                          CustomDatePicker(
+                            initialDate: eventDate!,
+                            onDateSelected: (DateTime pickedDate) {
+                              setModalState(() {
+                                eventDate = pickedDate;
+                              });
                             },
+                            child: _buildTile(
+                              icon: Icons.calendar_today,
+                              text:
+                                  DateFormat('EEEE, MMMM d').format(eventDate!),
+                            ),
                           ),
 
                           // All Day Toggle

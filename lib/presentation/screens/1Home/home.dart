@@ -149,7 +149,7 @@ class _HomePageContentState extends State<HomePageContent> {
 
   @override
   Widget build(BuildContext context) {
-    List<DateTime> weekDays = getWeekDays(_selectedDate);
+    getWeekDays(_selectedDate);
 
     // Filter events for the currently selected date
     List<Event> filteredEvents = _events.where((event) {
@@ -284,72 +284,89 @@ class _HomePageContentState extends State<HomePageContent> {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
             decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 255, 255, 255),
+              color: Colors.white,
               border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: List.generate(7, (index) {
-                DateTime currentDate = weekDays[index];
-                bool isSelected = _selectedDate.day == currentDate.day &&
-                    _selectedDate.month == currentDate.month &&
-                    _selectedDate.year == currentDate.year;
+            child: SizedBox(
+              height: 60, // Ensures enough space for text and selection
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal, // Enable horizontal scroll
+                child: Row(
+                  children: List.generate(
+                    DateTime(_selectedDate.year, _selectedDate.month + 1, 0)
+                        .day, // Get correct days
+                    (index) {
+                      DateTime currentDate = DateTime(
+                          _selectedDate.year, _selectedDate.month, index + 1);
+                      bool isSelected = _selectedDate.day == currentDate.day &&
+                          _selectedDate.month == currentDate.month &&
+                          _selectedDate.year == currentDate.year;
 
-                // Check if there are events on this day
-                bool hasEvents = _events.any((event) =>
-                    event.date.day == currentDate.day &&
-                    event.date.month == currentDate.month &&
-                    event.date.year == currentDate.year);
+                      // Check if there are events on this day
+                      bool hasEvents = _events.any((event) =>
+                          event.date.day == currentDate.day &&
+                          event.date.month == currentDate.month &&
+                          event.date.year == currentDate.year);
 
-                return GestureDetector(
-                  onTap: () => _onDateSelected(currentDate),
-                  child: Column(
-                    children: [
-                      Text(
-                        DateFormat.E()
-                            .format(currentDate), // "Sun", "Mon", etc.
-                        style:
-                            const TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 4),
-                      Stack(
-                        alignment: Alignment.bottomCenter,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? Colors.brown
-                                  : Colors.transparent,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Text(
-                              currentDate.day.toString(), // "20", "21", etc.
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: isSelected ? Colors.white : Colors.black,
+                      return GestureDetector(
+                        onTap: () => _onDateSelected(currentDate),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12), // Spacing between dates
+                          child: Column(
+                            children: [
+                              Text(
+                                DateFormat.E()
+                                    .format(currentDate), // "Sun", "Mon", etc.
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.grey),
                               ),
-                            ),
+                              const SizedBox(height: 4),
+                              Stack(
+                                alignment: Alignment.bottomCenter,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? Colors.brown
+                                          : Colors.transparent,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      currentDate.day
+                                          .toString(), // "1", "2", "3", etc.
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: isSelected
+                                            ? Colors.white
+                                            : Colors.black,
+                                      ),
+                                    ),
+                                  ),
+                                  if (hasEvents)
+                                    Positioned(
+                                      bottom: 0,
+                                      child: Container(
+                                        width: 4,
+                                        height: 4,
+                                        decoration: BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
                           ),
-                          if (hasEvents)
-                            Positioned(
-                              bottom: 0,
-                              child: Container(
-                                width: 4,
-                                height: 4,
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      );
+                    },
                   ),
-                );
-              }),
+                ),
+              ),
             ),
           ),
 
@@ -363,12 +380,12 @@ class _HomePageContentState extends State<HomePageContent> {
                         Icon(Icons.event_note, size: 48, color: Colors.grey),
                         SizedBox(height: 16),
                         Text(
-                          "No Tasks for ${DateFormat('EEEE, MMMM d').format(_selectedDate)}",
+                          "No Plans for ${DateFormat('EEEE, MMMM d').format(_selectedDate)}",
                           style: TextStyle(color: Colors.grey),
                         ),
                         SizedBox(height: 8),
                         Text(
-                          "Tap + to add a new Task",
+                          "Tap + to add a new Plan",
                           style: TextStyle(color: Colors.grey),
                         ),
                       ],
