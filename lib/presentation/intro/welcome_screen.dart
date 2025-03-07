@@ -16,7 +16,7 @@ class WelcomeScreen extends StatelessWidget {
       appBar: AppBar(
         automaticallyImplyLeading: false, // Removes back button
         title: const Text('Welcome'),
-        titleTextStyle: const TextStyle(
+        titleTextStyle: const TextStyle( 
             fontFamily: 'Poppins',
             fontSize: 36,
             fontWeight: FontWeight.w600,

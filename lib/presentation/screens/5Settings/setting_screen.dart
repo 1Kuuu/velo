@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/presentation/screens/0Auth/login.dart';
 import 'package:velora/presentation/screens/5Settings/editprofile.dart';
@@ -135,7 +136,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     icon: Icons.logout,
                     title: "Logout",
                     onTap: () async {
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.remove(
+                          'hasCompletedOnboarding'); // Clear onboarding flag
+
                       await FirebaseAuth.instance.signOut();
+
+                      // Ensure auth state change is processed
+                      await Future.delayed(Duration(milliseconds: 500));
+
                       if (mounted) {
                         Navigator.pushReplacement(
                           context,

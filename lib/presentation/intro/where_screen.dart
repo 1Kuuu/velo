@@ -5,6 +5,7 @@ import 'package:delightful_toast/delight_toast.dart';
 import 'package:delightful_toast/toast/components/toast_card.dart';
 import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class WhereScreen extends StatefulWidget {
   const WhereScreen({super.key});
@@ -24,58 +25,61 @@ class _WhereScreenState extends State<WhereScreen> {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  void _saveAndNavigate() async {
+  Future<void> _saveAndNavigate() async {
     try {
-      // Store preferences in Firestore
-      await _firestore
-          .collection('user_preferences')
-          .doc(FirebaseAuth.instance.currentUser?.uid)
-          .set({
-        'location_preferences': locationPreferences,
-      }, SetOptions(merge: true));
-
-      // 🎉 Show success toast
-      if (mounted) {
-        DelightToastBar(
-          builder: (context) {
-            return ToastCard(
-              title: const Text('Saved!'),
-              subtitle:
-                  const Text("Your location preferences have been saved."),
-              leading: const Icon(Icons.check_circle, color: Colors.green),
-            );
-          },
-          position: DelightSnackbarPosition.top,
-          autoDismiss: true,
-          snackbarDuration: const Duration(seconds: 2),
-          animationDuration: const Duration(milliseconds: 300),
-        ).show(context);
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) {
+        _showToast("Error", "User not found!", Icons.error, Colors.red);
+        return;
       }
 
-      // Navigate to WelcomeScreen
+      // 🔹 Get only selected preferences (true values)
+      final selectedLocations = locationPreferences.entries
+          .where((entry) => entry.value)
+          .map((entry) => entry.key)
+          .toList();
+
+      // 🔹 Store preferences in Firestore
+      await _firestore.collection('user_preferences').doc(userId).set({
+        'location_preferences': selectedLocations,
+      }, SetOptions(merge: true));
+
+      // 🔹 Save onboarding completion in SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('onboardingComplete', true);
+
+      // 🎉 Show success toast
+      _showToast("Saved!", "Your location preferences have been saved.",
+          Icons.check_circle, Colors.green);
+
+      // ✅ Navigate to WelcomeScreen
       if (mounted) {
-        Navigator.push(
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const WelcomeScreen()),
         );
       }
     } catch (e) {
       // ❌ Show error toast
-      if (mounted) {
-        DelightToastBar(
-          builder: (context) {
-            return ToastCard(
-              title: const Text('Error'),
-              subtitle: Text("Failed to save: $e"),
-              leading: const Icon(Icons.error, color: Colors.red),
-            );
-          },
-          position: DelightSnackbarPosition.top,
-          autoDismiss: true,
-          snackbarDuration: const Duration(seconds: 2),
-          animationDuration: const Duration(milliseconds: 300),
-        ).show(context);
-      }
+      _showToast("Error", "Failed to save: $e", Icons.error, Colors.red);
+    }
+  }
+
+  void _showToast(String title, String message, IconData icon, Color color) {
+    if (mounted) {
+      DelightToastBar(
+        builder: (context) {
+          return ToastCard(
+            title: Text(title),
+            subtitle: Text(message),
+            leading: Icon(icon, color: color),
+          );
+        },
+        position: DelightSnackbarPosition.top,
+        autoDismiss: true,
+        snackbarDuration: const Duration(seconds: 2),
+        animationDuration: const Duration(milliseconds: 300),
+      ).show(context);
     }
   }
 
@@ -88,13 +92,9 @@ class _WhereScreenState extends State<WhereScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Positioned(
-                top: 52.5,
-                left: 15,
-                child: Image.asset(
-                  'assets/images/logo.png',
-                  height: 30,
-                ),
+              Image.asset(
+                'assets/images/logo.png',
+                height: 30,
               ),
               const SizedBox(height: 20),
               const Text(
@@ -131,7 +131,7 @@ class _WhereScreenState extends State<WhereScreen> {
                           value: locationPreferences[key],
                           onChanged: (bool? value) {
                             setState(() {
-                              locationPreferences[key] = value!;
+                              locationPreferences[key] = value ?? false;
                             });
                           },
                         ),
