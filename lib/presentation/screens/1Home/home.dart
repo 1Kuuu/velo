@@ -67,21 +67,6 @@ class _HomePageContentState extends State<HomePageContent> {
     });
   }
 
-  Future<void> _pickDate(BuildContext context) async {
-    DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
-
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked; // Updates the selected date from picker
-      });
-    }
-  }
-
   // Delete an event
   void _deleteEvent(String eventId) {
     setState(() {
@@ -264,23 +249,31 @@ class _HomePageContentState extends State<HomePageContent> {
             padding: const EdgeInsets.symmetric(horizontal: 1.0, vertical: 1.0),
             child: Row(
               children: [
-                IconButton(
-                  icon: const Icon(Icons.menu),
-                  onPressed: () => print("Menu Clicked"),
+                CustomDatePicker(
+                  initialDate: _selectedDate,
+                  onDateSelected: (newDate) {
+                    setState(() {
+                      _selectedDate = newDate;
+                    });
+                  },
+                  child: IconButton(
+                    icon: const Icon(Icons.menu),
+                    color: AppColors.primary, // Change icon color
+                    onPressed: null,
+                  ),
                 ),
-                GestureDetector(
-                  onTap: () => _pickDate(context), // Opens Date Picker
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 4), // Small spacing
-                      Text(
-                        DateFormat.yMMMM()
-                            .format(_selectedDate), // Example: "March 2025"
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      const Icon(Icons.arrow_drop_down), // Dropdown indicator
-                    ],
+                const SizedBox(width: 4),
+                CustomDatePicker(
+                  initialDate: _selectedDate,
+                  onDateSelected: (newDate) {
+                    setState(() {
+                      _selectedDate = newDate;
+                    });
+                  },
+                  child: Text(
+                    DateFormat.yMMMM().format(_selectedDate),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
+import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 
 // ---------------------- BUTTON ----------------------
 class CustomButton extends StatelessWidget {
@@ -402,6 +403,97 @@ class TheFloatingActionButton extends StatelessWidget {
               )
             : Icon(icon, size: 1, color: Colors.white),
       ),
+    );
+  }
+}
+
+// ---------------------- DATE PICKER ----------------------
+class CustomDatePicker extends StatelessWidget {
+  final DateTime initialDate;
+  final Function(DateTime) onDateSelected;
+  final Widget child;
+
+  const CustomDatePicker({
+    super.key,
+    required this.initialDate,
+    required this.onDateSelected,
+    required this.child,
+  });
+
+  void _pickDate(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          contentPadding: const EdgeInsets.all(16),
+          content: SizedBox(
+            width: 320, // Adjust width as needed
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 📅 Syncfusion Date Picker
+                SfDateRangePicker(
+                  selectionMode: DateRangePickerSelectionMode.single,
+                  initialSelectedDate: initialDate,
+                  selectionColor: AppColors.primary, // Use primary color
+
+                  // 🌟 Centered Month & Year
+                  headerStyle: const DateRangePickerHeaderStyle(
+                    textAlign: TextAlign.center,
+                    textStyle:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+
+                  // 📌 Square Selected Date
+                  selectionTextStyle: const TextStyle(
+                    color: Colors.white, // Text color inside selection
+                    fontWeight: FontWeight.bold,
+                  ),
+                  selectionShape:
+                      DateRangePickerSelectionShape.rectangle, // Square shape
+
+                  onSelectionChanged:
+                      (DateRangePickerSelectionChangedArgs args) {
+                    onDateSelected(args.value);
+                    Navigator.pop(context);
+                  },
+                ),
+
+                const SizedBox(height: 10), // Small spacing
+
+                // 🎯 Custom "Today" Button
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      onDateSelected(DateTime.now()); // Set to today
+                      Navigator.pop(context);
+                    },
+                    child: Text(
+                      "Today",
+                      style: TextStyle(
+                        color: AppColors.primary, // Use primary color
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _pickDate(context),
+      child: child,
     );
   }
 }
