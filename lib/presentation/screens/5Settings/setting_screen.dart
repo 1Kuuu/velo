@@ -61,7 +61,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       body: Column(
         children: [
-          _buildProfileSection(),
+          buildProfileSection(),
           Expanded(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -165,7 +165,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   // Profile Section
-  Widget _buildProfileSection() {
+  Widget buildProfileSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 20),
       child: Column(

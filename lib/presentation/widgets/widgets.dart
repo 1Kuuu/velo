@@ -47,7 +47,7 @@ Widget buildListTile({
                 children: [
                   Icon(icon, color: Colors.black),
                   const SizedBox(width: 12),
-                  Text(title, style: const TextStyle(fontSize: 16)),
+                  Text(title, style: const TextStyle(fontSize: 12)),
                 ],
               ),
               trailingText != null

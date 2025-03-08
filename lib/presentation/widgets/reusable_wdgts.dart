@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -7,6 +8,7 @@ import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:http/http.dart' as http;
+import 'package:velora/presentation/screens/0Auth/profile.dart';
 
 // ---------------------- BUTTON ----------------------
 class CustomButton extends StatelessWidget {
@@ -540,46 +542,288 @@ class _CustomDatePickerState extends State<CustomDatePicker> {
   }
 }
 
-class UserInitialsTile extends StatelessWidget {
-  final Map<String, dynamic> data;
+// Utility class for chat-related functions
+class ChatUtils {
+  static Color generateRandomColor(String input) {
+    final colors = [
+      Colors.blue,
+      Colors.green,
+      Colors.orange,
+      Colors.purple,
+      Colors.red,
+      Colors.teal,
+      Colors.indigo,
+      Colors.pink
+    ];
+    return colors[input.hashCode % colors.length];
+  }
 
-  const UserInitialsTile({super.key, required this.data});
+  static bool hasProfilePicture(String? url) {
+    return url != null &&
+        url.isNotEmpty &&
+        Uri.tryParse(url)?.hasAbsolutePath == true;
+  }
+
+  static String getInitials(String name) {
+    final parts = name.trim().split(' ');
+    if (parts.isEmpty) return '';
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    return '${parts[0][0]}${parts.last[0]}'.toUpperCase();
+  }
+}
+
+class ChatAppBar extends StatelessWidget {
+  final String recipientName;
+  final String recipientProfileUrl;
+  final String recipientId;
+
+  const ChatAppBar({
+    super.key,
+    required this.recipientName,
+    required this.recipientProfileUrl,
+    required this.recipientId,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: _generateRandomColor(data['userName']),
-        backgroundImage: _hasProfilePicture(data['profileUrl'])
-            ? NetworkImage(data['profileUrl'])
-            : null,
-        child: !_hasProfilePicture(data['profileUrl'])
-            ? Text(
-                _getInitials(data['userName']),
-                style: const TextStyle(fontSize: 20, color: Colors.white),
-              )
-            : null,
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ProfilePage(userId: recipientId),
+        ),
       ),
-      title: Text(data['userName'] ?? "Unknown User",
-          style: const TextStyle(color: Colors.black)),
-      subtitle: Text(data['email'] ?? "No email available",
-          style: const TextStyle(color: Colors.grey)),
+      child: Row(
+        children: [
+          Transform.translate(
+            offset: const Offset(-25, 0),
+            child: CircleAvatar(
+              backgroundColor: ChatUtils.generateRandomColor(recipientName),
+              backgroundImage: ChatUtils.hasProfilePicture(recipientProfileUrl)
+                  ? NetworkImage(recipientProfileUrl)
+                  : null,
+              child: !ChatUtils.hasProfilePicture(recipientProfileUrl)
+                  ? Text(
+                      ChatUtils.getInitials(recipientName),
+                      style: const TextStyle(fontSize: 20, color: Colors.white),
+                    )
+                  : null,
+            ),
+          ),
+          Transform.translate(
+            offset: const Offset(-18, 0),
+            child: Flexible(
+              child: Text(
+                recipientName,
+                style: AppFonts.bold.copyWith(fontSize: 16),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class MessageBubble extends StatelessWidget {
+  final Map<String, dynamic> data;
+  final bool isMe;
+
+  const MessageBubble({super.key, required this.data, required this.isMe});
+
+  @override
+  Widget build(BuildContext context) {
+    String senderName = data["senderName"] ?? "Unknown";
+    String messageText = data["text"] ?? "";
+    DateTime? timestamp = (data["timestamp"] as Timestamp?)?.toDate();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+      child: Row(
+        mainAxisAlignment:
+            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        children: [
+          if (!isMe)
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProfilePage(userId: data["senderId"]),
+                ),
+              ),
+              child: CircleAvatar(
+                radius: 16,
+                backgroundColor: ChatUtils.generateRandomColor(senderName),
+                backgroundImage:
+                    ChatUtils.hasProfilePicture(data["senderProfileUrl"])
+                        ? NetworkImage(data["senderProfileUrl"])
+                        : null,
+                child: !ChatUtils.hasProfilePicture(data["senderProfileUrl"])
+                    ? Text(
+                        ChatUtils.getInitials(senderName),
+                        style:
+                            const TextStyle(fontSize: 14, color: Colors.white),
+                      )
+                    : null,
+              ),
+            ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Column(
+              crossAxisAlignment:
+                  isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              children: [
+                if (!isMe)
+                  Text(
+                    senderName,
+                    style: AppFonts.medium
+                        .copyWith(fontSize: 12, color: Colors.grey[700]),
+                  ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: isMe ? AppColors.primary : Colors.grey[300],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        messageText,
+                        style: AppFonts.regular.copyWith(
+                          fontSize: 14,
+                          color: isMe ? Colors.white : Colors.black,
+                        ),
+                      ),
+                      if (timestamp != null)
+                        Text(
+                          _formatTimestamp(timestamp),
+                          style: AppFonts.light.copyWith(
+                            fontSize: 10,
+                            color: isMe ? Colors.white70 : Colors.grey[600],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  /// ✅ **Checks if a profile picture exists**
-  bool _hasProfilePicture(String? url) {
-    return url != null && url.isNotEmpty;
+  String _formatTimestamp(DateTime timestamp) {
+    final hour = timestamp.hour % 12 == 0 ? 12 : timestamp.hour % 12;
+    final minute = timestamp.minute.toString().padLeft(2, '0');
+    final period = timestamp.hour < 12 ? 'AM' : 'PM';
+    return '$hour:$minute $period';
+  }
+}
+
+class DateHeader extends StatelessWidget {
+  final String dateKey;
+
+  const DateHeader({super.key, required this.dateKey});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.grey[200],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            _formatDateHeader(dateKey),
+            style:
+                AppFonts.medium.copyWith(fontSize: 12, color: Colors.grey[700]),
+          ),
+        ),
+      ),
+    );
   }
 
-  /// ✅ **Extracted logic to get initials**
-  String _getInitials(String? name) {
-    if (name == null || name.isEmpty) return "?";
-    return name[0].toUpperCase();
+  String _formatDateHeader(String dateKey) {
+    DateTime now = DateTime.now();
+    DateTime date = DateTime.parse(dateKey);
+    if (date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day) {
+      return "Today";
+    } else if (date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day - 1) {
+      return "Yesterday";
+    } else {
+      return "${_getMonthName(date.month)} ${date.day}, ${date.year}";
+    }
   }
 
-  /// ✅ **Generates a random color based on username**
-  Color _generateRandomColor(String? text) {
-    return Colors.primaries[text!.hashCode.abs() % Colors.primaries.length];
+  String _getMonthName(int month) {
+    final months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ];
+    return months[month - 1];
+  }
+}
+
+class MessageInputField extends StatelessWidget {
+  final TextEditingController controller;
+  final VoidCallback onSendPressed;
+
+  const MessageInputField({
+    super.key,
+    required this.controller,
+    required this.onSendPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: controller,
+              style: AppFonts.regular.copyWith(fontSize: 14),
+              decoration: InputDecoration(
+                hintText: "Type a message...",
+                hintStyle: AppFonts.light.copyWith(fontSize: 14),
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide:
+                      const BorderSide(color: AppColors.hintText, width: 1),
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.send, color: AppColors.primary),
+            onPressed: onSendPressed,
+          ),
+        ],
+      ),
+    );
   }
 }
