@@ -637,6 +637,7 @@ class MessageBubble extends StatelessWidget {
     String senderName = data["senderName"] ?? "Unknown";
     String messageText = data["text"] ?? "";
     DateTime? timestamp = (data["timestamp"] as Timestamp?)?.toDate();
+    String status = data["status"] ?? "sent";
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
@@ -698,12 +699,22 @@ class MessageBubble extends StatelessWidget {
                         ),
                       ),
                       if (timestamp != null)
-                        Text(
-                          _formatTimestamp(timestamp),
-                          style: AppFonts.light.copyWith(
-                            fontSize: 10,
-                            color: isMe ? Colors.white70 : Colors.grey[600],
-                          ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _formatTimestamp(timestamp),
+                              style: AppFonts.light.copyWith(
+                                fontSize: 10,
+                                color: isMe ? Colors.white70 : Colors.grey[600],
+                              ),
+                            ),
+                            if (isMe)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 4),
+                                child: _buildStatusIndicator(status),
+                              ),
+                          ],
                         ),
                     ],
                   ),
@@ -714,6 +725,19 @@ class MessageBubble extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildStatusIndicator(String status) {
+    switch (status) {
+      case 'sent':
+        return Icon(Icons.check, size: 14, color: Colors.white);
+      case 'delivered':
+        return Icon(Icons.done_all, size: 14, color: Colors.white);
+      case 'seen':
+        return Icon(Icons.done_all, size: 14, color: Colors.white);
+      default:
+        return const SizedBox();
+    }
   }
 
   String _formatTimestamp(DateTime timestamp) {

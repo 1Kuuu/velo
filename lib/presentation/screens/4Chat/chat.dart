@@ -27,11 +27,21 @@ class _ChatPageContentState extends State<ChatPageContent> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   String? _senderName;
   String? _senderProfileUrl;
+  late Stream<QuerySnapshot> _messageStream;
 
   @override
   void initState() {
     super.initState();
     _fetchSenderInfo();
+    _markMessagesAsSeen();
+    _setupMessageStream();
+  }
+
+  void _setupMessageStream() {
+    _messageStream = FirebaseFirestore.instance
+        .collection("chats/${widget.chatId}/messages")
+        .orderBy("timestamp", descending: true)
+        .snapshots();
   }
 
   Future<void> _fetchSenderInfo() async {
@@ -55,8 +65,9 @@ class _ChatPageContentState extends State<ChatPageContent> {
         _senderProfileUrl == null) {
       return;
     }
+
     try {
-      await FirebaseFirestore.instance
+      var docRef = await FirebaseFirestore.instance
           .collection("chats/${widget.chatId}/messages")
           .add({
         "text": _messageController.text.trim(),
@@ -64,13 +75,36 @@ class _ChatPageContentState extends State<ChatPageContent> {
         "senderName": _senderName,
         "senderProfileUrl": _senderProfileUrl,
         "timestamp": FieldValue.serverTimestamp(),
+        "status": "sent",
       });
+
+      // Update to delivered after server confirmation
+      docRef.update({"status": "delivered"});
       _messageController.clear();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Failed to send message: ${e.toString()}")),
       );
     }
+  }
+
+  void _markMessagesAsSeen() async {
+    var currentUser = _auth.currentUser;
+    if (currentUser == null) return;
+
+    // Mark all messages from recipient as seen
+    var query = FirebaseFirestore.instance
+        .collection("chats/${widget.chatId}/messages")
+        .where("senderId", isEqualTo: widget.recipientId)
+        .where("status", isNotEqualTo: "seen");
+
+    var snapshot = await query.get();
+    var batch = FirebaseFirestore.instance.batch();
+
+    for (var doc in snapshot.docs) {
+      batch.update(doc.reference, {"status": "seen"});
+    }
+    await batch.commit();
   }
 
   @override
@@ -88,10 +122,7 @@ class _ChatPageContentState extends State<ChatPageContent> {
         children: [
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection("chats/${widget.chatId}/messages")
-                  .orderBy("timestamp", descending: true)
-                  .snapshots(),
+              stream: _messageStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -125,7 +156,7 @@ class _ChatPageContentState extends State<ChatPageContent> {
                         final data = msg.data() as Map<String, dynamic>;
                         final isMe = data["senderId"] == _auth.currentUser?.uid;
                         return MessageBubble(data: data, isMe: isMe);
-                      }).toList()
+                      })
                     ];
                   }).toList(),
                 );
