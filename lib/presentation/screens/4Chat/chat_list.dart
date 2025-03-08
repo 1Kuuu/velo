@@ -71,9 +71,17 @@ class ChatListPage extends StatelessWidget {
                     );
                   },
                   child: CircleAvatar(
-                    backgroundImage:
-                        profileUrl.isNotEmpty ? NetworkImage(profileUrl) : null,
-                    child: profileUrl.isEmpty ? const Icon(Icons.person) : null,
+                    backgroundColor: _generateRandomColor(name),
+                    backgroundImage: _hasProfilePicture(profileUrl)
+                        ? NetworkImage(profileUrl)
+                        : null,
+                    child: !_hasProfilePicture(profileUrl)
+                        ? Text(
+                            _getInitials(name),
+                            style: const TextStyle(
+                                fontSize: 20, color: Colors.white),
+                          )
+                        : null,
                   ),
                 ),
                 title: Text(name),
@@ -99,7 +107,23 @@ class ChatListPage extends StatelessWidget {
     );
   }
 
-  // Generate a unique chat ID for two users
+  /// ✅ **Checks if a profile picture exists**
+  bool _hasProfilePicture(String? url) {
+    return url != null && url.isNotEmpty;
+  }
+
+  /// ✅ **Extracted logic to get initials**
+  String _getInitials(String? name) {
+    if (name == null || name.isEmpty) return "?";
+    return name[0].toUpperCase();
+  }
+
+  /// ✅ **Generates a random color based on username**
+  Color _generateRandomColor(String? text) {
+    return Colors.primaries[text!.hashCode.abs() % Colors.primaries.length];
+  }
+
+  /// Generate a unique chat ID for two users
   String _generateChatId(String userId1, String userId2) {
     List<String> ids = [userId1, userId2]..sort();
     return ids.join("_");

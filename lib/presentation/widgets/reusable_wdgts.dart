@@ -539,3 +539,47 @@ class _CustomDatePickerState extends State<CustomDatePicker> {
     );
   }
 }
+
+class UserInitialsTile extends StatelessWidget {
+  final Map<String, dynamic> data;
+
+  const UserInitialsTile({super.key, required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: _generateRandomColor(data['userName']),
+        backgroundImage: _hasProfilePicture(data['profileUrl'])
+            ? NetworkImage(data['profileUrl'])
+            : null,
+        child: !_hasProfilePicture(data['profileUrl'])
+            ? Text(
+                _getInitials(data['userName']),
+                style: const TextStyle(fontSize: 20, color: Colors.white),
+              )
+            : null,
+      ),
+      title: Text(data['userName'] ?? "Unknown User",
+          style: const TextStyle(color: Colors.black)),
+      subtitle: Text(data['email'] ?? "No email available",
+          style: const TextStyle(color: Colors.grey)),
+    );
+  }
+
+  /// ✅ **Checks if a profile picture exists**
+  bool _hasProfilePicture(String? url) {
+    return url != null && url.isNotEmpty;
+  }
+
+  /// ✅ **Extracted logic to get initials**
+  String _getInitials(String? name) {
+    if (name == null || name.isEmpty) return "?";
+    return name[0].toUpperCase();
+  }
+
+  /// ✅ **Generates a random color based on username**
+  Color _generateRandomColor(String? text) {
+    return Colors.primaries[text!.hashCode.abs() % Colors.primaries.length];
+  }
+}

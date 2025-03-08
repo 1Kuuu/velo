@@ -73,20 +73,31 @@ class _ChatPageContentState extends State<ChatPageContent> {
           },
           child: Row(
             children: [
-              CircleAvatar(
-                backgroundImage: widget.recipientProfileUrl.isNotEmpty
-                    ? NetworkImage(widget.recipientProfileUrl)
-                    : null,
-                child: widget.recipientProfileUrl.isEmpty
-                    ? const Icon(Icons.person)
-                    : null,
+              Transform.translate(
+                offset: const Offset(-25, 0), // Moves it left by 3 pixels
+                child: CircleAvatar(
+                  backgroundColor: _generateRandomColor(widget.recipientName),
+                  backgroundImage:
+                      _hasProfilePicture(widget.recipientProfileUrl)
+                          ? NetworkImage(widget.recipientProfileUrl)
+                          : null,
+                  child: !_hasProfilePicture(widget.recipientProfileUrl)
+                      ? Text(
+                          _getInitials(widget.recipientName),
+                          style: const TextStyle(
+                              fontSize: 20, color: Colors.white),
+                        )
+                      : null,
+                ),
               ),
-              const SizedBox(width: 10),
-              Flexible(
-                child: Text(
-                  widget.recipientName,
-                  style: AppFonts.bold.copyWith(fontSize: 16),
-                  overflow: TextOverflow.ellipsis,
+              Transform.translate(
+                offset: const Offset(-18, 0), // Moves text closer to avatar
+                child: Flexible(
+                  child: Text(
+                    widget.recipientName,
+                    style: AppFonts.bold.copyWith(fontSize: 16),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
             ],
@@ -155,11 +166,19 @@ class _ChatPageContentState extends State<ChatPageContent> {
                                 },
                                 child: CircleAvatar(
                                   radius: 16,
-                                  backgroundImage: senderProfileUrl.isNotEmpty
-                                      ? NetworkImage(senderProfileUrl)
-                                      : null,
-                                  child: senderProfileUrl.isEmpty
-                                      ? const Icon(Icons.person, size: 16)
+                                  backgroundColor:
+                                      _generateRandomColor(senderName),
+                                  backgroundImage:
+                                      _hasProfilePicture(senderProfileUrl)
+                                          ? NetworkImage(senderProfileUrl)
+                                          : null,
+                                  child: !_hasProfilePicture(senderProfileUrl)
+                                      ? Text(
+                                          _getInitials(senderName),
+                                          style: const TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.white),
+                                        )
                                       : null,
                                 ),
                               ),
@@ -242,5 +261,21 @@ class _ChatPageContentState extends State<ChatPageContent> {
   void dispose() {
     _messageController.dispose();
     super.dispose();
+  }
+
+  /// ✅ **Checks if a profile picture exists**
+  bool _hasProfilePicture(String? url) {
+    return url != null && url.isNotEmpty;
+  }
+
+  /// ✅ **Extracted logic to get initials**
+  String _getInitials(String? name) {
+    if (name == null || name.isEmpty) return "?";
+    return name[0].toUpperCase();
+  }
+
+  /// ✅ **Generates a random color based on username**
+  Color _generateRandomColor(String? text) {
+    return Colors.primaries[text!.hashCode.abs() % Colors.primaries.length];
   }
 }

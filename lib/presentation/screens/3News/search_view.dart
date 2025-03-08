@@ -1,4 +1,3 @@
-import 'dart:math'; // For random color generation
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -97,40 +96,41 @@ class _SearchViewState extends State<SearchView> {
   }
 
   /// 🔹 Extracted method for rendering each user tile
+  /// 🔹 Extracted method for rendering each user tile
   Widget _buildUserTile(Map<String, dynamic> data) {
     return ListTile(
       leading: CircleAvatar(
-        backgroundColor: _generateRandomColor(data['userName']), // Random color
-        backgroundImage: data['profileUrl'] != null && data['profileUrl'] != ""
+        backgroundColor: _generateRandomColor(data['userName']),
+        backgroundImage: _hasProfilePicture(data['profileUrl'])
             ? NetworkImage(data['profileUrl'])
             : null,
-        child: data['profileUrl'] == null || data['profileUrl'] == ""
+        child: !_hasProfilePicture(data['profileUrl'])
             ? Text(
-                (data['userName'] != null && data['userName'].isNotEmpty)
-                    ? data['userName'][0].toUpperCase()
-                    : "?",
-                style: TextStyle(fontSize: 20, color: Colors.white),
+                _getInitials(data['userName']),
+                style: const TextStyle(fontSize: 20, color: Colors.white),
               )
             : null,
       ),
       title: Text(data['userName'] ?? "Unknown User",
-          style: TextStyle(color: Colors.black)),
+          style: const TextStyle(color: Colors.black)),
       subtitle: Text(data['email'] ?? "No email available",
-          style: TextStyle(color: Colors.grey)),
+          style: const TextStyle(color: Colors.grey)),
     );
   }
 
-  /// 🎨 Generates a random color for each user based on their username
-  Color _generateRandomColor(String? userName) {
-    if (userName == null || userName.isEmpty) {
-      return Colors.grey; // Default color if name is missing
-    }
-    final Random random = Random(userName.hashCode); // Hash ensures consistency
-    return Color.fromARGB(
-      255,
-      100 + random.nextInt(156), // Not too dark
-      100 + random.nextInt(156),
-      100 + random.nextInt(156),
-    );
+  /// ✅ **Checks if a profile picture exists**
+  bool _hasProfilePicture(String? url) {
+    return url != null && url.isNotEmpty;
+  }
+
+  /// ✅ **Extracted logic to get initials**
+  String _getInitials(String? name) {
+    if (name == null || name.isEmpty) return "?";
+    return name[0].toUpperCase();
+  }
+
+  /// ✅ **Generates a random color based on username**
+  Color _generateRandomColor(String? text) {
+    return Colors.primaries[text!.hashCode.abs() % Colors.primaries.length];
   }
 }
