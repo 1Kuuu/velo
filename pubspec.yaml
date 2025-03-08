@@ -62,7 +62,12 @@ flutter:
     - assets/svg/black-w.svg
     - assets/svg/white-m.svg
     - assets/svg/white-w.svg
-    - assets/svg/add.svg
+    - assets/images/rd-Handle.png
+    - assets/images/rd-Frame.png
+    - assets/images/rd-Sadle.png
+    - assets/images/rd-Wheels.png
+    - assets/images/rd-Shifter.png
+    - assets/images/rd-Crank.png
 
   fonts:
     - family: Poppins
