@@ -3,11 +3,11 @@ import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
-class RoadbikeInfo extends StatelessWidget {
+class FixiebikeInfo extends StatelessWidget {
   final Widget part;
 
   static List<Map<String, String>> parts = [];
-  const RoadbikeInfo({super.key, required this.part});
+  const FixiebikeInfo({super.key, required this.part});
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +45,7 @@ class RoadbikeInfo extends StatelessWidget {
   }
 }
 
-class RoadbikeHandlePart extends StatelessWidget {
+class FixieHandlePart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -53,7 +53,7 @@ class RoadbikeHandlePart extends StatelessWidget {
       children: [
         SizedBox(height: 20),
         Image.asset(
-          'assets/images/rd-Handle.png', // Replace with your actual image path
+          'assets/images/fx-Handle.png', // Replace with your actual image path
           height: 120,
         ),
         SizedBox(height: 10),
@@ -83,7 +83,7 @@ class RoadbikeHandlePart extends StatelessWidget {
   }
 }
 
-class RoadbikeWheelPart extends StatelessWidget {
+class FixieWheelPart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -91,7 +91,7 @@ class RoadbikeWheelPart extends StatelessWidget {
       children: [
         SizedBox(height: 20),
         Image.asset(
-          'assets/images/rd-Wheels.png', // Replace with your actual image path
+          'assets/images/fx-Wheels.png', // Replace with your actual image path
           height: 120,
         ),
         SizedBox(height: 10),
@@ -121,7 +121,7 @@ class RoadbikeWheelPart extends StatelessWidget {
   }
 }
 
-class RoadbikeFramePart extends StatelessWidget {
+class FixieFramePart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -129,7 +129,7 @@ class RoadbikeFramePart extends StatelessWidget {
       children: [
         SizedBox(height: 20),
         Image.asset(
-          'assets/images/rd-Frame.png', // Replace with your actual image path
+          'assets/images/fx-Frame.png', // Replace with your actual image path
           height: 120,
         ),
         SizedBox(height: 10),
@@ -159,7 +159,7 @@ class RoadbikeFramePart extends StatelessWidget {
   }
 }
 
-class RoadbikeSaddlePart extends StatelessWidget {
+class FixieSaddlePart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -167,7 +167,7 @@ class RoadbikeSaddlePart extends StatelessWidget {
       children: [
         SizedBox(height: 20),
         Image.asset(
-          'assets/images/rd-Saddle.png', // Replace with your actual image path
+          'assets/images/fx-Saddle.png', // Replace with your actual image path
           height: 120,
         ),
         SizedBox(height: 10),
@@ -197,7 +197,7 @@ class RoadbikeSaddlePart extends StatelessWidget {
   }
 }
 
-class RoadbikeCrankPart extends StatelessWidget {
+class FixieCrankPart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -205,7 +205,7 @@ class RoadbikeCrankPart extends StatelessWidget {
       children: [
         SizedBox(height: 20),
         Image.asset(
-          'assets/images/rd-Crank.png', // Replace with your actual image path
+          'assets/images/fx-Break.png', // Replace with your actual image path
           height: 120,
         ),
         SizedBox(height: 10),
@@ -225,7 +225,7 @@ class RoadbikeCrankPart extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
-            'The crank is part of the bike drivetrain that connects the pedals to the bikes bottom bracket, allowing the rider to transfer power to the wheels.',
+            'The crank is part of the bikes drivetrain that connects the pedals to the bikes bottom bracket, allowing the rider to transfer power to the wheels.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14),
           ),
@@ -235,7 +235,7 @@ class RoadbikeCrankPart extends StatelessWidget {
   }
 }
 
-class RoadbikeShifterPart extends StatelessWidget {
+class FixieBreakPart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -263,7 +263,7 @@ class RoadbikeShifterPart extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
-            'The shifter is a component on a road bike that allows the rider to change gears, controlling the bike speed and cadence. It is typically integrated into the handlebars and works in conjunction with the derailleur and chainrings.',
+            'Brakes on a bike are essential for Stopping: To slow down or bring the bike to a complete stop. Control Helps maintain speed and navigate safely, especially on descents or sharp turns. Safety: Provides the ability to react to obstacles or changes in terrain. Handling: Allows precise adjustments in speed for better bike handling.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14),
           ),

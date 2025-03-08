@@ -64,10 +64,23 @@ flutter:
     - assets/svg/white-w.svg
     - assets/images/rd-Handle.png
     - assets/images/rd-Frame.png
-    - assets/images/rd-Sadle.png
+    - assets/images/rd-Saddle.png
     - assets/images/rd-Wheels.png
     - assets/images/rd-Shifter.png
     - assets/images/rd-Crank.png
+    - assets/images/mb-Handle.png
+    - assets/images/mb-Frame.png
+    - assets/images/mb-Saddle.png
+    - assets/images/mb-Wheels.png
+    - assets/images/mb-Shifter.png
+    - assets/images/mb-Crank.png
+    - assets/images/fx-Handle.png
+    - assets/images/fx-Frame.png
+    - assets/images/fx-Saddle.png
+    - assets/images/fx-Wheels.png
+    - assets/images/fx-Break.png
+    - assets/images/fx-Crank.png
+
 
   fonts:
     - family: Poppins

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
+import 'package:velora/presentation/screens/2ToolBox/fixie_info.dart';
+import 'package:velora/presentation/screens/2ToolBox/mountainbike_info.dart';
 import 'package:velora/presentation/screens/2ToolBox/roadbike_info.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
@@ -55,7 +57,7 @@ class ToolboxPageContent extends StatelessWidget {
             return Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasData) {
-            return BikeScreen(bikeType: snapshot.data!);
+            return BikeScreens(bikeType: snapshot.data!);
           }
           return Center(child: Text("No Bike Selected"));
         },
@@ -70,16 +72,17 @@ class ToolboxPageContent extends StatelessWidget {
   }
 }
 
-class BikeScreen extends StatefulWidget {
+// ignore: unused_element
+class BikeScreens extends StatefulWidget {
   final String bikeType;
 
-  const BikeScreen({super.key, required this.bikeType});
+  const BikeScreens({Key? key, required this.bikeType}) : super(key: key);
 
   @override
   _BikeScreenState createState() => _BikeScreenState();
 }
 
-class _BikeScreenState extends State<BikeScreen> {
+class _BikeScreenState extends State<BikeScreens> {
   late String selectedBike;
   double opacity = 1.0;
 
@@ -103,26 +106,208 @@ class _BikeScreenState extends State<BikeScreen> {
     });
   }
 
-  final List<String> titles = [
-    'HANDLE',
-    'WHEELS',
-    'FRAME',
-    'SADDLE',
-    'CRANK',
-    'SHIFTER'
-  ];
+  // Get parts based on bike type
+  List<String> getTitles() {
+    if (selectedBike.toLowerCase() == 'roadbike') {
+      return ['HANDLE', 'WHEELS', 'FRAME', 'SADDLE', 'CRANK', 'SHIFTER'];
+    } else if (selectedBike.toLowerCase() == 'mountainbike') {
+      return ['HANDLE', 'WHEELS', 'FRAME', 'SADDLE', 'CRANK', 'SHIFTER'];
+    } else if (selectedBike.toLowerCase() == 'fixie') {
+      return ['HANDLE', 'WHEELS', 'FRAME', 'SADDLE', 'CRANK', 'BRAKE'];
+    }
+    return [
+      'HANDLE',
+      'WHEELS',
+      'FRAME',
+      'SADDLE',
+      'CRANK',
+      'SHIFTER'
+    ]; // Default
+  }
 
-  final List<String> images = [
-    'assets/images/rd-Handle.png',
-    'assets/images/rd-Wheels.png',
-    'assets/images/rd-Frame.png',
-    'assets/images/rd-Sadle.png',
-    'assets/images/rd-Crank.png',
-    'assets/images/rd-Shifter.png',
-  ];
+  // Get images based on bike type
+  List<String> getImages() {
+    String prefix = '';
+    if (selectedBike.toLowerCase() == 'roadbike') {
+      prefix = 'rd';
+    } else if (selectedBike.toLowerCase() == 'mountainbike') {
+      prefix = 'mb';
+    } else if (selectedBike.toLowerCase() == 'fixie') {
+      prefix = 'fx';
+    } else {
+      prefix = 'rd'; // Default
+    }
+
+    List<String> parts = getTitles();
+    List<String> images = parts.map((part) {
+      if (part == 'BRAKE') {
+        return 'assets/images/$prefix-Break.png';
+      }
+      return 'assets/images/$prefix-${part.capitalize()}.png';
+    }).toList();
+
+    return images;
+  }
+
+  void navigateToPartInfo(BuildContext context, int index) {
+    String partName = getTitles()[index].toLowerCase();
+
+    if (selectedBike.toLowerCase() == 'roadbike') {
+      switch (partName) {
+        case 'handle':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => RoadbikeInfo(part: RoadbikeHandlePart())),
+          );
+          break;
+        case 'wheels':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => RoadbikeInfo(part: RoadbikeWheelPart())),
+          );
+          break;
+        case 'frame':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => RoadbikeInfo(part: RoadbikeFramePart())),
+          );
+          break;
+        case 'saddle':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => RoadbikeInfo(part: RoadbikeSaddlePart())),
+          );
+          break;
+        case 'crank':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => RoadbikeInfo(part: RoadbikeCrankPart())),
+          );
+          break;
+        case 'shifter':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    RoadbikeInfo(part: RoadbikeShifterPart())),
+          );
+          break;
+        default:
+          print("No matching part found");
+      }
+    } else if (selectedBike.toLowerCase() == 'mountainbike') {
+      switch (partName) {
+        case 'handle':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    MountainbikeInfo(part: MountainbikeHandlePart())),
+          );
+          break;
+        case 'wheels':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    MountainbikeInfo(part: MountainbikeWheelPart())),
+          );
+          break;
+        case 'frame':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    MountainbikeInfo(part: MountainbikeFramePart())),
+          );
+          break;
+        case 'saddle':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    MountainbikeInfo(part: MountainbikeSaddlePart())),
+          );
+          break;
+        case 'crank':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    MountainbikeInfo(part: MountainbikeCrankPart())),
+          );
+          break;
+        case 'shifter':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    MountainbikeInfo(part: MountainbikeShifterPart())),
+          );
+          break;
+        default:
+          print("No matching part found");
+      }
+    } else if (selectedBike.toLowerCase() == 'fixie') {
+      switch (partName) {
+        case 'handle':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => FixiebikeInfo(part: FixieHandlePart())),
+          );
+          break;
+        case 'wheels':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => FixiebikeInfo(part: FixieWheelPart())),
+          );
+          break;
+        case 'frame':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => FixiebikeInfo(part: FixieFramePart())),
+          );
+          break;
+        case 'saddle':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => FixiebikeInfo(part: FixieSaddlePart())),
+          );
+          break;
+        case 'crank':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => FixiebikeInfo(part: FixieCrankPart())),
+          );
+          break;
+        case 'brake':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => FixiebikeInfo(part: FixieBreakPart())),
+          );
+          break;
+        default:
+          print("No matching part found");
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    List<String> titles = getTitles();
+    List<String> images = getImages();
+
     return Container(
       padding: EdgeInsets.all(16),
       child: Column(
@@ -179,7 +364,7 @@ class _BikeScreenState extends State<BikeScreen> {
               ),
             ),
           ),
-          // Sorting Dropdown & "Change" Buttonflu
+          // Sorting Dropdown & "Change" Button
           Container(
             padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
@@ -415,13 +600,7 @@ class _BikeScreenState extends State<BikeScreen> {
                 return InkWell(
                   onTap: () {
                     print('${titles[index]} Tapped');
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => RoadbikeInfo(
-                            title: titles[index]), // Replace with your page
-                      ),
-                    );
+                    navigateToPartInfo(context, index);
                   },
                   child: Container(
                     decoration: BoxDecoration(
@@ -450,5 +629,12 @@ class _BikeScreenState extends State<BikeScreen> {
         ],
       ),
     );
+  }
+}
+
+// Add this extension to help with capitalization
+extension StringExtension on String {
+  String capitalize() {
+    return "${this[0].toUpperCase()}${this.substring(1).toLowerCase()}";
   }
 }

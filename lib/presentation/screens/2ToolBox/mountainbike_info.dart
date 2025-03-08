@@ -3,11 +3,11 @@ import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
-class RoadbikeInfo extends StatelessWidget {
+class MountainbikeInfo extends StatelessWidget {
   final Widget part;
 
   static List<Map<String, String>> parts = [];
-  const RoadbikeInfo({super.key, required this.part});
+  const MountainbikeInfo({super.key, required this.part});
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +45,7 @@ class RoadbikeInfo extends StatelessWidget {
   }
 }
 
-class RoadbikeHandlePart extends StatelessWidget {
+class MountainbikeHandlePart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -53,7 +53,7 @@ class RoadbikeHandlePart extends StatelessWidget {
       children: [
         SizedBox(height: 20),
         Image.asset(
-          'assets/images/rd-Handle.png', // Replace with your actual image path
+          'assets/images/mb-Handle.png', // Replace with your actual image path
           height: 120,
         ),
         SizedBox(height: 10),
@@ -73,7 +73,7 @@ class RoadbikeHandlePart extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
-            'A curved handlebar with a downward sloping design that allows cyclists to grip the bars in multiple positions (on the tops, hoods, or drops) depending on the terrain and desired riding posture.',
+            'The MTB (mountain bike) handlebar is designed for off-road cycling and provides control, stability, and comfort on rough terrain.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14),
           ),
@@ -83,7 +83,7 @@ class RoadbikeHandlePart extends StatelessWidget {
   }
 }
 
-class RoadbikeWheelPart extends StatelessWidget {
+class MountainbikeWheelPart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -91,7 +91,7 @@ class RoadbikeWheelPart extends StatelessWidget {
       children: [
         SizedBox(height: 20),
         Image.asset(
-          'assets/images/rd-Wheels.png', // Replace with your actual image path
+          'assets/images/mb-Wheels.png', // Replace with your actual image path
           height: 120,
         ),
         SizedBox(height: 10),
@@ -111,7 +111,7 @@ class RoadbikeWheelPart extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
-            'Rims for road bikes play a crucial role in performance, durability, and weight. They are the structural component of the wheel that holds the tire and connects to the spokes and hub.',
+            'The MTB (mountain bike) wheel is designed to handle the challenges of off-road terrain, providing strength, durability, and traction.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14),
           ),
@@ -121,7 +121,7 @@ class RoadbikeWheelPart extends StatelessWidget {
   }
 }
 
-class RoadbikeFramePart extends StatelessWidget {
+class MountainbikeFramePart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -129,7 +129,7 @@ class RoadbikeFramePart extends StatelessWidget {
       children: [
         SizedBox(height: 20),
         Image.asset(
-          'assets/images/rd-Frame.png', // Replace with your actual image path
+          'assets/images/mb-Frame.png', // Replace with your actual image path
           height: 120,
         ),
         SizedBox(height: 10),
@@ -149,7 +149,7 @@ class RoadbikeFramePart extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
-            'The "Frame" of a road bike refers to its frame and key structural components like the fork, seatpost, handlebars, bottom bracket, and wheel stays. These parts provide support, stability, and allow the bike to function.',
+            'The "Frame" of a mountainbike refers to its frame and key structural components like the fork, seatpost, handlebars, bottom bracket, and wheel stays. These parts provide support, stability, and allow the bike to function.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14),
           ),
@@ -159,7 +159,7 @@ class RoadbikeFramePart extends StatelessWidget {
   }
 }
 
-class RoadbikeSaddlePart extends StatelessWidget {
+class MountainbikeSaddlePart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -167,7 +167,7 @@ class RoadbikeSaddlePart extends StatelessWidget {
       children: [
         SizedBox(height: 20),
         Image.asset(
-          'assets/images/rd-Saddle.png', // Replace with your actual image path
+          'assets/images/mb-Saddle.png', // Replace with your actual image path
           height: 120,
         ),
         SizedBox(height: 10),
@@ -197,7 +197,7 @@ class RoadbikeSaddlePart extends StatelessWidget {
   }
 }
 
-class RoadbikeCrankPart extends StatelessWidget {
+class MountainbikeCrankPart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -205,7 +205,7 @@ class RoadbikeCrankPart extends StatelessWidget {
       children: [
         SizedBox(height: 20),
         Image.asset(
-          'assets/images/rd-Crank.png', // Replace with your actual image path
+          'assets/images/mb-Crank.png', // Replace with your actual image path
           height: 120,
         ),
         SizedBox(height: 10),
@@ -235,7 +235,7 @@ class RoadbikeCrankPart extends StatelessWidget {
   }
 }
 
-class RoadbikeShifterPart extends StatelessWidget {
+class MountainbikeShifterPart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -243,7 +243,7 @@ class RoadbikeShifterPart extends StatelessWidget {
       children: [
         SizedBox(height: 20),
         Image.asset(
-          'assets/images/rd-Shifter.png', // Replace with your actual image path
+          'assets/images/mb-Shifter.png', // Replace with your actual image path
           height: 120,
         ),
         SizedBox(height: 10),
