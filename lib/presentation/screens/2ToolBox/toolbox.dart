@@ -2,8 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
+import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
-import 'package:velora/presentation/screens/2ToolBox/Roadbike/roadbike_info.dart';
+import 'package:velora/presentation/screens/2ToolBox/roadbike_info.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
 class ToolboxPageContent extends StatelessWidget {
@@ -189,8 +190,7 @@ class _BikeScreenState extends State<BikeScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.swap_vert, size: 18, color: Colors.black),
-                    SizedBox(width: 5),
+                    SizedBox(width: 3),
                     DropdownButton<String>(
                       value: 'Most Recent',
                       underline: SizedBox(),
@@ -200,7 +200,7 @@ class _BikeScreenState extends State<BikeScreen> {
                           value: value,
                           child: Text(
                             value,
-                            style: TextStyle(fontSize: 10, color: Colors.black),
+                            style: TextStyle(fontSize: 13, color: Colors.black),
                           ),
                         );
                       }).toList(),
@@ -388,10 +388,10 @@ class _BikeScreenState extends State<BikeScreen> {
                   },
                   child: Text(
                     'Change',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 10,
-                      color: Colors.grey,
+                    style: AppFonts.bold.copyWith(
+                      fontSize: 13,
+                      color: AppColors.lightGrey,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 )

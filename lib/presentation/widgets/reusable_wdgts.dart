@@ -730,9 +730,9 @@ class MessageBubble extends StatelessWidget {
   Widget _buildStatusIndicator(String status) {
     switch (status) {
       case 'sent':
-        return Icon(Icons.check, size: 14, color: Colors.white);
+        return Icon(Icons.check, size: 14, color: Colors.grey);
       case 'delivered':
-        return Icon(Icons.done_all, size: 14, color: Colors.white);
+        return Icon(Icons.done_all, size: 14, color: Colors.grey);
       case 'seen':
         return Icon(Icons.done_all, size: 14, color: Colors.white);
       default:

@@ -6,6 +6,7 @@ class AppColors {
   static const lightBackground = Color(0xffEFEFEF);
   static const darkBackground = Color(0xff121212);
   static const greytxt = Color(0xffBDBDBD);
+  static const lightGrey = Color(0xff7f7f7f);
   static const border = Color(0xff000000);
   static const hintText = greytxt;
   static const divider = greytxt;
