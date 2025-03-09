@@ -3,12 +3,11 @@ import 'package:intl/intl.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/screens/2ToolBox/toolbox.dart';
-import 'package:velora/presentation/screens/3News/newsfeed.dart';
 import 'package:velora/presentation/screens/4Chat/chat_list.dart';
 import 'package:velora/presentation/screens/5Settings/setting_screen.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 import 'event_modal.dart'; // Import the new file
-
+import 'package:velora/presentation/screens/3News/newsfeed.dart' as newsfeed;
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -22,7 +21,7 @@ class _HomePageState extends State<HomePage> {
   final List<Widget> _screens = [
     const HomePageContent(),
     const ToolboxPageContent(),
-    const NewsFeedPageContent(),
+    const newsfeed.NewsFeedPageContent(),
     const ChatListPage(),
     const SettingsScreen(),
   ];

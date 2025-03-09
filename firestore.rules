@@ -1,15 +1,72 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Allow authenticated users to read/write their own user profile
-    match /user_profile/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+    // 🔒 Secure user data: Allow all authenticated users to read user documents
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow update, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Example: If you also have a "users" collection for Google Sign-In, restrict it too
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // 🔒 Secure user profiles
+    match /user_profile/{userId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 🔒 Secure user preferences
+    match /user_preferences/{userId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 🔒 Secure posts collection
+    match /posts/{postId} {
+      // Allow all authenticated users to read posts
+      allow read: if request.auth != null;
+
+      // Allow authenticated users to create posts
+      allow create: if request.auth != null &&
+                    request.resource.data.keys().hasAll(["content", "userId", "timestamp", "likesCount", "commentsCount"]);
+
+      // Allow only the author to update or delete their own post
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+
+      // 🔒 Secure likes inside posts (users can like/unlike)
+      match /likes/{userId} {
+        // Allow any authenticated user to read if they are trying to see the likes of the post
+        allow read: if request.auth != null;
+        
+        // Ensure user can only create a like if authenticated and not already liked the post
+        allow create: if request.auth != null && request.auth.uid == userId && 
+                      !exists(/databases/$(database)/documents/posts/$(postId)/likes/$(userId));
+        
+        // Allow users to remove their own like (delete)
+        allow delete: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // 🔒 Secure comments inside posts (users can comment)
+      match /comments/{commentId} {
+        // Allow any authenticated user to read comments
+        allow read: if request.auth != null;
+        
+        // Allow authenticated users to create comments
+        allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+        
+        // Allow users to delete their own comments
+        allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      }
+    }
+
+    // ✅ Allow authenticated users to access and create chats
+    match /chats/{chatId} {
+      allow read, write: if request.auth != null; // ✅ Ensures chats exist and are accessible
+    }
+
+    // ✅ Allow authenticated users to send and read messages
+    match /chats/{chatId}/messages/{messageId} {
+      allow read, write: if request.auth != null;
     }
   }
 }

@@ -698,24 +698,23 @@ class MessageBubble extends StatelessWidget {
                           color: isMe ? Colors.white : Colors.black,
                         ),
                       ),
-                      if (timestamp != null)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _formatTimestamp(timestamp),
-                              style: AppFonts.light.copyWith(
-                                fontSize: 10,
-                                color: isMe ? Colors.white70 : Colors.grey[600],
-                              ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _formatTimestamp(timestamp!),
+                            style: AppFonts.light.copyWith(
+                              fontSize: 10,
+                              color: isMe ? Colors.white70 : Colors.grey[600],
                             ),
-                            if (isMe)
-                              Padding(
-                                padding: const EdgeInsets.only(left: 4),
-                                child: _buildStatusIndicator(status),
-                              ),
-                          ],
-                        ),
+                          ),
+                          if (isMe)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 4),
+                              child: _buildStatusIndicator(status),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
