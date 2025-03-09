@@ -4,9 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 class FirebaseServices {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  static const String USER_COLLECTION = 'user_profile';
-  static const String POSTS_COLLECTION = 'posts';
-  static const String LIKES_COLLECTION = 'likes';
+  static const String userCollection = 'user_profile';
+  static const String postsCollection = 'posts';
+  static const String likesCollection = 'likes';
 
   /// 🔹 Get current user ID
   static String? get currentUserId => _auth.currentUser?.uid;
@@ -19,7 +19,7 @@ class FirebaseServices {
     String profileUrl = "",
   }) async {
     try {
-      await _firestore.collection(USER_COLLECTION).doc(uid).set({
+      await _firestore.collection(userCollection).doc(uid).set({
         'userName': username,
         'email': email,
         'profileUrl': profileUrl,
@@ -40,7 +40,7 @@ class FirebaseServices {
   /// 🔹 Get User Data
   static Future<DocumentSnapshot?> getUserData(String uid) async {
     try {
-      return await _firestore.collection(USER_COLLECTION).doc(uid).get();
+      return await _firestore.collection(userCollection).doc(uid).get();
     } catch (e) {
       print("❌ Firestore Error (getUserData): $e");
       return null;
@@ -48,9 +48,10 @@ class FirebaseServices {
   }
 
   /// 🔹 Update User Data
-  static Future<void> updateUserData(String uid, Map<String, dynamic> data) async {
+  static Future<void> updateUserData(
+      String uid, Map<String, dynamic> data) async {
     try {
-      await _firestore.collection(USER_COLLECTION).doc(uid).update(data);
+      await _firestore.collection(userCollection).doc(uid).update(data);
     } catch (e) {
       print("❌ Firestore Error (updateUserData): $e");
     }
@@ -67,7 +68,7 @@ class FirebaseServices {
   static Future<void> completeOnboarding() async {
     if (currentUserId == null) return;
     try {
-      await _firestore.collection(USER_COLLECTION).doc(currentUserId).update({
+      await _firestore.collection(userCollection).doc(currentUserId).update({
         'setupComplete': true,
       });
     } catch (e) {
@@ -81,7 +82,8 @@ class FirebaseServices {
       if (_auth.currentUser == null) throw _authException();
 
       String uid = userId ?? _auth.currentUser!.uid;
-      DocumentSnapshot doc = await _firestore.collection(USER_COLLECTION).doc(uid).get();
+      DocumentSnapshot doc =
+          await _firestore.collection(userCollection).doc(uid).get();
 
       if (doc.exists) return doc.data() as Map<String, dynamic>;
 
@@ -101,7 +103,10 @@ class FirebaseServices {
       };
 
       if (uid == _auth.currentUser!.uid) {
-        await _firestore.collection(USER_COLLECTION).doc(uid).set(defaultData, SetOptions(merge: true));
+        await _firestore
+            .collection(userCollection)
+            .doc(uid)
+            .set(defaultData, SetOptions(merge: true));
       }
 
       return defaultData;
@@ -124,10 +129,12 @@ class FirebaseServices {
       if (_auth.currentUser == null) throw _authException();
 
       String uid = _auth.currentUser!.uid;
-      DocumentSnapshot userDoc = await _firestore.collection(USER_COLLECTION).doc(uid).get();
+      DocumentSnapshot userDoc =
+          await _firestore.collection(userCollection).doc(uid).get();
       Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
 
-      DocumentReference postRef = await _firestore.collection(POSTS_COLLECTION).add({
+      DocumentReference postRef =
+          await _firestore.collection(postsCollection).add({
         'userId': uid,
         'userName': userData['userName'] ?? 'Unknown User',
         'userProfileUrl': userData['profileUrl'] ?? '',
@@ -139,7 +146,7 @@ class FirebaseServices {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      await _firestore.collection(USER_COLLECTION).doc(uid).update({
+      await _firestore.collection(userCollection).doc(uid).update({
         'postsCount': FieldValue.increment(1),
       });
 
@@ -156,12 +163,14 @@ class FirebaseServices {
       if (_auth.currentUser == null) throw _authException();
 
       String uid = _auth.currentUser!.uid;
-      DocumentSnapshot userDoc = await _firestore.collection(USER_COLLECTION).doc(uid).get();
-      List<dynamic> following = (userDoc.data() as Map<String, dynamic>)['following'] ?? [];
+      DocumentSnapshot userDoc =
+          await _firestore.collection(userCollection).doc(uid).get();
+      List<dynamic> following =
+          (userDoc.data() as Map<String, dynamic>)['following'] ?? [];
       following.add(uid); // Include current user's posts
 
       QuerySnapshot postsSnapshot = await _firestore
-          .collection(POSTS_COLLECTION)
+          .collection(postsCollection)
           .where('userId', whereIn: following)
           .orderBy('createdAt', descending: true)
           .limit(20)
@@ -175,13 +184,14 @@ class FirebaseServices {
   }
 
   /// 🔹 Get User Posts
-  static Future<List<Map<String, dynamic>>> getUserPosts([String? userId]) async {
+  static Future<List<Map<String, dynamic>>> getUserPosts(
+      [String? userId]) async {
     try {
       if (_auth.currentUser == null) throw _authException();
 
       String targetUid = userId ?? _auth.currentUser!.uid;
       QuerySnapshot postsSnapshot = await _firestore
-          .collection(POSTS_COLLECTION)
+          .collection(postsCollection)
           .where('userId', isEqualTo: targetUid)
           .orderBy('createdAt', descending: true)
           .get();
@@ -199,8 +209,9 @@ class FirebaseServices {
       if (_auth.currentUser == null) throw _authException();
 
       String uid = _auth.currentUser!.uid;
-      DocumentReference postRef = _firestore.collection(POSTS_COLLECTION).doc(postId);
-      DocumentReference likeRef = postRef.collection(LIKES_COLLECTION).doc(uid);
+      DocumentReference postRef =
+          _firestore.collection(postsCollection).doc(postId);
+      DocumentReference likeRef = postRef.collection(likesCollection).doc(uid);
 
       DocumentSnapshot likeDoc = await likeRef.get();
       bool isLiked = likeDoc.exists;
@@ -208,11 +219,18 @@ class FirebaseServices {
       if (isLiked) {
         await likeRef.delete();
         await postRef.update({'likesCount': FieldValue.increment(-1)});
-        await _firestore.collection(USER_COLLECTION).doc(uid).update({'likesCount': FieldValue.increment(-1)});
+        await _firestore
+            .collection(userCollection)
+            .doc(uid)
+            .update({'likesCount': FieldValue.increment(-1)});
       } else {
-        await likeRef.set({'userId': uid, 'createdAt': FieldValue.serverTimestamp()});
+        await likeRef
+            .set({'userId': uid, 'createdAt': FieldValue.serverTimestamp()});
         await postRef.update({'likesCount': FieldValue.increment(1)});
-        await _firestore.collection(USER_COLLECTION).doc(uid).update({'likesCount': FieldValue.increment(1)});
+        await _firestore
+            .collection(userCollection)
+            .doc(uid)
+            .update({'likesCount': FieldValue.increment(1)});
       }
 
       return !isLiked;
@@ -223,15 +241,16 @@ class FirebaseServices {
   }
 
   /// 🔹 Helper: Process Posts
-  static Future<List<Map<String, dynamic>>> _processPosts(QuerySnapshot postsSnapshot, String uid) async {
+  static Future<List<Map<String, dynamic>>> _processPosts(
+      QuerySnapshot postsSnapshot, String uid) async {
     List<Map<String, dynamic>> posts = [];
 
     for (var doc in postsSnapshot.docs) {
       Map<String, dynamic> postData = doc.data() as Map<String, dynamic>;
       DocumentSnapshot likeDoc = await _firestore
-          .collection(POSTS_COLLECTION)
+          .collection(postsCollection)
           .doc(doc.id)
-          .collection(LIKES_COLLECTION)
+          .collection(likesCollection)
           .doc(uid)
           .get();
 

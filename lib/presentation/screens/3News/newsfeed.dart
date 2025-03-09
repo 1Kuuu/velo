@@ -1,10 +1,11 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
+import 'package:velora/core/configs/theme/app_fonts.dart';
+import 'package:velora/data/sources/post_service.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/screens/3News/search_view.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
@@ -80,7 +81,7 @@ class _NewsFeedPageContentState extends State<NewsFeedPageContent>
               labelColor: AppColors.primary,
               unselectedLabelColor: Colors.grey,
               indicatorColor: AppColors.primary,
-              labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              labelStyle: AppFonts.bold.copyWith(fontSize: 16),
             ),
           ),
           // Tab content
@@ -109,79 +110,262 @@ class PostInputField extends StatefulWidget {
 class _PostInputFieldState extends State<PostInputField> {
   final TextEditingController _controller = TextEditingController();
   File? _image;
+  File? _video;
   final picker = ImagePicker();
   final user = FirebaseAuth.instance.currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(() {
+      print('Text changed: "${_controller.text}"');
+      setState(() {}); // Rebuild widget when text changes
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   Future<void> _pickImage() async {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
-      setState(() => _image = File(pickedFile.path));
+      setState(() {
+        _image = File(pickedFile.path);
+        _video = null; // Clear video when image is selected
+      });
+    }
+  }
+
+  Future<void> _pickVideo() async {
+    final pickedFile = await picker.pickVideo(
+      source: ImageSource.gallery,
+      maxDuration:
+          const Duration(minutes: 5), // Limit video duration to 5 minutes
+    );
+    if (pickedFile != null) {
+      setState(() {
+        _video = File(pickedFile.path);
+        _image = null; // Clear image when video is selected
+      });
     }
   }
 
   Future<void> _postRide() async {
-    if (user == null || _controller.text.isEmpty) return;
-    String? imageUrl;
-
-    if (_image != null) {
-      Reference ref = FirebaseStorage.instance
-          .ref()
-          .child('ride_images/${DateTime.now().millisecondsSinceEpoch}.jpg');
-      await ref.putFile(_image!);
-      imageUrl = await ref.getDownloadURL();
+    print('Attempting to post with text: "${_controller.text}"');
+    if (user == null || _controller.text.trim().isEmpty) {
+      print(
+          'Post cancelled - user: ${user != null}, text empty: ${_controller.text.trim().isEmpty}');
+      return;
     }
 
-    await FirebaseFirestore.instance.collection('post').add({
-      'content': _controller.text,
-      'authorId': user!.uid,
-      'imageUrl': imageUrl,
-      'route': 'Sample Route',
-      'distance': 10.5,
-      'duration': '1h 30m',
-      'timestamp': FieldValue.serverTimestamp(),
-      'likesCount': 0,
-      'commentsCount': 0,
-    });
+    final postId = await PostService.createPost(
+      content: _controller.text,
+      image: _image,
+      video: _video,
+      rideData: {
+        'route': 'Sample Route',
+        'distance': 10.5,
+        'duration': '1h 30m',
+      },
+    );
 
-    _controller.clear();
-    setState(() => _image = null);
+    if (postId != null) {
+      print('Post created successfully with ID: $postId');
+      _controller.clear();
+      setState(() {
+        _image = null;
+        _video = null;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(12.0),
-      child: Row(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade200),
+        ),
+      ),
+      child: Column(
         children: [
-          // User avatar
-          CircleAvatar(
-            backgroundImage: NetworkImage(user?.photoURL ?? ''),
-            radius: 22,
-          ),
-          const SizedBox(width: 12),
-          // Input field
-          Expanded(
-            child: TextField(
-              controller: _controller,
-              decoration: const InputDecoration(
-                hintText: "What's on your mind?",
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                backgroundImage: NetworkImage(user?.photoURL ?? ''),
+                radius: 20,
+                backgroundColor: Colors.grey[300],
+                child: user?.photoURL == null
+                    ? Icon(Icons.person, color: Colors.grey[600])
+                    : null,
               ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _controller,
+                  maxLines: null,
+                  style: AppFonts.regular.copyWith(fontSize: 16),
+                  decoration: InputDecoration(
+                    hintText: "What's on your mind?",
+                    hintStyle: AppFonts.regular.copyWith(
+                      color: Colors.grey[500],
+                      fontSize: 16,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (_image != null) ...[
+            const SizedBox(height: 12),
+            Stack(
+              children: [
+                Container(
+                  height: 200,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    image: DecorationImage(
+                      image: FileImage(_image!),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: GestureDetector(
+                    onTap: () => setState(() => _image = null),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close,
+                          color: Colors.white, size: 20),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-          // Image picker and send button
-          IconButton(
-            icon: const Icon(Icons.image),
-            onPressed: _pickImage,
-            iconSize: 28,
-            color: AppColors.primary,
-          ),
-          IconButton(
-            icon: const Icon(Icons.send),
-            onPressed: _postRide,
-            iconSize: 28,
-            color: AppColors.primary,
+          ],
+          if (_video != null) ...[
+            const SizedBox(height: 12),
+            Stack(
+              children: [
+                Container(
+                  height: 200,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.black87,
+                  ),
+                  child: const Center(
+                    child:
+                        Icon(Icons.video_file, size: 64, color: Colors.white),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: GestureDetector(
+                    onTap: () => setState(() => _video = null),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close,
+                          color: Colors.white, size: 20),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(right: 16),
+                      child: TextButton.icon(
+                        onPressed: _pickImage,
+                        icon: Icon(Icons.image,
+                            color: AppColors.primary, size: 24),
+                        label: Text(
+                          'Photo',
+                          style: AppFonts.medium.copyWith(
+                            color: AppColors.primary,
+                            fontSize: 14,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          backgroundColor: AppColors.primary.withOpacity(0.1),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      margin: const EdgeInsets.only(right: 16),
+                      child: TextButton.icon(
+                        onPressed: _pickVideo,
+                        icon: Icon(Icons.videocam,
+                            color: AppColors.primary, size: 24),
+                        label: Text(
+                          'Video',
+                          style: AppFonts.medium.copyWith(
+                            color: AppColors.primary,
+                            fontSize: 14,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          backgroundColor: AppColors.primary.withOpacity(0.1),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              ElevatedButton(
+                onPressed: _controller.text.trim().isEmpty ? null : _postRide,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                child: Text(
+                  'Post',
+                  style: AppFonts.semibold.copyWith(fontSize: 14),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -196,30 +380,58 @@ class NewsFeedList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
-      stream: FirebaseFirestore.instance
-          .collection('rides')
-          .orderBy('timestamp', descending: true)
-          .snapshots(),
+      stream: PostService.getPostsStream(tab: tab),
       builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
-              child: Text("No rides yet. Be the first to post a ride!"));
+        if (snapshot.hasError) {
+          print('Error loading posts: ${snapshot.error}');
+          return Center(
+            child: Text(
+              "Error loading posts. Please try again.",
+              style: AppFonts.medium.copyWith(color: Colors.grey),
+            ),
+          );
         }
 
-        final posts = snapshot.data!.docs.where((post) {
-          return true;
-        }).toList();
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          if (tab == "Following") {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
+                  Text(
+                    "Follow people to see their posts here!",
+                    style: AppFonts.medium.copyWith(color: Colors.grey),
+                  ),
+                ],
+              ),
+            );
+          }
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.post_add_outlined,
+                    size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                Text(
+                  "No posts yet. Be the first to post!",
+                  style: AppFonts.medium.copyWith(color: Colors.grey),
+                ),
+              ],
+            ),
+          );
+        }
 
         return ListView.builder(
-          itemCount: posts.length,
-          itemBuilder: (context, index) {
-            var ride = posts[index];
-            return RideFeedItem(ride: ride);
-          },
+          itemCount: snapshot.data!.docs.length,
+          itemBuilder: (context, index) =>
+              RideFeedItem(ride: snapshot.data!.docs[index]),
         );
       },
     );
@@ -235,96 +447,93 @@ class RideFeedItem extends StatefulWidget {
 }
 
 class _RideFeedItemState extends State<RideFeedItem> {
-  late String rideId;
-  late String authorId;
-  int likes = 0;
+  late String postId;
   bool isLiked = false;
-  String userName = "Loading...";
-  String? avatarUrl;
   final user = FirebaseAuth.instance.currentUser;
   bool _showComments = false;
+  final TextEditingController _commentController = TextEditingController();
+  Map<String, dynamic>? authorData;
 
   @override
   void initState() {
     super.initState();
-    rideId = widget.ride.id;
-    var data = widget.ride.data() as Map<String, dynamic>;
-    authorId = data['authorId'];
-    likes = data['likesCount'] ?? 0;
-    _fetchUserDetails();
+    postId = widget.ride.id;
     _checkIfLiked();
+    _loadAuthorData();
   }
 
-  void _fetchUserDetails() async {
-    var userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(authorId)
-        .get();
-    if (userDoc.exists) {
-      setState(() {
-        userName = userDoc['userName'] ?? "Anonymous";
-        avatarUrl = userDoc['avatarUrl'];
-      });
+  Future<void> _loadAuthorData() async {
+    final postData = widget.ride.data() as Map<String, dynamic>;
+    final authorId = postData['authorId'];
+    if (authorId != null) {
+      final userData = await PostService.getUserData(authorId);
+      if (mounted) {
+        setState(() => authorData = userData);
+      }
     }
   }
 
-  void _checkIfLiked() async {
-    var likeDoc = await FirebaseFirestore.instance
-        .collection('rides')
-        .doc(rideId)
-        .collection('likes')
-        .doc(user!.uid)
-        .get();
-    if (likeDoc.exists) {
-      setState(() => isLiked = true);
+  void _navigateToProfile(String userId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProfilePage(userId: userId),
+      ),
+    );
+  }
+
+  Future<void> _checkIfLiked() async {
+    final liked = await PostService.isLikedByUser(postId);
+    if (mounted) setState(() => isLiked = liked);
+  }
+
+  Future<void> _toggleLike() async {
+    final success = await PostService.toggleLike(postId);
+    if (mounted) setState(() => isLiked = success);
+  }
+
+  Future<void> _deletePost() async {
+    final success = await PostService.deletePost(postId);
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Post deleted successfully')),
+      );
     }
   }
 
-  void _toggleLike() async {
-    var likesRef = FirebaseFirestore.instance
-        .collection('rides')
-        .doc(rideId)
-        .collection('likes')
-        .doc(user!.uid);
-    setState(() => isLiked = !isLiked);
+  Future<void> _addComment() async {
+    if (_commentController.text.trim().isEmpty) return;
 
-    if (isLiked) {
-      await likesRef.set({'userId': user!.uid});
-      await FirebaseFirestore.instance
-          .collection('rides')
-          .doc(rideId)
-          .update({'likesCount': FieldValue.increment(1)});
-    } else {
-      await likesRef.delete();
-      await FirebaseFirestore.instance
-          .collection('rides')
-          .doc(rideId)
-          .update({'likesCount': FieldValue.increment(-1)});
+    final success =
+        await PostService.addComment(postId, _commentController.text);
+    if (success) {
+      _commentController.clear();
+      if (mounted) setState(() {});
     }
-
-    var rideDoc =
-        await FirebaseFirestore.instance.collection('rides').doc(rideId).get();
-    var updatedLikes = rideDoc['likesCount'] ?? 0;
-
-    setState(() {
-      likes = updatedLikes;
-    });
   }
 
-  void _toggleComments() {
-    setState(() {
-      _showComments = !_showComments;
-    });
+  Future<void> _deleteComment(String commentId) async {
+    final success = await PostService.deleteComment(postId, commentId);
+    if (success && mounted) setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    var rideData = widget.ride.data() as Map<String, dynamic>;
-    String content = rideData['content'] ?? '';
-    String? imageUrl = rideData.containsKey('imageUrl') ? rideData['imageUrl'] : null;
-    String route = rideData['route'] ?? '';
-    double distance = rideData['distance'] ?? 0.0;
-    String duration = rideData['duration'] ?? '';
+    var postData = widget.ride.data() as Map<String, dynamic>;
+    String content = postData['content'] ?? '';
+    String? mediaUrl = postData['mediaUrl'];
+    String mediaType = postData['mediaType'] ?? 'none';
+    Map<String, dynamic>? rideData = postData['rideData'];
+    int likesCount = postData['likesCount'] ?? 0;
+    int commentsCount = postData['commentsCount'] ?? 0;
+    String userId = postData['userId'] ?? '';
+
+    // Use author data from Firestore if available
+    String authorName =
+        authorData?['userName'] ?? postData['authorName'] ?? 'Anonymous';
+    String authorAvatar =
+        authorData?['profileUrl'] ?? postData['authorAvatar'] ?? '';
+    String authorEmail = authorData?['email'] ?? postData['authorEmail'] ?? '';
 
     return Card(
       margin: const EdgeInsets.all(12.0),
@@ -335,99 +544,451 @@ class _RideFeedItemState extends State<RideFeedItem> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // User avatar and name
             Row(
               children: [
-                CircleAvatar(
-                  backgroundImage: NetworkImage(avatarUrl ?? ''),
-                  radius: 22,
+                GestureDetector(
+                  onTap: () => _navigateToProfile(userId),
+                  child: CircleAvatar(
+                    backgroundImage: authorAvatar.isNotEmpty
+                        ? NetworkImage(authorAvatar)
+                        : null,
+                    radius: 22,
+                    backgroundColor: Colors.grey[300],
+                    child: authorAvatar.isEmpty
+                        ? Icon(Icons.person, color: Colors.grey[600])
+                        : null,
+                  ),
                 ),
                 const SizedBox(width: 12),
-                Text(userName,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16)),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _navigateToProfile(userId),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          authorName,
+                          style: AppFonts.bold.copyWith(fontSize: 16),
+                        ),
+                        if (authorEmail.isNotEmpty)
+                          Text(
+                            authorEmail,
+                            style: AppFonts.regular.copyWith(
+                              color: Colors.grey,
+                              fontSize: 12,
+                            ),
+                          ),
+                        Text(
+                          _formatTimestamp(postData['timestamp'] as Timestamp?),
+                          style: AppFonts.regular.copyWith(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (userId == user?.uid)
+                  IconButton(
+                    icon: const Icon(Icons.more_vert),
+                    onPressed: () => _showPostOptions(context),
+                  ),
               ],
             ),
             const SizedBox(height: 12),
-            // Post content
-            Text(content, style: const TextStyle(fontSize: 15)),
-            if (imageUrl != null && imageUrl.isNotEmpty)
+            if (content.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(content,
+                    style: AppFonts.medium.copyWith(fontSize: 16)),
+              ),
+            if (mediaUrl != null && mediaUrl.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10.0),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(15),
-                  child: Image.network(imageUrl),
+                  child: mediaType == 'video'
+                      ? Container(
+                          height: 300,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.black87,
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              const Icon(
+                                Icons.play_circle_outline,
+                                color: Colors.white,
+                                size: 64,
+                              ),
+                              Positioned(
+                                bottom: 8,
+                                left: 8,
+                                child: Text(
+                                  'Tap to play video',
+                                  style: AppFonts.medium.copyWith(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Image.network(
+                          mediaUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              height: 200,
+                              color: Colors.grey[200],
+                              child: const Center(
+                                child: Icon(Icons.broken_image,
+                                    color: Colors.grey),
+                              ),
+                            );
+                          },
+                        ),
                 ),
               ),
+            if (rideData != null) ...[
+              const SizedBox(height: 12),
+              Text("Route: ${rideData['route']}",
+                  style: AppFonts.regular.copyWith(fontSize: 14)),
+              Text("Distance: ${rideData['distance']} km",
+                  style: AppFonts.regular.copyWith(fontSize: 14)),
+              Text("Duration: ${rideData['duration']}",
+                  style: AppFonts.regular.copyWith(fontSize: 14)),
+            ],
             const SizedBox(height: 12),
-            // Ride details
-            Text("Route: $route", style: const TextStyle(fontSize: 14)),
-            Text("Distance: ${distance.toStringAsFixed(1)} km",
-                style: const TextStyle(fontSize: 14)),
-            Text("Duration: $duration", style: const TextStyle(fontSize: 14)),
-            const SizedBox(height: 12),
-            // Like button and count
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  "$likes ${likes == 1 ? 'like' : 'likes'}",
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
-                IconButton(
-                  icon: Icon(isLiked ? Icons.favorite : Icons.favorite_border,
-                      color: isLiked ? Colors.red : Colors.grey),
-                  onPressed: _toggleLike,
-                  iconSize: 30,
+                Row(
+                  children: [
+                    Text(
+                      "$likesCount ${likesCount == 1 ? 'like' : 'likes'}",
+                      style: AppFonts.regular.copyWith(color: Colors.grey[600]),
+                    ),
+                    const SizedBox(width: 16),
+                    Text(
+                      "$commentsCount ${commentsCount == 1 ? 'comment' : 'comments'}",
+                      style: AppFonts.regular.copyWith(color: Colors.grey[600]),
+                    ),
+                  ],
                 ),
               ],
             ),
-            // Comments section
-            IconButton(
-              icon: const Icon(Icons.comment),
-              onPressed: _toggleComments,
-              iconSize: 30,
+            const Divider(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildActionButton(
+                  icon: isLiked ? Icons.favorite : Icons.favorite_border,
+                  label: 'Like',
+                  color: isLiked ? Colors.red : Colors.grey,
+                  onTap: _toggleLike,
+                ),
+                _buildActionButton(
+                  icon: Icons.comment_outlined,
+                  label: 'Comment',
+                  onTap: () => setState(() => _showComments = !_showComments),
+                ),
+                _buildActionButton(
+                  icon: Icons.share_outlined,
+                  label: 'Share',
+                  onTap: () {},
+                ),
+              ],
             ),
-            if (_showComments)
-              CommentsSection(postId: rideId),
+            if (_showComments) ...[
+              const Divider(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _commentController,
+                        decoration: InputDecoration(
+                          hintText: 'Write a comment...',
+                          hintStyle:
+                              AppFonts.regular.copyWith(color: Colors.grey),
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.send),
+                      onPressed: _addComment,
+                      color: AppColors.primary,
+                    ),
+                  ],
+                ),
+              ),
+              CommentsSection(postId: postId, onDeleteComment: _deleteComment),
+            ],
           ],
         ),
       ),
     );
   }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    Color color = Colors.grey,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 4),
+            Text(label,
+                style: AppFonts.medium.copyWith(color: color, fontSize: 14)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPostOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.delete, color: Colors.red),
+            title: const Text('Delete Post'),
+            onTap: () {
+              Navigator.pop(context);
+              _deletePost();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.edit),
+            title: const Text('Edit Post'),
+            onTap: () async {
+              Navigator.pop(context);
+              final postData = widget.ride.data() as Map<String, dynamic>;
+              final TextEditingController contentController =
+                  TextEditingController(text: postData['content']);
+
+              final bool? result = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Edit Post'),
+                  content: TextField(
+                    controller: contentController,
+                    decoration: const InputDecoration(
+                      hintText: 'Edit your post...',
+                    ),
+                    maxLines: null,
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Save'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (result == true && contentController.text.trim().isNotEmpty) {
+                final success = await PostService.updatePost(
+                    postId, contentController.text.trim());
+                if (success && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Post updated successfully')),
+                  );
+                }
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatTimestamp(Timestamp? timestamp) {
+    if (timestamp == null) return '';
+    final now = DateTime.now();
+    final date = timestamp.toDate();
+    final difference = now.difference(date);
+
+    if (difference.inDays > 7) {
+      return '${date.day}/${date.month}/${date.year}';
+    } else if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
+  }
 }
 
 class CommentsSection extends StatelessWidget {
   final String postId;
-  const CommentsSection({required this.postId, super.key});
+  final Function(String) onDeleteComment;
+
+  const CommentsSection({
+    required this.postId,
+    required this.onDeleteComment,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    print('Building CommentsSection for post: $postId');
+
     return StreamBuilder(
       stream: FirebaseFirestore.instance
-          .collection('rides')
+          .collection(PostService.postsCollection)
           .doc(postId)
-          .collection('comments')
+          .collection(PostService.commentsCollection)
           .orderBy('timestamp', descending: true)
           .snapshots(),
       builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-        if (!snapshot.hasData) {
+        print('Comment stream state: ${snapshot.connectionState}');
+        if (snapshot.hasError) {
+          print('Comment stream error: ${snapshot.error}');
+          return Text('Error loading comments: ${snapshot.error}');
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: snapshot.data!.docs.length,
-          itemBuilder: (context, index) {
-            var comment = snapshot.data!.docs[index];
-            return ListTile(
-              title: Text(comment['userName']),
-              subtitle: Text(comment['text']),
-            );
-          },
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          print('No comments found for post: $postId');
+          return const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Text('No comments yet. Be the first to comment!'),
+          );
+        }
+
+        print('Number of comments: ${snapshot.data!.docs.length}');
+        return Column(
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Comments',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: snapshot.data!.docs.length,
+              itemBuilder: (context, index) {
+                var comment = snapshot.data!.docs[index];
+                var data = comment.data() as Map<String, dynamic>;
+                print('Comment data: $data');
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: ListTile(
+                    leading: GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ProfilePage(userId: data['userId']),
+                        ),
+                      ),
+                      child: CircleAvatar(
+                        backgroundImage: data['userAvatar']?.isNotEmpty == true
+                            ? NetworkImage(data['userAvatar'])
+                            : null,
+                        backgroundColor: Colors.grey[300],
+                        child: data['userAvatar']?.isEmpty ?? true
+                            ? Icon(Icons.person, color: Colors.grey[600])
+                            : null,
+                      ),
+                    ),
+                    title: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  ProfilePage(userId: data['userId']),
+                            ),
+                          ),
+                          child: Text(
+                            data['userName'] ?? 'Anonymous',
+                            style: AppFonts.bold.copyWith(fontSize: 14),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _formatTimestamp(data['timestamp'] as Timestamp?),
+                          style: AppFonts.regular
+                              .copyWith(color: Colors.grey, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                    subtitle: Text(
+                      data['text'] ?? '',
+                      style: AppFonts.regular.copyWith(fontSize: 14),
+                    ),
+                    trailing: data['userId'] == currentUser?.uid
+                        ? IconButton(
+                            icon: const Icon(Icons.delete_outline,
+                                color: Colors.red),
+                            onPressed: () => onDeleteComment(comment.id),
+                          )
+                        : null,
+                  ),
+                );
+              },
+            ),
+          ],
         );
       },
     );
+  }
+
+  String _formatTimestamp(Timestamp? timestamp) {
+    if (timestamp == null) return '';
+    final now = DateTime.now();
+    final date = timestamp.toDate();
+    final difference = now.difference(date);
+
+    if (difference.inDays > 7) {
+      return '${date.day}/${date.month}/${date.year}';
+    } else if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
   }
 }

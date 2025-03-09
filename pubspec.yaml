@@ -30,7 +30,7 @@ dependencies:
   intl: ^0.20.2
   email_validator: ^3.0.0
   table_calendar: ^3.2.0
-  shared_preferences: ^2.2.0
+  shared_preferences: ^2.5.2
   syncfusion_flutter_datepicker: ^28.2.9
   image_picker: ^1.1.2
 
