@@ -72,7 +72,6 @@ class ToolboxPageContent extends StatelessWidget {
   }
 }
 
-// ignore: unused_element
 class BikeScreens extends StatefulWidget {
   final String bikeType;
 
@@ -106,51 +105,8 @@ class _BikeScreenState extends State<BikeScreens> {
     });
   }
 
-  // Get parts based on bike type
-  List<String> getTitles() {
-    if (selectedBike.toLowerCase() == 'roadbike') {
-      return ['HANDLE', 'WHEELS', 'FRAME', 'SADDLE', 'CRANK', 'SHIFTER'];
-    } else if (selectedBike.toLowerCase() == 'mountainbike') {
-      return ['HANDLE', 'WHEELS', 'FRAME', 'SADDLE', 'CRANK', 'SHIFTER'];
-    } else if (selectedBike.toLowerCase() == 'fixie') {
-      return ['HANDLE', 'WHEELS', 'FRAME', 'SADDLE', 'CRANK', 'BRAKE'];
-    }
-    return [
-      'HANDLE',
-      'WHEELS',
-      'FRAME',
-      'SADDLE',
-      'CRANK',
-      'SHIFTER'
-    ]; // Default
-  }
-
-  // Get images based on bike type
-  List<String> getImages() {
-    String prefix = '';
-    if (selectedBike.toLowerCase() == 'roadbike') {
-      prefix = 'rd';
-    } else if (selectedBike.toLowerCase() == 'mountainbike') {
-      prefix = 'mb';
-    } else if (selectedBike.toLowerCase() == 'fixie') {
-      prefix = 'fx';
-    } else {
-      prefix = 'rd'; // Default
-    }
-
-    List<String> parts = getTitles();
-    List<String> images = parts.map((part) {
-      if (part == 'BRAKE') {
-        return 'assets/images/$prefix-Break.png';
-      }
-      return 'assets/images/$prefix-${part.capitalize()}.png';
-    }).toList();
-
-    return images;
-  }
-
   void navigateToPartInfo(BuildContext context, int index) {
-    String partName = getTitles()[index].toLowerCase();
+    String partName = BikeUtils.getTitles(selectedBike)[index].toLowerCase();
 
     if (selectedBike.toLowerCase() == 'roadbike') {
       switch (partName) {
@@ -305,8 +261,8 @@ class _BikeScreenState extends State<BikeScreens> {
 
   @override
   Widget build(BuildContext context) {
-    List<String> titles = getTitles();
-    List<String> images = getImages();
+    List<String> titles = BikeUtils.getTitles(selectedBike);
+    List<String> images = BikeUtils.getImages(selectedBike);
 
     return Container(
       padding: EdgeInsets.all(16),
@@ -398,175 +354,15 @@ class _BikeScreenState extends State<BikeScreens> {
                     showDialog(
                       context: context,
                       builder: (BuildContext context) {
-                        return AlertDialog(
-                          backgroundColor: Colors.grey[800],
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(20), // Rounded box
-                          ),
-                          content: Container(
-                            height: 535,
-                            width: 535,
-                            child: Column(
-                              children: [
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.of(context).pop();
-                                    FirebaseFirestore.instance
-                                        .collection('user_preferences')
-                                        .doc(FirebaseAuth
-                                            .instance.currentUser?.uid)
-                                        .update({'bike_type': 'ROADBIKE'});
-                                    changeBike('ROADBIKE'.toUpperCase());
-                                    (context as Element).markNeedsBuild();
-                                  },
-                                  child: Container(
-                                    margin: EdgeInsets.only(bottom: 12),
-                                    decoration: BoxDecoration(
-                                      color: const Color.fromARGB(
-                                          255, 255, 255, 255),
-                                      borderRadius: BorderRadius.circular(15),
-                                    ),
-                                    child: ListTile(
-                                      contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 20,
-                                          vertical: 15), // Larger padding
-                                      title: Text(
-                                        'ROAD BIKE',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize:
-                                              14, // Adjust text size to fit better
-                                        ),
-                                      ),
-                                      subtitle: Container(
-                                        height:
-                                            105, // Box height large enough to fit the image
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                              20), // Rounded corners
-                                          color: Colors.grey[
-                                              300], // Background like in your image
-                                        ),
-                                        child: ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                          child: Image.asset(
-                                            'assets/images/roadbike.png',
-                                            fit: BoxFit
-                                                .contain, // Make the image fit perfectly
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.of(context).pop();
-                                    FirebaseFirestore.instance
-                                        .collection('user_preferences')
-                                        .doc(FirebaseAuth
-                                            .instance.currentUser?.uid)
-                                        .update({'bike_type': 'MOUNTAINBIKE'});
-                                    changeBike('MOUNTAINBIKE'.toUpperCase());
-                                    (context as Element).markNeedsBuild();
-                                  },
-                                  child: Container(
-                                    margin: EdgeInsets.only(bottom: 12),
-                                    decoration: BoxDecoration(
-                                      color: const Color.fromARGB(
-                                          255, 255, 255, 255),
-                                      borderRadius: BorderRadius.circular(15),
-                                    ),
-                                    child: ListTile(
-                                      contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 20,
-                                          vertical: 15), // Larger padding
-                                      title: Text(
-                                        'MOUNTAIN BIKE',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize:
-                                              14, // Adjust text size to fit better
-                                        ),
-                                      ),
-                                      subtitle: Container(
-                                        height:
-                                            105, // Box height large enough to fit the image
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                              20), // Rounded corners
-                                          color: Colors.grey[
-                                              300], // Background like in your image
-                                        ),
-                                        child: ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                          child: Image.asset(
-                                            'assets/images/mountainbike.png',
-                                            fit: BoxFit
-                                                .cover, // Make the image fit perfectly
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: () {
-                                    Navigator.of(context).pop();
-                                    FirebaseFirestore.instance
-                                        .collection('user_preferences')
-                                        .doc(FirebaseAuth
-                                            .instance.currentUser?.uid)
-                                        .update({'bike_type': 'FIXIE'});
-                                    changeBike('FIXIE'.toUpperCase());
-                                    (context as Element).markNeedsBuild();
-                                  },
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: const Color.fromARGB(
-                                          255, 255, 255, 255),
-                                      borderRadius: BorderRadius.circular(15),
-                                    ),
-                                    child: ListTile(
-                                      contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 20,
-                                          vertical: 15), // Larger padding
-                                      title: Text(
-                                        'FIXIE',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize:
-                                              14, // Adjust text size to fit better
-                                        ),
-                                      ),
-                                      subtitle: Container(
-                                        height:
-                                            105, // Box height large enough to fit the image
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                              20), // Rounded corners
-                                          color: Colors.grey[
-                                              300], // Background like in your image
-                                        ),
-                                        child: ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                          child: Image.asset(
-                                            'assets/images/fixie.png',
-                                            fit: BoxFit
-                                                .cover, // Make the image fit perfectly
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                        return BikeSelectionDialog(
+                          onBikeSelected: (newBike) {
+                            FirebaseFirestore.instance
+                                .collection('user_preferences')
+                                .doc(FirebaseAuth.instance.currentUser?.uid)
+                                .update({'bike_type': newBike});
+                            changeBike(newBike.toUpperCase());
+                            (context as Element).markNeedsBuild();
+                          },
                         );
                       },
                     );
@@ -579,7 +375,7 @@ class _BikeScreenState extends State<BikeScreens> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                )
+                ),
               ],
             ),
           ),
@@ -587,54 +383,17 @@ class _BikeScreenState extends State<BikeScreens> {
 
           // GridView for Components
           Expanded(
-            child: GridView.builder(
-              padding: EdgeInsets.all(8),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 14,
-                mainAxisSpacing: 14,
-                childAspectRatio: 1.2,
-              ),
-              itemCount: titles.length,
-              itemBuilder: (context, index) {
-                return InkWell(
-                  onTap: () {
-                    print('${titles[index]} Tapped');
-                    navigateToPartInfo(context, index);
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.brown, width: 2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Image.asset(images[index], height: 60),
-                        SizedBox(height: 6),
-                        Text(
-                          titles[index],
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
+            child: BikePartsGrid(
+              titles: titles,
+              images: images,
+              onPartTap: (index) {
+                print('${titles[index]} Tapped');
+                navigateToPartInfo(context, index);
               },
             ),
           ),
         ],
       ),
     );
-  }
-}
-
-// Add this extension to help with capitalization
-extension StringExtension on String {
-  String capitalize() {
-    return "${this[0].toUpperCase()}${this.substring(1).toLowerCase()}";
   }
 }

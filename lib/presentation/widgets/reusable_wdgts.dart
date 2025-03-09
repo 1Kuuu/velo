@@ -851,3 +851,183 @@ class MessageInputField extends StatelessWidget {
     );
   }
 }
+
+// USED IN TOOLBOX
+class BikeSelectionDialog extends StatelessWidget {
+  final Function(String) onBikeSelected;
+
+  const BikeSelectionDialog({super.key, required this.onBikeSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Colors.grey[800],
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      content: SingleChildScrollView(
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+          ),
+          width: 535,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildBikeOption(context, 'ROAD BIKE',
+                  'assets/images/roadbike.png', 'ROADBIKE'),
+              _buildBikeOption(context, 'MOUNTAIN BIKE',
+                  'assets/images/mountainbike.png', 'MOUNTAINBIKE'),
+              _buildBikeOption(
+                  context, 'FIXIE', 'assets/images/fixie.png', 'FIXIE'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBikeOption(
+      BuildContext context, String title, String imagePath, String bikeType) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).pop();
+        onBikeSelected(bikeType);
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.only(left: 20, top: 10),
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            SizedBox(height: 5),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.asset(
+                imagePath,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Add this to reusable_wdgts.dart
+class BikePartsGrid extends StatelessWidget {
+  final List<String> titles;
+  final List<String> images;
+  final Function(int) onPartTap;
+
+  const BikePartsGrid({
+    super.key,
+    required this.titles,
+    required this.images,
+    required this.onPartTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      padding: EdgeInsets.all(8),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 14,
+        childAspectRatio: 1.2,
+      ),
+      itemCount: titles.length,
+      itemBuilder: (context, index) {
+        return InkWell(
+          onTap: () => onPartTap(index),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.brown, width: 2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(images[index], height: 60),
+                SizedBox(height: 6),
+                Text(
+                  titles[index],
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Add this to reusable_wdgts.dart
+class BikeUtils {
+  static List<String> getTitles(String selectedBike) {
+    if (selectedBike.toLowerCase() == 'roadbike') {
+      return ['HANDLE', 'WHEELS', 'FRAME', 'SADDLE', 'CRANK', 'SHIFTER'];
+    } else if (selectedBike.toLowerCase() == 'mountainbike') {
+      return ['HANDLE', 'WHEELS', 'FRAME', 'SADDLE', 'CRANK', 'SHIFTER'];
+    } else if (selectedBike.toLowerCase() == 'fixie') {
+      return ['HANDLE', 'WHEELS', 'FRAME', 'SADDLE', 'CRANK', 'BRAKE'];
+    }
+    return [
+      'HANDLE',
+      'WHEELS',
+      'FRAME',
+      'SADDLE',
+      'CRANK',
+      'SHIFTER'
+    ]; // Default
+  }
+
+  static List<String> getImages(String selectedBike) {
+    String prefix = '';
+    if (selectedBike.toLowerCase() == 'roadbike') {
+      prefix = 'rd';
+    } else if (selectedBike.toLowerCase() == 'mountainbike') {
+      prefix = 'mb';
+    } else if (selectedBike.toLowerCase() == 'fixie') {
+      prefix = 'fx';
+    } else {
+      prefix = 'rd'; // Default
+    }
+
+    List<String> parts = getTitles(selectedBike);
+    List<String> images = parts.map((part) {
+      if (part == 'BRAKE') {
+        return 'assets/images/$prefix-Break.png';
+      }
+      return 'assets/images/$prefix-${part.capitalize()}.png';
+    }).toList();
+
+    return images;
+  }
+}
+
+extension StringExtension on String {
+  String capitalize() {
+    if (this.isEmpty) return this;
+    return "${this[0].toUpperCase()}${this.substring(1).toLowerCase()}";
+  }
+}

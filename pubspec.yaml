@@ -58,6 +58,7 @@ flutter:
     - assets/images/roadbike.png
     - assets/images/mountainbike.png
     - assets/images/fixie.png
+    - assets/svg/add.svg
     - assets/svg/black-m.svg
     - assets/svg/black-w.svg
     - assets/svg/white-m.svg
@@ -80,7 +81,6 @@ flutter:
     - assets/images/fx-Wheels.png
     - assets/images/fx-Break.png
     - assets/images/fx-Crank.png
-
 
   fonts:
     - family: Poppins

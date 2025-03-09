@@ -46,6 +46,8 @@ class RoadbikeInfo extends StatelessWidget {
 }
 
 class RoadbikeHandlePart extends StatelessWidget {
+  const RoadbikeHandlePart({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -84,6 +86,8 @@ class RoadbikeHandlePart extends StatelessWidget {
 }
 
 class RoadbikeWheelPart extends StatelessWidget {
+  const RoadbikeWheelPart({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -122,6 +126,8 @@ class RoadbikeWheelPart extends StatelessWidget {
 }
 
 class RoadbikeFramePart extends StatelessWidget {
+  const RoadbikeFramePart({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -160,6 +166,8 @@ class RoadbikeFramePart extends StatelessWidget {
 }
 
 class RoadbikeSaddlePart extends StatelessWidget {
+  const RoadbikeSaddlePart({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -198,6 +206,8 @@ class RoadbikeSaddlePart extends StatelessWidget {
 }
 
 class RoadbikeCrankPart extends StatelessWidget {
+  const RoadbikeCrankPart({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -236,6 +246,8 @@ class RoadbikeCrankPart extends StatelessWidget {
 }
 
 class RoadbikeShifterPart extends StatelessWidget {
+  const RoadbikeShifterPart({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(

@@ -46,6 +46,8 @@ class MountainbikeInfo extends StatelessWidget {
 }
 
 class MountainbikeHandlePart extends StatelessWidget {
+  const MountainbikeHandlePart({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -84,6 +86,8 @@ class MountainbikeHandlePart extends StatelessWidget {
 }
 
 class MountainbikeWheelPart extends StatelessWidget {
+  const MountainbikeWheelPart({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -122,6 +126,8 @@ class MountainbikeWheelPart extends StatelessWidget {
 }
 
 class MountainbikeFramePart extends StatelessWidget {
+  const MountainbikeFramePart({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -160,6 +166,8 @@ class MountainbikeFramePart extends StatelessWidget {
 }
 
 class MountainbikeSaddlePart extends StatelessWidget {
+  const MountainbikeSaddlePart({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -198,6 +206,8 @@ class MountainbikeSaddlePart extends StatelessWidget {
 }
 
 class MountainbikeCrankPart extends StatelessWidget {
+  const MountainbikeCrankPart({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -236,6 +246,8 @@ class MountainbikeCrankPart extends StatelessWidget {
 }
 
 class MountainbikeShifterPart extends StatelessWidget {
+  const MountainbikeShifterPart({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(

@@ -46,6 +46,8 @@ class FixiebikeInfo extends StatelessWidget {
 }
 
 class FixieHandlePart extends StatelessWidget {
+  const FixieHandlePart({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -84,6 +86,8 @@ class FixieHandlePart extends StatelessWidget {
 }
 
 class FixieWheelPart extends StatelessWidget {
+  const FixieWheelPart({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -122,6 +126,8 @@ class FixieWheelPart extends StatelessWidget {
 }
 
 class FixieFramePart extends StatelessWidget {
+  const FixieFramePart({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -160,6 +166,8 @@ class FixieFramePart extends StatelessWidget {
 }
 
 class FixieSaddlePart extends StatelessWidget {
+  const FixieSaddlePart({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -198,6 +206,8 @@ class FixieSaddlePart extends StatelessWidget {
 }
 
 class FixieCrankPart extends StatelessWidget {
+  const FixieCrankPart({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -236,6 +246,8 @@ class FixieCrankPart extends StatelessWidget {
 }
 
 class FixieBreakPart extends StatelessWidget {
+  const FixieBreakPart({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Column(
