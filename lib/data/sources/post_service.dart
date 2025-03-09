@@ -11,6 +11,7 @@ class PostService {
   static const String likesCollection = 'likes';
   static const String commentsCollection = 'comments';
   static const String usersCollection = 'user_profile';
+  static const String viewedPostsCollection = 'viewed_posts';
 
   // Get user data
   static Future<Map<String, dynamic>> getUserData(String userId) async {
@@ -275,6 +276,44 @@ class PostService {
     }
   }
 
+  // Mark post as viewed
+  static Future<void> markPostAsViewed(String postId) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      await _firestore
+          .collection(usersCollection)
+          .doc(user.uid)
+          .collection(viewedPostsCollection)
+          .doc(postId)
+          .set({
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print('Error marking post as viewed: $e');
+    }
+  }
+
+  // Get viewed post IDs
+  static Future<List<String>> getViewedPostIds() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return [];
+
+      final snapshot = await _firestore
+          .collection(usersCollection)
+          .doc(user.uid)
+          .collection(viewedPostsCollection)
+          .get();
+
+      return snapshot.docs.map((doc) => doc.id).toList();
+    } catch (e) {
+      print('Error getting viewed posts: $e');
+      return [];
+    }
+  }
+
   // Get post stream
   static Stream<QuerySnapshot> getPostsStream({String? tab}) {
     final user = _auth.currentUser;
@@ -286,34 +325,60 @@ class PostService {
     }
 
     if (tab == "Following") {
-      // First get the user's following list
-      return _firestore
-          .collection(usersCollection)
-          .doc(user.uid)
-          .snapshots()
-          .asyncMap((userDoc) async {
-            if (!userDoc.exists) return null;
+      // Get the user's following list and fetch posts from those users
+      return Stream.periodic(const Duration(seconds: 1)).asyncMap((_) async {
+        final userDoc =
+            await _firestore.collection(usersCollection).doc(user.uid).get();
 
-            List<String> following =
-                List<String>.from(userDoc.data()?['following'] ?? []);
-            following.add(user.uid); // Include user's own posts
+        if (!userDoc.exists) {
+          return await _firestore
+              .collection(postsCollection)
+              .where('userId', isEqualTo: user.uid)
+              .orderBy('createdAt', descending: true)
+              .get();
+        }
 
-            // Use existing index with createdAt
-            return await _firestore
-                .collection(postsCollection)
-                .where('userId', isEqualTo: user.uid)
-                .orderBy('createdAt', descending: true)
-                .get();
-          })
-          .where((event) => event != null)
-          .map((event) => event!);
+        List<String> following =
+            List<String>.from(userDoc.data()?['following'] ?? []);
+        following.add(user.uid); // Include user's own posts
+
+        return await _firestore
+            .collection(postsCollection)
+            .where('userId', whereIn: following)
+            .orderBy('createdAt', descending: true)
+            .get();
+      });
     }
 
-    // Discover tab shows all posts
-    return _firestore
-        .collection(postsCollection)
-        .orderBy('createdAt', descending: true)
-        .snapshots();
+    // For Discover tab, first get viewed posts
+    return Stream.periodic(const Duration(seconds: 1)).asyncMap((_) async {
+      final viewedPosts = await getViewedPostIds();
+
+      // Get posts sorted by likes
+      final query = _firestore
+          .collection(postsCollection)
+          .orderBy('likesCount', descending: true)
+          .limit(100);
+
+      final snapshot = await query.get();
+
+      // If we have viewed posts, filter them out
+      if (viewedPosts.isNotEmpty) {
+        return await _firestore
+            .collection(postsCollection)
+            .where(FieldPath.documentId, whereNotIn: viewedPosts)
+            .orderBy('likesCount', descending: true)
+            .limit(50)
+            .get();
+      }
+
+      // If no viewed posts, just return top 50
+      return await _firestore
+          .collection(postsCollection)
+          .orderBy('likesCount', descending: true)
+          .limit(50)
+          .get();
+    });
   }
 
   // Check if post is liked by current user

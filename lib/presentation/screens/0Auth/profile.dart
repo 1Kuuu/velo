@@ -107,7 +107,7 @@ class _ProfilePageState extends State<ProfilePage> {
         bool isLiked = false;
         if (FirebaseServices.currentUserId != null) {
           DocumentSnapshot likeDoc = await doc.reference
-              .collection('likes')
+              .collection(PostService.likesCollection)
               .doc(FirebaseServices.currentUserId)
               .get();
           isLiked = likeDoc.exists;
@@ -140,7 +140,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       // Get target user's document
       DocumentSnapshot targetUserDoc = await FirebaseFirestore.instance
-          .collection('users')
+          .collection(FirebaseServices.userCollection)
           .doc(widget.userId)
           .get();
 
@@ -148,29 +148,55 @@ class _ProfilePageState extends State<ProfilePage> {
         throw Exception('User profile not found');
       }
 
+      // Get current user's document
+      DocumentSnapshot currentUserDoc = await FirebaseFirestore.instance
+          .collection(FirebaseServices.userCollection)
+          .doc(FirebaseServices.currentUserId)
+          .get();
+
+      if (!currentUserDoc.exists) {
+        throw Exception('Current user profile not found');
+      }
+
       Map<String, dynamic> targetUserData =
           targetUserDoc.data() as Map<String, dynamic>;
-      List<dynamic> followers = List.from(targetUserData['followers'] ?? []);
+      Map<String, dynamic> currentUserData =
+          currentUserDoc.data() as Map<String, dynamic>;
 
-      // Update followers list
+      List<dynamic> targetUserFollowers =
+          List.from(targetUserData['followers'] ?? []);
+      List<dynamic> currentUserFollowing =
+          List.from(currentUserData['following'] ?? []);
+
+      // Update followers and following lists
       if (isFollowing) {
-        followers.remove(FirebaseServices.currentUserId);
+        targetUserFollowers.remove(FirebaseServices.currentUserId);
+        currentUserFollowing.remove(widget.userId);
       } else {
-        followers.add(FirebaseServices.currentUserId);
+        targetUserFollowers.add(FirebaseServices.currentUserId);
+        currentUserFollowing.add(widget.userId);
       }
 
       // Update target user's followers
       await FirebaseFirestore.instance
-          .collection('users')
+          .collection(FirebaseServices.userCollection)
           .doc(widget.userId)
           .update({
-        'followers': followers,
+        'followers': targetUserFollowers,
+      });
+
+      // Update current user's following
+      await FirebaseFirestore.instance
+          .collection(FirebaseServices.userCollection)
+          .doc(FirebaseServices.currentUserId)
+          .update({
+        'following': currentUserFollowing,
       });
 
       setState(() {
         isFollowing = !isFollowing;
-        userData['followers'] = followers;
-        userData['followerCount'] = followers.length;
+        userData['followers'] = targetUserFollowers;
+        userData['followerCount'] = targetUserFollowers.length;
       });
 
       _showSnackbar(isFollowing ? 'Started following' : 'Unfollowed');
@@ -260,10 +286,12 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     try {
-      DocumentReference postRef =
-          FirebaseFirestore.instance.collection('posts').doc(postId);
-      DocumentReference likeRef =
-          postRef.collection('likes').doc(FirebaseServices.currentUserId);
+      DocumentReference postRef = FirebaseFirestore.instance
+          .collection(PostService.postsCollection)
+          .doc(postId);
+      DocumentReference likeRef = postRef
+          .collection(PostService.likesCollection)
+          .doc(FirebaseServices.currentUserId);
 
       DocumentSnapshot likeDoc = await likeRef.get();
 
@@ -779,8 +807,11 @@ class _ProfilePageState extends State<ProfilePage> {
               padding: const EdgeInsets.only(top: 8),
               child: Row(
                 children: [
-                  Text('${post['likesCount'] ?? 0} likes',
-                      style: AppFonts.medium.copyWith(color: Colors.grey)),
+                  GestureDetector(
+                    onTap: () => _showLikesList(context, post['id']),
+                    child: Text('${post['likesCount'] ?? 0} likes',
+                        style: AppFonts.medium.copyWith(color: Colors.grey)),
+                  ),
                   const SizedBox(width: 16),
                   Text('${post['commentsCount'] ?? 0} comments',
                       style: AppFonts.medium.copyWith(color: Colors.grey)),
@@ -801,11 +832,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   icon: Icons.comment_outlined,
                   label: 'Comment',
                   onTap: () => _showComments(post['id']),
-                ),
-                _buildPostAction(
-                  icon: Icons.share_outlined,
-                  label: 'Share',
-                  onTap: () => _showSnackbar('Share functionality coming soon'),
                 ),
               ],
             ),
@@ -971,6 +997,23 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void _showFollowList(
       BuildContext context, String title, List<dynamic> userIds) {
+    if (userIds.isEmpty) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(title, style: AppFonts.bold.copyWith(fontSize: 20)),
+          content: Text('No $title yet', style: AppFonts.medium),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Close', style: AppFonts.medium),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -983,90 +1026,38 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               Text(title, style: AppFonts.bold.copyWith(fontSize: 20)),
               const SizedBox(height: 16),
-              if (userIds.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text('No $title yet', style: AppFonts.medium),
-                )
-              else
-                Flexible(
-                  child: Container(
-                    constraints: BoxConstraints(
-                      maxHeight: MediaQuery.of(context).size.height * 0.6,
-                    ),
-                    child: StreamBuilder<QuerySnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('users')
-                          .where(FieldPath.documentId, whereIn: userIds)
-                          .snapshots(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
-                              child: CircularProgressIndicator());
-                        }
-                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                          return Center(
-                            child:
-                                Text('No $title found', style: AppFonts.medium),
-                          );
-                        }
+              Flexible(
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.6,
+                  ),
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection(FirebaseServices.userCollection)
+                        .where(FieldPath.documentId, whereIn: userIds)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return Center(
+                          child:
+                              Text('No $title found', style: AppFonts.medium),
+                        );
+                      }
 
-                        return ListView.builder(
-                          shrinkWrap: true,
-                          itemCount: snapshot.data!.docs.length,
-                          itemBuilder: (context, index) {
-                            var userData = snapshot.data!.docs[index].data()
-                                as Map<String, dynamic>;
-                            var userId = snapshot.data!.docs[index].id;
-                            return ListTile(
-                              leading: GestureDetector(
-                                onTap: () {
-                                  Navigator.pop(context); // Close dialog
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          ProfilePage(userId: userId),
-                                    ),
-                                  );
-                                },
-                                child: CircleAvatar(
-                                  backgroundImage:
-                                      userData['profileUrl'] != null &&
-                                              userData['profileUrl']
-                                                  .toString()
-                                                  .isNotEmpty
-                                          ? NetworkImage(userData['profileUrl'])
-                                          : null,
-                                  child: userData['profileUrl'] == null ||
-                                          userData['profileUrl']
-                                              .toString()
-                                              .isEmpty
-                                      ? Text(
-                                          (userData['userName'] ?? 'U')[0]
-                                              .toUpperCase(),
-                                          style: const TextStyle(
-                                              color: Colors.white),
-                                        )
-                                      : null,
-                                ),
-                              ),
-                              title: Text(
-                                userData['userName'] ?? 'Unknown User',
-                                style: AppFonts.medium,
-                              ),
-                              subtitle: Text(
-                                userData['bio'] ?? 'No bio',
-                                style: AppFonts.medium.copyWith(
-                                  color: Colors.grey,
-                                  fontSize: 12,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: snapshot.data!.docs.length,
+                        itemBuilder: (context, index) {
+                          var userData = snapshot.data!.docs[index].data()
+                              as Map<String, dynamic>;
+                          var userId = snapshot.data!.docs[index].id;
+                          return ListTile(
+                            leading: GestureDetector(
                               onTap: () {
-                                Navigator.pop(context); // Close dialog
+                                Navigator.pop(context);
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -1075,13 +1066,201 @@ class _ProfilePageState extends State<ProfilePage> {
                                   ),
                                 );
                               },
-                            );
-                          },
-                        );
-                      },
-                    ),
+                              child: CircleAvatar(
+                                backgroundImage:
+                                    userData['profileUrl'] != null &&
+                                            userData['profileUrl']
+                                                .toString()
+                                                .isNotEmpty
+                                        ? NetworkImage(userData['profileUrl'])
+                                        : null,
+                                child: userData['profileUrl'] == null ||
+                                        userData['profileUrl']
+                                            .toString()
+                                            .isEmpty
+                                    ? Text(
+                                        (userData['userName'] ?? 'U')[0]
+                                            .toUpperCase(),
+                                        style: const TextStyle(
+                                            color: Colors.white),
+                                      )
+                                    : null,
+                              ),
+                            ),
+                            title: Text(
+                              userData['userName'] ?? 'Unknown User',
+                              style: AppFonts.medium,
+                            ),
+                            subtitle: Text(
+                              userData['bio'] ?? 'No bio',
+                              style: AppFonts.medium.copyWith(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      ProfilePage(userId: userId),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      );
+                    },
                   ),
                 ),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Close', style: AppFonts.medium),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showLikesList(BuildContext context, String postId) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Container(
+          width: double.maxFinite,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Likes', style: AppFonts.bold.copyWith(fontSize: 20)),
+              const SizedBox(height: 16),
+              Flexible(
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.6,
+                  ),
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection(PostService.postsCollection)
+                        .doc(postId)
+                        .collection(PostService.likesCollection)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return Center(
+                          child: Text('No likes yet', style: AppFonts.medium),
+                        );
+                      }
+
+                      List<String> userIds = snapshot.data!.docs
+                          .map((doc) => doc['userId'] as String)
+                          .toList();
+
+                      return StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection(FirebaseServices.userCollection)
+                            .where(FieldPath.documentId, whereIn: userIds)
+                            .snapshots(),
+                        builder: (context, userSnapshot) {
+                          if (userSnapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          }
+
+                          if (!userSnapshot.hasData ||
+                              userSnapshot.data!.docs.isEmpty) {
+                            return Center(
+                              child: Text('No user data found',
+                                  style: AppFonts.medium),
+                            );
+                          }
+
+                          return ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: userSnapshot.data!.docs.length,
+                            itemBuilder: (context, index) {
+                              var userData = userSnapshot.data!.docs[index]
+                                  .data() as Map<String, dynamic>;
+                              var userId = userSnapshot.data!.docs[index].id;
+
+                              return ListTile(
+                                leading: GestureDetector(
+                                  onTap: () {
+                                    Navigator.pop(context);
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            ProfilePage(userId: userId),
+                                      ),
+                                    );
+                                  },
+                                  child: CircleAvatar(
+                                    backgroundImage: userData['profileUrl'] !=
+                                                null &&
+                                            userData['profileUrl']
+                                                .toString()
+                                                .isNotEmpty
+                                        ? NetworkImage(userData['profileUrl'])
+                                        : null,
+                                    child: userData['profileUrl'] == null ||
+                                            userData['profileUrl']
+                                                .toString()
+                                                .isEmpty
+                                        ? Text(
+                                            (userData['userName'] ?? 'U')[0]
+                                                .toUpperCase(),
+                                            style: const TextStyle(
+                                                color: Colors.white),
+                                          )
+                                        : null,
+                                  ),
+                                ),
+                                title: Text(
+                                  userData['userName'] ?? 'Unknown User',
+                                  style: AppFonts.medium,
+                                ),
+                                subtitle: Text(
+                                  userData['bio'] ?? 'No bio',
+                                  style: AppFonts.medium.copyWith(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          ProfilePage(userId: userId),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ),
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () => Navigator.pop(context),

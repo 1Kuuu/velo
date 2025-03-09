@@ -3,11 +3,12 @@ import 'package:intl/intl.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/screens/2ToolBox/toolbox.dart';
+import 'package:velora/presentation/screens/3News/newsfeed.dart';
 import 'package:velora/presentation/screens/4Chat/chat_list.dart';
 import 'package:velora/presentation/screens/5Settings/setting_screen.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 import 'event_modal.dart'; // Import the new file
-import 'package:velora/presentation/screens/3News/newsfeed.dart' as newsfeed;
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -21,7 +22,7 @@ class _HomePageState extends State<HomePage> {
   final List<Widget> _screens = [
     const HomePageContent(),
     const ToolboxPageContent(),
-    const newsfeed.NewsFeedPageContent(),
+    const NewsFeedPageContent(),
     const ChatListPage(),
     const SettingsScreen(),
   ];
@@ -204,307 +205,280 @@ class _HomePageContentState extends State<HomePageContent> {
         backgroundColor: Colors.black,
         heroTag: "fab_add_event",
       ),
-      body: Stack(
+      body: Column(
         children: [
-          Column(
-            children: [
-              // Weekly Progress Section
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Container(
-                  padding: const EdgeInsets.all(12.0),
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 211, 209, 209),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 6,
-                        spreadRadius: 2,
-                      ),
-                    ],
+          // Weekly Progress Section
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Container(
+              padding: const EdgeInsets.all(12.0),
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 211, 209, 209),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 6,
+                    spreadRadius: 2,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Your Weekly Progress",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      const Text(
-                        "Your Weekly Progress",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _progressItem("Activities", _events.length.toString()),
-                          _progressItem("Time", "0h 0m"),
-                          _progressItem("Distance", "0.00km"),
-                        ],
-                      ),
+                      _progressItem("Activities", "0"),
+                      _progressItem("Time", "0h 0m"),
+                      _progressItem("Distance", "0.00km"),
                     ],
                   ),
-                ),
+                ],
               ),
-
-              // Calendar Header with Menu Icon & Clickable Date
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 1.0, vertical: 1.0),
-                child: Row(
-                  children: [
-                    CustomDatePicker(
-                      initialDate: _selectedDate,
-                      onDateSelected: (newDate) {
-                        setState(() {
-                          _selectedDate = newDate;
-                        });
-                      },
-                      child: IconButton(
-                        icon: const Icon(Icons.menu),
-                        color: AppColors.primary, // Change icon color
-                        onPressed: null,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    CustomDatePicker(
-                      initialDate: _selectedDate,
-                      onDateSelected: (newDate) {
-                        setState(() {
-                          _selectedDate = newDate;
-                        });
-                      },
-                      child: Text(
-                        DateFormat.yMMMM().format(_selectedDate),
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Weekday Labels + Dates (Clickable)
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
-                ),
-                child: SizedBox(
-                  height: 60, // Ensures enough space for text and selection
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal, // Enable horizontal scroll
-                    child: Row(
-                      children: List.generate(
-                        DateTime(_selectedDate.year, _selectedDate.month + 1, 0)
-                            .day, // Get correct days
-                        (index) {
-                          DateTime currentDate = DateTime(
-                              _selectedDate.year, _selectedDate.month, index + 1);
-                          bool isSelected = _selectedDate.day == currentDate.day &&
-                              _selectedDate.month == currentDate.month &&
-                              _selectedDate.year == currentDate.year;
-
-                          // Check if there are events on this day
-                          bool hasEvents = _events.any((event) =>
-                              event.date.day == currentDate.day &&
-                              event.date.month == currentDate.month &&
-                              event.date.year == currentDate.year);
-
-                          return GestureDetector(
-                            onTap: () => _onDateSelected(currentDate),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12), // Spacing between dates
-                              child: Column(
-                                children: [
-                                  Text(
-                                    DateFormat.E()
-                                        .format(currentDate), // "Sun", "Mon", etc.
-                                    style: const TextStyle(
-                                        fontSize: 12, color: Colors.grey),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Stack(
-                                    alignment: Alignment.bottomCenter,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
-                                          color: isSelected
-                                              ? const Color.fromARGB(
-                                                  255, 140, 55, 24)
-                                              : Colors.transparent,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Text(
-                                          currentDate.day
-                                              .toString(), // "1", "2", "3", etc.
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                            color: isSelected
-                                                ? Colors.white
-                                                : Colors.black,
-                                          ),
-                                        ),
-                                      ),
-                                      if (hasEvents)
-                                        Positioned(
-                                          bottom: 0,
-                                          child: Container(
-                                            width: 4,
-                                            height: 4,
-                                            decoration: BoxDecoration(
-                                              color: Colors.red,
-                                              shape: BoxShape.circle,
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              // Display Events for the Selected Date
-              Expanded(
-                child: filteredEvents.isEmpty
-                    ? Container() // Empty container when no events
-                    : ListView.builder(
-                        itemCount: filteredEvents.length,
-                        itemBuilder: (context, index) {
-                          Event event = filteredEvents[index];
-                          return Dismissible(
-                            key: Key(event.id),
-                            background: Container(
-                              color: Colors.red,
-                              alignment: Alignment.centerRight,
-                              padding: EdgeInsets.only(right: 20),
-                              child: Icon(Icons.delete, color: Colors.white),
-                            ),
-                            direction: DismissDirection.endToStart,
-                            onDismissed: (direction) {
-                              _deleteEvent(event.id);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('${event.title} deleted'),
-                                  action: SnackBarAction(
-                                    label: 'UNDO',
-                                    onPressed: () {
-                                      setState(() {
-                                        _events.add(event);
-                                      });
-                                    },
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Card(
-                              margin: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                              color: event
-                                  .color, // Use the event's color as the card background
-                              child: Padding(
-                                padding: const EdgeInsets.all(12.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            event.title,
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16),
-                                          ),
-                                        ),
-                                        Row(
-                                          children: [
-                                            // Edit button
-                                            IconButton(
-                                              icon: Icon(Icons.edit, size: 20),
-                                              onPressed: () => _editEvent(event),
-                                              padding: EdgeInsets.zero,
-                                              constraints: BoxConstraints(),
-                                            ),
-                                            SizedBox(
-                                                width: 16), // Space between buttons
-                                            // Delete button
-                                            IconButton(
-                                              icon: Icon(Icons.delete, size: 20),
-                                              onPressed: () =>
-                                                  _showDeleteConfirmation(
-                                                      context, event),
-                                              padding: EdgeInsets.zero,
-                                              constraints: BoxConstraints(),
-                                              color: Colors.red[700],
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                        "${DateFormat('EEEE, MMMM d').format(event.date)} | ${formatTimeOfDay(event.startTime)} - ${formatTimeOfDay(event.endTime)}"),
-                                    const SizedBox(height: 4),
-                                    Text(event.description),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
+            ),
           ),
 
-          // Timeslot Section (Positioned at the bottom)
-          Positioned(
-            left: 16, // Align to the left with some padding
-            bottom: kBottomNavigationBarHeight + 16, // Just above the navigation bar
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // Calendar Header with Menu Icon & Clickable Date
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 1.0, vertical: 1.0),
+            child: Row(
               children: [
-                Text(
-                  '8:00AM',
-                  style: TextStyle(fontSize: 16),
+                CustomDatePicker(
+                  initialDate: _selectedDate,
+                  onDateSelected: (newDate) {
+                    setState(() {
+                      _selectedDate = newDate;
+                    });
+                  },
+                  child: IconButton(
+                    icon: const Icon(Icons.menu),
+                    color: AppColors.primary, // Change icon color
+                    onPressed: null,
+                  ),
                 ),
-                Text(
-                  '9:00AM',
-                  style: TextStyle(fontSize: 16),
-                ),
-                Text(
-                  '10:00AM',
-                  style: TextStyle(fontSize: 16),
-                ),
-                Text(
-                  '11:00AM',
-                  style: TextStyle(fontSize: 16),
-                ),
-                Text(
-                  '12:00PM',
-                  style: TextStyle(fontSize: 16),
-                ),
-                Text(
-                  '1:00PM',
-                  style: TextStyle(fontSize: 16),
-                ),
-                Text(
-                  '2:00PM',
-                  style: TextStyle(fontSize: 16),
+                const SizedBox(width: 4),
+                CustomDatePicker(
+                  initialDate: _selectedDate,
+                  onDateSelected: (newDate) {
+                    setState(() {
+                      _selectedDate = newDate;
+                    });
+                  },
+                  child: Text(
+                    DateFormat.yMMMM().format(_selectedDate),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             ),
+          ),
+
+          // Weekday Labels + Dates (Clickable)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
+            ),
+            child: SizedBox(
+              height: 60, // Ensures enough space for text and selection
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal, // Enable horizontal scroll
+                child: Row(
+                  children: List.generate(
+                    DateTime(_selectedDate.year, _selectedDate.month + 1, 0)
+                        .day, // Get correct days
+                    (index) {
+                      DateTime currentDate = DateTime(
+                          _selectedDate.year, _selectedDate.month, index + 1);
+                      bool isSelected = _selectedDate.day == currentDate.day &&
+                          _selectedDate.month == currentDate.month &&
+                          _selectedDate.year == currentDate.year;
+
+                      // Check if there are events on this day
+                      bool hasEvents = _events.any((event) =>
+                          event.date.day == currentDate.day &&
+                          event.date.month == currentDate.month &&
+                          event.date.year == currentDate.year);
+
+                      return GestureDetector(
+                        onTap: () => _onDateSelected(currentDate),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12), // Spacing between dates
+                          child: Column(
+                            children: [
+                              Text(
+                                DateFormat.E()
+                                    .format(currentDate), // "Sun", "Mon", etc.
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.grey),
+                              ),
+                              const SizedBox(height: 4),
+                              Stack(
+                                alignment: Alignment.bottomCenter,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? Colors.brown
+                                          : Colors.transparent,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      currentDate.day
+                                          .toString(), // "1", "2", "3", etc.
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: isSelected
+                                            ? Colors.white
+                                            : Colors.black,
+                                      ),
+                                    ),
+                                  ),
+                                  if (hasEvents)
+                                    Positioned(
+                                      bottom: 0,
+                                      child: Container(
+                                        width: 4,
+                                        height: 4,
+                                        decoration: BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Display Events for the Selected Date
+          Expanded(
+            child: filteredEvents.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.event_note, size: 48, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text(
+                          "No Plans for ${DateFormat('EEEE, MMMM d').format(_selectedDate)}",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          "Tap + to add a new Plan",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: filteredEvents.length,
+                    itemBuilder: (context, index) {
+                      Event event = filteredEvents[index];
+                      return Dismissible(
+                        key: Key(event.id),
+                        background: Container(
+                          color: Colors.red,
+                          alignment: Alignment.centerRight,
+                          padding: EdgeInsets.only(right: 20),
+                          child: Icon(Icons.delete, color: Colors.white),
+                        ),
+                        direction: DismissDirection.endToStart,
+                        onDismissed: (direction) {
+                          _deleteEvent(event.id);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('${event.title} deleted'),
+                              action: SnackBarAction(
+                                label: 'UNDO',
+                                onPressed: () {
+                                  setState(() {
+                                    _events.add(event);
+                                  });
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                        child: Card(
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          color: event
+                              .color, // Use the event's color as the card background
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        event.title,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16),
+                                      ),
+                                    ),
+                                    Row(
+                                      children: [
+                                        // Edit button
+                                        IconButton(
+                                          icon: Icon(Icons.edit, size: 20),
+                                          onPressed: () => _editEvent(event),
+                                          padding: EdgeInsets.zero,
+                                          constraints: BoxConstraints(),
+                                        ),
+                                        SizedBox(
+                                            width: 16), // Space between buttons
+                                        // Delete button
+                                        IconButton(
+                                          icon: Icon(Icons.delete, size: 20),
+                                          onPressed: () =>
+                                              _showDeleteConfirmation(
+                                                  context, event),
+                                          padding: EdgeInsets.zero,
+                                          constraints: BoxConstraints(),
+                                          color: Colors.red[700],
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                    "${DateFormat('EEEE, MMMM d').format(event.date)} | ${formatTimeOfDay(event.startTime)} - ${formatTimeOfDay(event.endTime)}"),
+                                const SizedBox(height: 4),
+                                Text(event.description),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),

@@ -297,15 +297,15 @@ class _PostInputFieldState extends State<PostInputField> {
           Row(
             children: [
               Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Container(
-                      margin: const EdgeInsets.only(right: 16),
-                      child: TextButton.icon(
+                flex: 3,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      TextButton.icon(
                         onPressed: _pickImage,
                         icon: Icon(Icons.image,
-                            color: AppColors.primary, size: 24),
+                            color: AppColors.primary, size: 20),
                         label: Text(
                           'Photo',
                           style: AppFonts.medium.copyWith(
@@ -315,20 +315,18 @@ class _PostInputFieldState extends State<PostInputField> {
                         ),
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
+                              horizontal: 12, vertical: 8),
                           backgroundColor: AppColors.primary.withOpacity(0.1),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
                         ),
                       ),
-                    ),
-                    Container(
-                      margin: const EdgeInsets.only(right: 16),
-                      child: TextButton.icon(
+                      const SizedBox(width: 8),
+                      TextButton.icon(
                         onPressed: _pickVideo,
                         icon: Icon(Icons.videocam,
-                            color: AppColors.primary, size: 24),
+                            color: AppColors.primary, size: 20),
                         label: Text(
                           'Video',
                           style: AppFonts.medium.copyWith(
@@ -338,31 +336,34 @@ class _PostInputFieldState extends State<PostInputField> {
                         ),
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
+                              horizontal: 12, vertical: 8),
                           backgroundColor: AppColors.primary.withOpacity(0.1),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              ElevatedButton(
-                onPressed: _controller.text.trim().isEmpty ? null : _postRide,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+                    ],
                   ),
                 ),
-                child: Text(
-                  'Post',
-                  style: AppFonts.semibold.copyWith(fontSize: 14),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 1,
+                child: ElevatedButton(
+                  onPressed: _controller.text.trim().isEmpty ? null : _postRide,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  child: Text(
+                    'Post',
+                    style: AppFonts.semibold.copyWith(fontSize: 14),
+                  ),
                 ),
               ),
             ],
@@ -428,10 +429,19 @@ class NewsFeedList extends StatelessWidget {
           );
         }
 
+        final posts = snapshot.data!.docs.toList();
+
+        // Sort and filter posts based on tab
+        if (tab == "Discover") {
+          // Mark posts as viewed when they appear in the feed
+          for (var post in posts) {
+            PostService.markPostAsViewed(post.id);
+          }
+        }
+
         return ListView.builder(
-          itemCount: snapshot.data!.docs.length,
-          itemBuilder: (context, index) =>
-              RideFeedItem(ride: snapshot.data!.docs[index]),
+          itemCount: posts.length,
+          itemBuilder: (context, index) => RideFeedItem(ride: posts[index]),
         );
       },
     );
@@ -665,42 +675,51 @@ class _RideFeedItemState extends State<RideFeedItem> {
             ],
             const SizedBox(height: 12),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      "$likesCount ${likesCount == 1 ? 'like' : 'likes'}",
+                Text(
+                  "$likesCount ${likesCount == 1 ? 'like' : 'likes'}",
+                  style: AppFonts.regular.copyWith(color: Colors.grey[600]),
+                ),
+                const SizedBox(width: 16),
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('posts')
+                      .doc(postId)
+                      .collection('comments')
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    final count =
+                        snapshot.hasData ? snapshot.data!.size : commentsCount;
+                    return Text(
+                      "$count ${count == 1 ? 'comment' : 'comments'}",
                       style: AppFonts.regular.copyWith(color: Colors.grey[600]),
-                    ),
-                    const SizedBox(width: 16),
-                    Text(
-                      "$commentsCount ${commentsCount == 1 ? 'comment' : 'comments'}",
-                      style: AppFonts.regular.copyWith(color: Colors.grey[600]),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ],
             ),
             const Divider(height: 24),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildActionButton(
-                  icon: isLiked ? Icons.favorite : Icons.favorite_border,
-                  label: 'Like',
-                  color: isLiked ? Colors.red : Colors.grey,
-                  onTap: _toggleLike,
+                Expanded(
+                  child: _buildActionButton(
+                    icon: isLiked ? Icons.favorite : Icons.favorite_border,
+                    label: 'Like',
+                    color: isLiked ? Colors.red : Colors.grey,
+                    onTap: _toggleLike,
+                  ),
                 ),
-                _buildActionButton(
-                  icon: Icons.comment_outlined,
-                  label: 'Comment',
-                  onTap: () => setState(() => _showComments = !_showComments),
-                ),
-                _buildActionButton(
-                  icon: Icons.share_outlined,
-                  label: 'Share',
-                  onTap: () {},
+                if (userId == user?.uid)
+                  IconButton(
+                    icon: const Icon(Icons.more_vert),
+                    onPressed: () => _showPostOptions(context),
+                  ),
+                Expanded(
+                  child: _buildActionButton(
+                    icon: Icons.comment_outlined,
+                    label: 'Comment',
+                    onTap: () => setState(() => _showComments = !_showComments),
+                  ),
                 ),
               ],
             ),
@@ -842,7 +861,7 @@ class _RideFeedItemState extends State<RideFeedItem> {
   }
 }
 
-class CommentsSection extends StatelessWidget {
+class CommentsSection extends StatefulWidget {
   final String postId;
   final Function(String) onDeleteComment;
 
@@ -853,22 +872,40 @@ class CommentsSection extends StatelessWidget {
   });
 
   @override
+  State<CommentsSection> createState() => _CommentsSectionState();
+}
+
+class _CommentsSectionState extends State<CommentsSection> {
+  Stream<QuerySnapshot>? _commentsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    try {
+      _commentsStream = FirebaseFirestore.instance
+          .collection('posts')
+          .doc(widget.postId)
+          .collection('comments')
+          .limit(50) // Add a reasonable limit
+          .snapshots();
+    } catch (e) {
+      print('Error initializing comments stream: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
-    print('Building CommentsSection for post: $postId');
 
-    return StreamBuilder(
-      stream: FirebaseFirestore.instance
-          .collection(PostService.postsCollection)
-          .doc(postId)
-          .collection(PostService.commentsCollection)
-          .orderBy('timestamp', descending: true)
-          .snapshots(),
+    return StreamBuilder<QuerySnapshot>(
+      stream: _commentsStream,
       builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-        print('Comment stream state: ${snapshot.connectionState}');
         if (snapshot.hasError) {
-          print('Comment stream error: ${snapshot.error}');
-          return Text('Error loading comments: ${snapshot.error}');
+          print('Comments stream error: ${snapshot.error}');
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text('Error loading comments. Please try again later.'),
+          );
         }
 
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -876,20 +913,28 @@ class CommentsSection extends StatelessWidget {
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          print('No comments found for post: $postId');
           return const Padding(
             padding: EdgeInsets.all(8.0),
             child: Text('No comments yet. Be the first to comment!'),
           );
         }
 
-        print('Number of comments: ${snapshot.data!.docs.length}');
-        return Column(
-          children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Align(
-                alignment: Alignment.centerLeft,
+        final comments = snapshot.data!.docs.toList()
+          ..sort((a, b) {
+            final aTimestamp =
+                (a.data() as Map<String, dynamic>)['timestamp'] as Timestamp;
+            final bTimestamp =
+                (b.data() as Map<String, dynamic>)['timestamp'] as Timestamp;
+            return bTimestamp.compareTo(aTimestamp); // Sort newest first
+          });
+
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 child: Text(
                   'Comments',
                   style: TextStyle(
@@ -898,76 +943,79 @@ class CommentsSection extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: snapshot.data!.docs.length,
-              itemBuilder: (context, index) {
-                var comment = snapshot.data!.docs[index];
-                var data = comment.data() as Map<String, dynamic>;
-                print('Comment data: $data');
+              ListView.builder(
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                itemCount: comments.length,
+                itemBuilder: (context, index) {
+                  var comment = comments[index];
+                  var data = comment.data() as Map<String, dynamic>;
 
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: ListTile(
-                    leading: GestureDetector(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              ProfilePage(userId: data['userId']),
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4.0),
+                    child: ListTile(
+                      leading: GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ProfilePage(userId: data['userId']),
+                          ),
+                        ),
+                        child: CircleAvatar(
+                          backgroundImage:
+                              data['userAvatar']?.isNotEmpty == true
+                                  ? NetworkImage(data['userAvatar'])
+                                  : null,
+                          backgroundColor: Colors.grey[300],
+                          child: data['userAvatar']?.isEmpty ?? true
+                              ? Icon(Icons.person, color: Colors.grey[600])
+                              : null,
                         ),
                       ),
-                      child: CircleAvatar(
-                        backgroundImage: data['userAvatar']?.isNotEmpty == true
-                            ? NetworkImage(data['userAvatar'])
-                            : null,
-                        backgroundColor: Colors.grey[300],
-                        child: data['userAvatar']?.isEmpty ?? true
-                            ? Icon(Icons.person, color: Colors.grey[600])
-                            : null,
-                      ),
-                    ),
-                    title: Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  ProfilePage(userId: data['userId']),
+                      title: Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    ProfilePage(userId: data['userId']),
+                              ),
+                            ),
+                            child: Text(
+                              data['userName'] ?? 'Anonymous',
+                              style: AppFonts.bold.copyWith(fontSize: 14),
                             ),
                           ),
-                          child: Text(
-                            data['userName'] ?? 'Anonymous',
-                            style: AppFonts.bold.copyWith(fontSize: 14),
+                          const SizedBox(width: 8),
+                          Text(
+                            _formatTimestamp(data['timestamp'] as Timestamp?),
+                            style: AppFonts.regular.copyWith(
+                              color: Colors.grey,
+                              fontSize: 12,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _formatTimestamp(data['timestamp'] as Timestamp?),
-                          style: AppFonts.regular
-                              .copyWith(color: Colors.grey, fontSize: 12),
-                        ),
-                      ],
+                        ],
+                      ),
+                      subtitle: Text(
+                        data['text'] ?? '',
+                        style: AppFonts.regular.copyWith(fontSize: 14),
+                      ),
+                      trailing: data['userId'] == currentUser?.uid
+                          ? IconButton(
+                              icon: const Icon(Icons.delete_outline,
+                                  color: Colors.red),
+                              onPressed: () =>
+                                  widget.onDeleteComment(comment.id),
+                            )
+                          : null,
                     ),
-                    subtitle: Text(
-                      data['text'] ?? '',
-                      style: AppFonts.regular.copyWith(fontSize: 14),
-                    ),
-                    trailing: data['userId'] == currentUser?.uid
-                        ? IconButton(
-                            icon: const Icon(Icons.delete_outline,
-                                color: Colors.red),
-                            onPressed: () => onDeleteComment(comment.id),
-                          )
-                        : null,
-                  ),
-                );
-              },
-            ),
-          ],
+                  );
+                },
+              ),
+            ],
+          ),
         );
       },
     );
