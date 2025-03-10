@@ -8,7 +8,6 @@ import 'package:velora/presentation/screens/2ToolBox/fixie_info.dart';
 import 'package:velora/presentation/screens/2ToolBox/mountainbike_info.dart';
 import 'package:velora/presentation/screens/2ToolBox/roadbike_info.dart';
 import 'package:velora/presentation/screens/Weather/weather.dart';
-import 'package:velora/presentation/screens/Weather/weather.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
 class ToolboxPageContent extends StatelessWidget {
@@ -36,12 +35,6 @@ class ToolboxPageContent extends StatelessWidget {
         actions: [
           AppBarIcon(
             icon: Icons.cloud_outlined,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => WeatherScreen()),
-              );
-            },
             onTap: () {
               Navigator.push(
                 context,
@@ -115,6 +108,54 @@ class _BikeScreenState extends State<BikeScreens> {
       selectedBike = newBike.toLowerCase();
       opacity = 1.0; // Start Fade In
     });
+  }
+
+  // Get parts based on bike type
+  List<String> getTitles() {
+    if (selectedBike.toLowerCase() == 'roadbike') {
+      return ['HANDLE', 'WHEELS', 'FRAME', 'SADDLE', 'CRANK', 'SHIFTER'];
+    } else if (selectedBike.toLowerCase() == 'mountainbike') {
+      return ['HANDLE', 'WHEELS', 'FRAME', 'SADDLE', 'CRANK', 'SHIFTER'];
+    } else if (selectedBike.toLowerCase() == 'fixie') {
+      return ['HANDLE', 'WHEELS', 'FRAME', 'SADDLE', 'CRANK', 'BRAKE'];
+    }
+    return [
+      'HANDLE',
+      'WHEELS',
+      'FRAME',
+      'SADDLE',
+      'CRANK',
+      'SHIFTER'
+    ]; // Default
+  }
+
+  // Get images based on bike type
+  List<String> getImages() {
+    String prefix = '';
+    if (selectedBike.toLowerCase() == 'roadbike') {
+      prefix = 'rd';
+    } else if (selectedBike.toLowerCase() == 'mountainbike') {
+      prefix = 'mb';
+    } else if (selectedBike.toLowerCase() == 'fixie') {
+      prefix = 'fx';
+    } else {
+      prefix = 'rd'; // Default
+    }
+
+    String capitalizeFirst(String text) {
+      if (text.isEmpty) return text;
+      return "${text[0].toUpperCase()}${text.substring(1).toLowerCase()}";
+    }
+
+    List<String> parts = getTitles();
+    List<String> images = parts.map((part) {
+      if (part == 'BRAKE') {
+        return 'assets/images/$prefix-Break.png';
+      }
+      return 'assets/images/$prefix-${capitalizeFirst(part)}.png';
+    }).toList();
+
+    return images;
   }
 
   void navigateToPartInfo(BuildContext context, int index) {

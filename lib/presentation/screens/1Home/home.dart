@@ -9,9 +9,15 @@ import 'package:velora/presentation/screens/3News/newsfeed.dart';
 import 'package:velora/presentation/screens/4Chat/chat_list.dart';
 import 'package:velora/presentation/screens/5Settings/setting_screen.dart';
 import 'package:velora/presentation/screens/Weather/weather.dart';
+<<<<<<< Updated upstream
 import 'package:velora/presentation/screens/Weather/weather.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 import 'event_modal.dart';
+=======
+import 'package:velora/presentation/widgets/reusable_wdgts.dart';
+
+import 'event_modal.dart'; // Import the new file
+>>>>>>> Stashed changes
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -197,6 +203,7 @@ class _HomePageContentState extends State<HomePageContent> {
               );
             },
           ),
+<<<<<<< Updated upstream
             icon: Icons.cloud_outlined,
             onTap: () {
               Navigator.push(
@@ -205,6 +212,8 @@ class _HomePageContentState extends State<HomePageContent> {
               );
             },
           ),
+=======
+>>>>>>> Stashed changes
           AppBarIcon(
               icon: Icons.notifications_outlined,
               onTap: () => print("Notifications Tapped")),
