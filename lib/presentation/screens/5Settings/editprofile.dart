@@ -7,7 +7,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
@@ -41,8 +40,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: MyAppBar(
         title: "Edit Profile",
       ),
@@ -54,7 +54,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.05),
+                      color: theme.colorScheme.primary.withOpacity(0.05),
                       borderRadius: const BorderRadius.only(
                         bottomLeft: Radius.circular(30),
                         bottomRight: Radius.circular(30),
@@ -69,12 +69,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: AppColors.primary,
+                                  color: theme.colorScheme.primary,
                                   width: 3,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppColors.primary.withOpacity(0.2),
+                                    color: theme.colorScheme.primary
+                                        .withOpacity(0.2),
                                     blurRadius: 5,
                                     offset: const Offset(0, 5),
                                   ),
@@ -82,11 +83,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               ),
                               child: CircleAvatar(
                                 radius: 75,
-                                backgroundColor: Colors.grey[200],
+                                backgroundColor: theme.colorScheme.surface,
                                 backgroundImage: _getProfileImage(),
                                 child: _getProfileImage() == null
                                     ? Icon(Icons.person,
-                                        size: 70, color: Colors.grey[400])
+                                        size: 70,
+                                        color: theme.colorScheme.onSurface
+                                            .withOpacity(0.5))
                                     : null,
                               ),
                             ),
@@ -97,13 +100,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 height: 40,
                                 width: 40,
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary,
+                                  color: theme.colorScheme.primary,
                                   shape: BoxShape.circle,
-                                  border:
-                                      Border.all(color: Colors.white, width: 2),
+                                  border: Border.all(
+                                      color: theme.colorScheme.surface,
+                                      width: 2),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.primary.withOpacity(0.3),
+                                      color: theme.colorScheme.primary
+                                          .withOpacity(0.3),
                                       blurRadius: 8,
                                       offset: const Offset(0, 3),
                                     ),
@@ -111,8 +116,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 ),
                                 child: IconButton(
                                   padding: EdgeInsets.zero,
-                                  icon: const Icon(Icons.camera_alt,
-                                      size: 20, color: Colors.white),
+                                  icon: Icon(Icons.camera_alt,
+                                      size: 20,
+                                      color: theme.colorScheme.onPrimary),
                                   onPressed: () => _pickImage(),
                                 ),
                               ),
@@ -133,14 +139,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 8),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
+                              color: theme.colorScheme.primary.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
                               "Personal Information",
                               style: AppFonts.bold.copyWith(
                                 fontSize: 18,
-                                color: AppColors.primary,
+                                color: theme.colorScheme.primary,
                               ),
                             ),
                           ),
@@ -151,6 +157,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           _nameController,
                           "Enter your name",
                           Icons.person_outline,
+                          theme,
                         ),
                         const SizedBox(height: 24),
                         _buildInputField(
@@ -158,6 +165,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           _bioController,
                           "Write something about yourself",
                           Icons.description_outlined,
+                          theme,
                           maxLines: 1,
                         ),
                         const SizedBox(height: 36),
@@ -183,7 +191,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     String label,
     TextEditingController controller,
     String hint,
-    IconData icon, {
+    IconData icon,
+    ThemeData theme, {
     int maxLines = 1,
   }) {
     return Column(
@@ -193,17 +202,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           label,
           style: AppFonts.semibold.copyWith(
             fontSize: 16,
-            color: Colors.grey[800],
+            color: theme.colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: Colors.grey[50],
+            color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
+                color: theme.colorScheme.onSurface.withOpacity(0.1),
                 blurRadius: 10,
                 offset: const Offset(0, 2),
               ),
@@ -212,14 +221,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: TextFormField(
             controller: controller,
             maxLines: maxLines,
-            style: AppFonts.regular.copyWith(fontSize: 16),
+            style: AppFonts.regular.copyWith(
+              fontSize: 16,
+              color: theme.colorScheme.onSurface,
+            ),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: AppFonts.regular.copyWith(
                 fontSize: 16,
-                color: Colors.grey[400],
+                color: theme.colorScheme.onSurface.withOpacity(0.5),
               ),
-              prefixIcon: Icon(icon, color: AppColors.primary),
+              prefixIcon: Icon(icon, color: theme.colorScheme.primary),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(color: Colors.transparent),
@@ -230,10 +242,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: AppColors.primary, width: 2),
+                borderSide:
+                    BorderSide(color: theme.colorScheme.primary, width: 2),
               ),
               filled: true,
-              fillColor: Colors.grey[50],
+              fillColor: theme.colorScheme.surface,
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: maxLines > 1 ? 16 : 0,

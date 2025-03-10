@@ -1,7 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import 'package:delightful_toast/delight_toast.dart';
+import 'package:delightful_toast/toast/components/toast_card.dart';
+import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
+import 'package:velora/core/configs/theme/theme_provider.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
 class ChatPageContent extends StatefulWidget {
@@ -82,9 +87,18 @@ class _ChatPageContentState extends State<ChatPageContent> {
       docRef.update({"status": "delivered"});
       _messageController.clear();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to send message: ${e.toString()}")),
-      );
+      DelightToastBar(
+        builder: (context) {
+          return const ToastCard(
+            title: Text('Failed to send message'),
+            leading: Icon(Icons.error, color: Colors.red),
+          );
+        },
+        position: DelightSnackbarPosition.top,
+        autoDismiss: true,
+        snackbarDuration: const Duration(seconds: 2),
+        animationDuration: const Duration(milliseconds: 300),
+      ).show(context);
     }
   }
 
@@ -109,9 +123,16 @@ class _ChatPageContentState extends State<ChatPageContent> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor:
+          isDarkMode ? const Color(0xFF1A1A1A) : AppColors.lightBackground,
       appBar: AppBar(
+        backgroundColor:
+            isDarkMode ? const Color(0xFF4A3B7C) : AppColors.primary,
+        elevation: 0,
         title: ChatAppBar(
           recipientName: widget.recipientName,
           recipientProfileUrl: widget.recipientProfileUrl,
@@ -125,13 +146,20 @@ class _ChatPageContentState extends State<ChatPageContent> {
               stream: _messageStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return Center(
+                    child: CircularProgressIndicator(
+                      color: isDarkMode ? Colors.white70 : AppColors.primary,
+                    ),
+                  );
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Text(
                       "No messages yet.",
-                      style: TextStyle(fontSize: 14),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isDarkMode ? Colors.white70 : Colors.black87,
+                      ),
                     ),
                   );
                 }
@@ -147,25 +175,45 @@ class _ChatPageContentState extends State<ChatPageContent> {
                   groupedMessages.putIfAbsent(dateKey, () => []).add(message);
                 }
 
-                return ListView(
-                  reverse: true,
-                  children: groupedMessages.entries.expand((entry) {
-                    return [
-                      DateHeader(dateKey: entry.key),
-                      ...entry.value.map((msg) {
-                        final data = msg.data() as Map<String, dynamic>;
-                        final isMe = data["senderId"] == _auth.currentUser?.uid;
-                        return MessageBubble(data: data, isMe: isMe);
-                      })
-                    ];
-                  }).toList(),
+                return Container(
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? const Color(0xFF212121) : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ListView(
+                    reverse: true,
+                    padding: const EdgeInsets.all(16),
+                    children: groupedMessages.entries.expand((entry) {
+                      return [
+                        DateHeader(dateKey: entry.key),
+                        ...entry.value.map((msg) {
+                          final data = msg.data() as Map<String, dynamic>;
+                          final isMe =
+                              data["senderId"] == _auth.currentUser?.uid;
+                          return MessageBubble(data: data, isMe: isMe);
+                        })
+                      ];
+                    }).toList(),
+                  ),
                 );
               },
             ),
           ),
-          MessageInputField(
-            controller: _messageController,
-            onSendPressed: _sendMessage,
+          Container(
+            decoration: BoxDecoration(
+              color: isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: MessageInputField(
+              controller: _messageController,
+              onSendPressed: _sendMessage,
+            ),
           ),
         ],
       ),

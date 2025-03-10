@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:velora/core/configs/theme/app_colors.dart';
+import 'package:delightful_toast/delight_toast.dart';
+import 'package:delightful_toast/toast/components/toast_card.dart';
+import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'dart:io';
 import 'package:velora/data/sources/firebase_service.dart'; // Import FirebaseServices
 import 'package:velora/data/sources/post_service.dart'; // Import PostService
+import 'package:velora/presentation/widgets/reusable_wdgts.dart'; // Import reusable widgets
 
 class ProfilePage extends StatefulWidget {
   final String? userId;
@@ -133,11 +136,11 @@ class _ProfilePageState extends State<ProfilePage> {
           posts = userPosts;
         });
       } else {
-        _showSnackbar('User profile not found', isError: true);
+        _showToast('User profile not found', isError: true);
       }
     } catch (e) {
       print('Error loading profile data: $e');
-      _showSnackbar('Error loading profile: $e', isError: true);
+      _showToast('Error loading profile: $e', isError: true);
     } finally {
       setState(() => isLoading = false);
     }
@@ -213,10 +216,10 @@ class _ProfilePageState extends State<ProfilePage> {
       // Call the onFollowChanged callback if provided
       widget.onFollowChanged?.call(isFollowing);
 
-      _showSnackbar(isFollowing ? 'Started following' : 'Unfollowed');
+      _showToast(isFollowing ? 'Started following' : 'Unfollowed');
     } catch (e) {
       print('Error toggling follow: $e');
-      _showSnackbar('Failed to update follow status', isError: true);
+      _showToast('Failed to update follow status', isError: true);
     } finally {
       setState(() => isLoading = false);
       await _loadData(); // Reload data to refresh the UI
@@ -234,13 +237,13 @@ class _ProfilePageState extends State<ProfilePage> {
         setState(() => _mediaFiles.add(File(file.path)));
       }
     } catch (e) {
-      _showSnackbar('Failed to pick media: $e', isError: true);
+      _showToast('Failed to pick media: $e', isError: true);
     }
   }
 
   Future<void> _createPost() async {
     if (_postController.text.trim().isEmpty && _mediaFiles.isEmpty) {
-      _showSnackbar('Please add some content to your post', isError: true);
+      _showToast('Please add some content to your post', isError: true);
       return;
     }
 
@@ -256,7 +259,7 @@ class _ProfilePageState extends State<ProfilePage> {
           .get();
 
       if (!userDoc.exists) {
-        _showSnackbar('User profile not found', isError: true);
+        _showToast('User profile not found', isError: true);
         return;
       }
 
@@ -284,10 +287,10 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() => _mediaFiles.clear());
 
       await _loadData(); // Refresh the posts
-      _showSnackbar('Post created successfully');
+      _showToast('Post created successfully');
     } catch (e) {
       print('Error creating post: $e');
-      _showSnackbar('Failed to create post: $e', isError: true);
+      _showToast('Failed to create post: $e', isError: true);
     } finally {
       setState(() => isLoading = false);
     }
@@ -295,7 +298,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _likePost(String postId) async {
     if (postId.isEmpty || FirebaseServices.currentUserId == null) {
-      _showSnackbar('Cannot like post at this time', isError: true);
+      _showToast('Cannot like post at this time', isError: true);
       return;
     }
 
@@ -313,7 +316,7 @@ class _ProfilePageState extends State<ProfilePage> {
         // Unlike the post
         await likeRef.delete();
         await postRef.update({'likesCount': FieldValue.increment(-1)});
-        _showSnackbar('Post unliked');
+        _showToast('Post unliked');
       } else {
         // Like the post
         await likeRef.set({
@@ -321,26 +324,32 @@ class _ProfilePageState extends State<ProfilePage> {
           'timestamp': FieldValue.serverTimestamp()
         });
         await postRef.update({'likesCount': FieldValue.increment(1)});
-        _showSnackbar('Post liked');
+        _showToast('Post liked');
       }
 
       await _loadData(); // Refresh the posts to update UI
     } catch (e) {
       print('Error liking post: $e');
-      _showSnackbar('Failed to update like status', isError: true);
+      _showToast('Failed to update like status', isError: true);
     }
   }
 
-  void _showSnackbar(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(8),
-        duration: const Duration(seconds: 3),
-      ),
-    );
+  void _showToast(String message, {bool isError = false}) {
+    DelightToastBar(
+      builder: (context) {
+        return ToastCard(
+          title: Text(message),
+          leading: Icon(
+            isError ? Icons.error : Icons.check_circle,
+            color: isError ? Colors.red : Colors.green,
+          ),
+        );
+      },
+      position: DelightSnackbarPosition.top,
+      autoDismiss: true,
+      snackbarDuration: const Duration(seconds: 2),
+      animationDuration: const Duration(milliseconds: 300),
+    ).show(context);
   }
 
   void _navigateToEditProfile() async {
@@ -353,7 +362,7 @@ class _ProfilePageState extends State<ProfilePage> {
         });
       }
     } catch (e) {
-      _showSnackbar('Error refreshing user data: $e', isError: true);
+      _showToast('Error refreshing user data: $e', isError: true);
     }
 
     Map<String, dynamic> profileData = {
@@ -370,7 +379,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     if (result != null) {
       await _loadData();
-      _showSnackbar('Profile updated successfully');
+      _showToast('Profile updated successfully');
     }
   }
 
@@ -490,7 +499,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             'commentsCount': FieldValue.increment(1),
                           });
                         } catch (e) {
-                          _showSnackbar('Failed to add comment: $e',
+                          _showToast('Failed to add comment: $e',
                               isError: true);
                         }
                       },
@@ -507,17 +516,18 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Profile',
-            style: AppFonts.semibold.copyWith(fontWeight: FontWeight.w600)),
+      appBar: MyAppBar(
+        title: "Profile",
         actions: isCurrentUser
             ? [
                 IconButton(
-                    icon: const Icon(Icons.edit),
+                    icon: Icon(Icons.edit, color: theme.colorScheme.onSurface),
                     onPressed: _navigateToEditProfile),
                 IconButton(
-                    icon: const Icon(Icons.settings),
+                    icon: Icon(Icons.settings,
+                        color: theme.colorScheme.onSurface),
                     onPressed: () => Navigator.pushNamed(context, '/settings')),
               ]
             : [],
@@ -540,6 +550,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildProfileHeader() {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -552,17 +563,20 @@ class _ProfilePageState extends State<ProfilePage> {
                 : null,
             child: userData['profileUrl'] == null ||
                     userData['profileUrl'].toString().isEmpty
-                ? const Icon(Icons.person, size: 60, color: Colors.white)
+                ? Icon(Icons.person,
+                    size: 60, color: theme.colorScheme.onSurface)
                 : null,
           ),
           const SizedBox(height: 16),
           Text(userData['userName'] ?? 'User Name',
-              style: AppFonts.bold.copyWith(fontSize: 22)),
+              style: AppFonts.bold
+                  .copyWith(fontSize: 22, color: theme.colorScheme.onSurface)),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
             child: Text(
               userData['bio'] ?? 'No bio available',
-              style: AppFonts.medium.copyWith(color: Colors.grey[600]),
+              style: AppFonts.medium.copyWith(
+                  color: theme.colorScheme.onSurface.withOpacity(0.7)),
               textAlign: TextAlign.center,
             ),
           ),
@@ -573,6 +587,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildProfileStats() {
+    final theme = Theme.of(context);
     final followingCount = (userData['following'] as List?)?.length ?? 0;
     final followersCount = (userData['followers'] as List?)?.length ?? 0;
 
@@ -580,7 +595,7 @@ class _ProfilePageState extends State<ProfilePage> {
       padding: const EdgeInsets.symmetric(vertical: 10),
       margin: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.primary,
+        color: theme.colorScheme.primary,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -589,30 +604,33 @@ class _ProfilePageState extends State<ProfilePage> {
           InkWell(
             onTap: () => _showFollowList(
                 context, 'Following', userData['following'] ?? []),
-            child: _buildStat('Following', followingCount.toString()),
+            child: _buildStat('Following', followingCount.toString(), theme),
           ),
           InkWell(
             onTap: () => _showFollowList(
                 context, 'Followers', userData['followers'] ?? []),
-            child: _buildStat('Followers', followersCount.toString()),
+            child: _buildStat('Followers', followersCount.toString(), theme),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStat(String label, String value) {
+  Widget _buildStat(String label, String value, ThemeData theme) {
     return Column(
       children: [
         Text(value,
-            style: AppFonts.bold.copyWith(fontSize: 20, color: Colors.white)),
+            style: AppFonts.bold
+                .copyWith(fontSize: 20, color: theme.colorScheme.onPrimary)),
         Text(label,
-            style: AppFonts.medium.copyWith(color: Colors.white, fontSize: 14)),
+            style: AppFonts.medium
+                .copyWith(color: theme.colorScheme.onPrimary, fontSize: 14)),
       ],
     );
   }
 
   Widget _buildInteractionButtons() {
+    final theme = Theme.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -621,8 +639,12 @@ class _ProfilePageState extends State<ProfilePage> {
           icon: Icon(isFollowing ? Icons.check : Icons.person_add_outlined),
           label: Text(isFollowing ? 'Following' : 'Follow'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: isFollowing ? Colors.grey[300] : AppColors.primary,
-            foregroundColor: isFollowing ? Colors.black : Colors.white,
+            backgroundColor: isFollowing
+                ? theme.colorScheme.surface
+                : theme.colorScheme.primary,
+            foregroundColor: isFollowing
+                ? theme.colorScheme.onSurface
+                : theme.colorScheme.onPrimary,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           ),
@@ -632,16 +654,20 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildPostCreation() {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Create Post', style: AppFonts.bold.copyWith(fontSize: 20)),
+          Text('Create Post',
+              style: AppFonts.bold
+                  .copyWith(fontSize: 20, color: theme.colorScheme.onSurface)),
           const SizedBox(height: 8),
           Card(
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            color: theme.cardColor,
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -649,10 +675,12 @@ class _ProfilePageState extends State<ProfilePage> {
                   TextField(
                     controller: _postController,
                     maxLines: 3,
-                    style: AppFonts.medium,
+                    style: AppFonts.medium
+                        .copyWith(color: theme.colorScheme.onSurface),
                     decoration: InputDecoration(
                       hintText: "What's on your mind?",
-                      hintStyle: AppFonts.medium,
+                      hintStyle: AppFonts.medium.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.5)),
                       border: InputBorder.none,
                     ),
                   ),
@@ -669,7 +697,8 @@ class _ProfilePageState extends State<ProfilePage> {
                                 padding: const EdgeInsets.all(4),
                                 child: _mediaFiles[index].path.endsWith('.mp4')
                                     ? Icon(Icons.videocam,
-                                        size: 80, color: Colors.red)
+                                        size: 80,
+                                        color: theme.colorScheme.error)
                                     : Image.file(_mediaFiles[index],
                                         width: 80,
                                         height: 80,
@@ -686,12 +715,13 @@ class _ProfilePageState extends State<ProfilePage> {
                                   },
                                   child: Container(
                                     decoration: BoxDecoration(
-                                      color: Colors.red,
+                                      color: theme.colorScheme.error,
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     padding: const EdgeInsets.all(2),
-                                    child: const Icon(Icons.close,
-                                        size: 16, color: Colors.white),
+                                    child: Icon(Icons.close,
+                                        size: 16,
+                                        color: theme.colorScheme.onError),
                                   ),
                                 ),
                               ),
@@ -707,11 +737,13 @@ class _ProfilePageState extends State<ProfilePage> {
                       Row(
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.image, color: Colors.green),
+                            icon: Icon(Icons.image,
+                                color: theme.colorScheme.primary),
                             onPressed: () => _pickMedia(true),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.videocam, color: Colors.red),
+                            icon: Icon(Icons.videocam,
+                                color: theme.colorScheme.error),
                             onPressed: () => _pickMedia(false),
                           ),
                         ],
@@ -719,8 +751,8 @@ class _ProfilePageState extends State<ProfilePage> {
                       ElevatedButton(
                         onPressed: _createPost,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
+                          backgroundColor: theme.colorScheme.primary,
+                          foregroundColor: theme.colorScheme.onPrimary,
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20)),
                         ),
@@ -738,21 +770,27 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildPostsSection() {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Posts', style: AppFonts.bold.copyWith(fontSize: 20)),
+          Text('Posts',
+              style: AppFonts.bold
+                  .copyWith(fontSize: 20, color: theme.colorScheme.onSurface)),
           const SizedBox(height: 16),
           if (posts.isEmpty)
             Center(
               child: Column(
                 children: [
-                  const Icon(Icons.feed_outlined, size: 48, color: Colors.grey),
+                  Icon(Icons.feed_outlined,
+                      size: 48,
+                      color: theme.colorScheme.onSurface.withOpacity(0.5)),
                   const SizedBox(height: 8),
                   Text('No posts yet',
-                      style: AppFonts.medium.copyWith(color: Colors.grey)),
+                      style: AppFonts.medium.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.5))),
                 ],
               ),
             )
@@ -764,12 +802,14 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildPostCard(Map<String, dynamic> post) {
+    final theme = Theme.of(context);
     final bool isLiked = post['isLiked'] ?? false;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       elevation: 2,
+      color: theme.cardColor,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -785,7 +825,8 @@ class _ProfilePageState extends State<ProfilePage> {
                       : null,
                   child: userData['profileUrl'] == null ||
                           userData['profileUrl'].toString().isEmpty
-                      ? const Icon(Icons.person, size: 20, color: Colors.white)
+                      ? Icon(Icons.person,
+                          size: 20, color: theme.colorScheme.onSurface)
                       : null,
                 ),
                 const SizedBox(width: 12),
@@ -794,15 +835,20 @@ class _ProfilePageState extends State<ProfilePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(userData['userName'] ?? 'User',
-                          style: AppFonts.bold.copyWith(fontSize: 16)),
+                          style: AppFonts.bold.copyWith(
+                              fontSize: 16,
+                              color: theme.colorScheme.onSurface)),
                       Text(_formatTimestamp(post['createdAt']),
-                          style: AppFonts.medium.copyWith(color: Colors.grey)),
+                          style: AppFonts.medium.copyWith(
+                              color: theme.colorScheme.onSurface
+                                  .withOpacity(0.5))),
                     ],
                   ),
                 ),
                 if (isCurrentUser)
                   IconButton(
-                    icon: const Icon(Icons.more_vert),
+                    icon: Icon(Icons.more_vert,
+                        color: theme.colorScheme.onSurface),
                     onPressed: () => _showPostOptions(post),
                   ),
               ],
@@ -812,7 +858,8 @@ class _ProfilePageState extends State<ProfilePage> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Text(post['content'] ?? '',
-                    style: AppFonts.medium.copyWith(fontSize: 16)),
+                    style: AppFonts.medium.copyWith(
+                        fontSize: 16, color: theme.colorScheme.onSurface)),
               ),
             if (post['mediaUrl'] != null &&
                 post['mediaUrl'].toString().isNotEmpty)
@@ -824,27 +871,33 @@ class _ProfilePageState extends State<ProfilePage> {
                   GestureDetector(
                     onTap: () => _showLikesList(context, post['id']),
                     child: Text('${post['likesCount'] ?? 0} likes',
-                        style: AppFonts.medium.copyWith(color: Colors.grey)),
+                        style: AppFonts.medium.copyWith(
+                            color:
+                                theme.colorScheme.onSurface.withOpacity(0.5))),
                   ),
                   const SizedBox(width: 16),
                   Text('${post['commentsCount'] ?? 0} comments',
-                      style: AppFonts.medium.copyWith(color: Colors.grey)),
+                      style: AppFonts.medium.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.5))),
                 ],
               ),
             ),
-            const Divider(height: 24),
+            Divider(height: 24, color: theme.dividerColor),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildPostAction(
                   icon: isLiked ? Icons.favorite : Icons.favorite_border,
                   label: 'Like',
-                  color: isLiked ? Colors.red : Colors.grey,
+                  color: isLiked
+                      ? theme.colorScheme.error
+                      : theme.colorScheme.onSurface.withOpacity(0.5),
                   onTap: () => _likePost(post['id']),
                 ),
                 _buildPostAction(
                   icon: Icons.comment_outlined,
                   label: 'Comment',
+                  color: theme.colorScheme.onSurface.withOpacity(0.5),
                   onTap: () => _showComments(post['id']),
                 ),
               ],
@@ -856,28 +909,33 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _showPostOptions(Map<String, dynamic> post) {
+    final theme = Theme.of(context);
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
+      backgroundColor: theme.colorScheme.surface,
       builder: (context) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 16.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.edit),
-              title: Text('Edit Post', style: AppFonts.medium),
+              leading: Icon(Icons.edit, color: theme.colorScheme.onSurface),
+              title: Text('Edit Post',
+                  style: AppFonts.medium
+                      .copyWith(color: theme.colorScheme.onSurface)),
               onTap: () {
                 Navigator.pop(context);
-                _showSnackbar('Edit post functionality coming soon');
+                _showToast('Edit post functionality coming soon');
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete, color: Colors.red),
+              leading: Icon(Icons.delete, color: theme.colorScheme.error),
               title: Text('Delete Post',
-                  style: AppFonts.medium.copyWith(color: Colors.red)),
+                  style:
+                      AppFonts.medium.copyWith(color: theme.colorScheme.error)),
               onTap: () {
                 Navigator.pop(context);
                 _confirmDeletePost(post['id']);
@@ -890,16 +948,22 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _confirmDeletePost(String postId) {
+    final theme = Theme.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete Post', style: AppFonts.bold),
+        backgroundColor: theme.colorScheme.surface,
+        title: Text('Delete Post',
+            style: AppFonts.bold.copyWith(color: theme.colorScheme.onSurface)),
         content: Text('Are you sure you want to delete this post?',
-            style: AppFonts.medium),
+            style:
+                AppFonts.medium.copyWith(color: theme.colorScheme.onSurface)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: AppFonts.medium),
+            child: Text('Cancel',
+                style:
+                    AppFonts.medium.copyWith(color: theme.colorScheme.primary)),
           ),
           TextButton(
             onPressed: () async {
@@ -909,15 +973,15 @@ class _ProfilePageState extends State<ProfilePage> {
                     .collection(PostService.postsCollection)
                     .doc(postId)
                     .delete();
-                _showSnackbar('Post deleted successfully');
+                _showToast('Post deleted successfully');
                 await _loadData();
               } catch (e) {
-                _showSnackbar('Failed to delete post: $e', isError: true);
+                _showToast('Failed to delete post: $e', isError: true);
               }
             },
             child: Text(
               'Delete',
-              style: AppFonts.medium.copyWith(color: Colors.red),
+              style: AppFonts.medium.copyWith(color: theme.colorScheme.error),
             ),
           ),
         ],
@@ -1011,16 +1075,24 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void _showFollowList(
       BuildContext context, String title, List<dynamic> userIds) {
+    final theme = Theme.of(context);
     if (userIds.isEmpty) {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text(title, style: AppFonts.bold.copyWith(fontSize: 20)),
-          content: Text('No $title yet', style: AppFonts.medium),
+          backgroundColor: theme.colorScheme.surface,
+          title: Text(title,
+              style: AppFonts.bold
+                  .copyWith(fontSize: 20, color: theme.colorScheme.onSurface)),
+          content: Text('No $title yet',
+              style:
+                  AppFonts.medium.copyWith(color: theme.colorScheme.onSurface)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Close', style: AppFonts.medium),
+              child: Text('Close',
+                  style: AppFonts.medium
+                      .copyWith(color: theme.colorScheme.primary)),
             ),
           ],
         ),
@@ -1032,13 +1104,16 @@ class _ProfilePageState extends State<ProfilePage> {
       context: context,
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: theme.colorScheme.surface,
         child: Container(
           width: double.maxFinite,
           padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(title, style: AppFonts.bold.copyWith(fontSize: 20)),
+              Text(title,
+                  style: AppFonts.bold.copyWith(
+                      fontSize: 20, color: theme.colorScheme.onSurface)),
               const SizedBox(height: 16),
               Flexible(
                 child: Container(
@@ -1056,8 +1131,9 @@ class _ProfilePageState extends State<ProfilePage> {
                       }
                       if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                         return Center(
-                          child:
-                              Text('No $title found', style: AppFonts.medium),
+                          child: Text('No $title found',
+                              style: AppFonts.medium.copyWith(
+                                  color: theme.colorScheme.onSurface)),
                         );
                       }
 
@@ -1095,20 +1171,22 @@ class _ProfilePageState extends State<ProfilePage> {
                                     ? Text(
                                         (userData['userName'] ?? 'U')[0]
                                             .toUpperCase(),
-                                        style: const TextStyle(
-                                            color: Colors.white),
+                                        style: TextStyle(
+                                            color: theme.colorScheme.onSurface),
                                       )
                                     : null,
                               ),
                             ),
                             title: Text(
                               userData['userName'] ?? 'Unknown User',
-                              style: AppFonts.medium,
+                              style: AppFonts.medium
+                                  .copyWith(color: theme.colorScheme.onSurface),
                             ),
                             subtitle: Text(
                               userData['bio'] ?? 'No bio',
                               style: AppFonts.medium.copyWith(
-                                color: Colors.grey,
+                                color: theme.colorScheme.onSurface
+                                    .withOpacity(0.7),
                                 fontSize: 12,
                               ),
                               maxLines: 1,
@@ -1134,7 +1212,9 @@ class _ProfilePageState extends State<ProfilePage> {
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text('Close', style: AppFonts.medium),
+                child: Text('Close',
+                    style: AppFonts.medium
+                        .copyWith(color: theme.colorScheme.primary)),
               ),
             ],
           ),
@@ -1144,17 +1224,21 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _showLikesList(BuildContext context, String postId) {
+    final theme = Theme.of(context);
     showDialog(
       context: context,
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: theme.colorScheme.surface,
         child: Container(
           width: double.maxFinite,
           padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Likes', style: AppFonts.bold.copyWith(fontSize: 20)),
+              Text('Likes',
+                  style: AppFonts.bold.copyWith(
+                      fontSize: 20, color: theme.colorScheme.onSurface)),
               const SizedBox(height: 16),
               Flexible(
                 child: Container(
@@ -1174,7 +1258,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
                       if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                         return Center(
-                          child: Text('No likes yet', style: AppFonts.medium),
+                          child: Text('No likes yet',
+                              style: AppFonts.medium.copyWith(
+                                  color: theme.colorScheme.onSurface)),
                         );
                       }
 
@@ -1198,7 +1284,8 @@ class _ProfilePageState extends State<ProfilePage> {
                               userSnapshot.data!.docs.isEmpty) {
                             return Center(
                               child: Text('No user data found',
-                                  style: AppFonts.medium),
+                                  style: AppFonts.medium.copyWith(
+                                      color: theme.colorScheme.onSurface)),
                             );
                           }
 
@@ -1237,20 +1324,23 @@ class _ProfilePageState extends State<ProfilePage> {
                                         ? Text(
                                             (userData['userName'] ?? 'U')[0]
                                                 .toUpperCase(),
-                                            style: const TextStyle(
-                                                color: Colors.white),
+                                            style: TextStyle(
+                                                color: theme
+                                                    .colorScheme.onSurface),
                                           )
                                         : null,
                                   ),
                                 ),
                                 title: Text(
                                   userData['userName'] ?? 'Unknown User',
-                                  style: AppFonts.medium,
+                                  style: AppFonts.medium.copyWith(
+                                      color: theme.colorScheme.onSurface),
                                 ),
                                 subtitle: Text(
                                   userData['bio'] ?? 'No bio',
                                   style: AppFonts.medium.copyWith(
-                                    color: Colors.grey,
+                                    color: theme.colorScheme.onSurface
+                                        .withOpacity(0.7),
                                     fontSize: 12,
                                   ),
                                   maxLines: 1,
@@ -1278,7 +1368,9 @@ class _ProfilePageState extends State<ProfilePage> {
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text('Close', style: AppFonts.medium),
+                child: Text('Close',
+                    style: AppFonts.medium
+                        .copyWith(color: theme.colorScheme.primary)),
               ),
             ],
           ),

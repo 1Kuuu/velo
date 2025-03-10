@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import 'package:velora/core/configs/theme/theme_provider.dart';
 import 'package:velora/presentation/intro/onboarding.dart';
 import 'package:velora/presentation/intro/welcome_screen.dart';
 import 'package:velora/presentation/screens/1Home/home.dart'; // Ensure this import is correct and the HomePage class is defined in this file
@@ -24,7 +26,12 @@ void main() async {
     ),
   );
 
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -42,13 +49,12 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: const Color(0xFF672A2A),
-        scaffoldBackgroundColor: Colors.grey[100],
-      ),
-      home: const SplashScreen(), // Show splash screen first
+      theme: themeProvider.themeData,
+      home: const SplashScreen(), // Use the new splash screen
       routes: {
         '/getstarted': (context) => const GetStarted(),
         '/home': (context) => const HomePage(),
@@ -56,18 +62,19 @@ class _MyAppState extends State<MyApp> {
         '/login': (context) => const LoginPage(),
         '/settings': (context) => const SettingsScreen(), // ✅ Add this
         '/edit-profile': (context) => const EditProfileScreen(), // ✅ Add this
-        '/newsfeed': (context) => const NewsFeedPageContent(), // Add newsfeed route
+        '/newsfeed': (context) =>
+            const NewsFeedPageContent(), // Add newsfeed route
       },
     );
   }
 }
 
-/// 🔹 Splash Screen to show app logo and navigate to onboarding or login
+/// 🔹 Simple Splash Screen with app logo
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  _SplashScreenState createState() => _SplashScreenState();
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
 class _SplashScreenState extends State<SplashScreen> {
@@ -79,19 +86,9 @@ class _SplashScreenState extends State<SplashScreen> {
 
   void _navigateToNextScreen() async {
     await Future.delayed(const Duration(seconds: 2)); // Show logo for 2 seconds
-
-    final prefs = await SharedPreferences.getInstance();
-    bool onboardingComplete = prefs.getBool('onboardingComplete') ?? false;
-
-    if (onboardingComplete) {
-      // If onboarding is complete, navigate to AuthWrapper
+    if (mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const AuthWrapper()),
-      );
-    } else {
-      // If onboarding is not complete, navigate to GetStarted (onboarding)
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const GetStarted()),
       );
     }
   }
@@ -99,10 +96,11 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: Image.asset(
           'assets/images/logo.png',
-          height: 100,
+          height: 120,
         ),
       ),
     );

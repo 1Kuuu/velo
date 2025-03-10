@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
+import 'package:velora/core/configs/theme/theme_provider.dart';
 import 'package:velora/presentation/screens/0Auth/login.dart';
 import 'package:velora/presentation/screens/5Settings/editprofile.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -36,7 +38,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadUserPreferences() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
-
       if (mounted) {
         setState(() {
           isDarkMode = prefs.getBool('isDarkMode') ?? false;
@@ -55,6 +56,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await prefs.setBool('isDarkMode', isDarkMode);
       await prefs.setBool('isNotificationsEnabled', isNotificationsEnabled);
 
+      // Save to Firebase if user is logged in
       User? currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
         await _firestore.collection('users').doc(currentUser.uid).update({
@@ -155,11 +157,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     if (isLoading) {
       return Scaffold(
         appBar: AppBar(
           title: const Text("Settings"),
-          backgroundColor: AppColors.primary,
+          backgroundColor: themeProvider.isDarkMode
+              ? const Color(0xFF4A3B7C)
+              : AppColors.primary,
           elevation: 0,
         ),
         body: const Center(
@@ -169,11 +175,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: themeProvider.isDarkMode
+          ? const Color(0xFF121212)
+          : AppColors.primary,
       appBar: AppBar(
         title: const Text("Settings",
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.primary,
+        backgroundColor: Colors.transparent,
         elevation: 0,
       ),
       body: Column(
@@ -182,9 +190,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Expanded(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              decoration: BoxDecoration(
+                color: themeProvider.isDarkMode
+                    ? const Color(0xFF1E1E1E)
+                    : Colors.white,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: ListView(
                 children: [
@@ -199,10 +210,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   buildToggleTile(
                     title: "Dark Mode",
-                    value: isDarkMode,
-                    onChanged: (value) {
+                    value: themeProvider.isDarkMode,
+                    onChanged: (value) async {
+                      await themeProvider.toggleTheme();
                       setState(() {
-                        isDarkMode = value;
+                        isDarkMode = themeProvider.isDarkMode;
                       });
                       _saveUserPreferences();
                     },
@@ -270,6 +282,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget buildProfileSection() {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 20),
       child: Column(
@@ -475,16 +490,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required IconData icon,
     required String title,
     String? trailingText,
-    Color iconColor = Colors.black,
-    Color textColor = Colors.black,
+    Color? iconColor,
+    Color? textColor,
     required VoidCallback onTap,
   }) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final defaultColor = themeProvider.isDarkMode ? Colors.white : Colors.black;
+
     return ListTile(
-      leading: Icon(icon, color: iconColor),
-      title: Text(title, style: TextStyle(color: textColor)),
+      leading: Icon(icon, color: iconColor ?? defaultColor),
+      title: Text(title, style: TextStyle(color: textColor ?? defaultColor)),
       trailing: trailingText != null
-          ? Text(trailingText, style: const TextStyle(color: Colors.grey))
-          : const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+          ? Text(trailingText,
+              style: TextStyle(
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[400]
+                      : Colors.grey))
+          : Icon(Icons.arrow_forward_ios,
+              size: 16,
+              color: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey),
       onTap: onTap,
     );
   }
@@ -495,9 +519,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required ValueChanged<bool> onChanged,
     required IconData icon,
   }) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final defaultColor = themeProvider.isDarkMode ? Colors.white : Colors.black;
+
     return ListTile(
-      leading: Icon(icon, color: Colors.black),
-      title: Text(title),
+      leading: Icon(icon, color: defaultColor),
+      title: Text(title, style: TextStyle(color: defaultColor)),
       trailing: Switch(
         value: value,
         onChanged: onChanged,
@@ -507,14 +534,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget buildSectionTitle(String title) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.bold,
-          color: Colors.black87,
+          color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
         ),
       ),
     );

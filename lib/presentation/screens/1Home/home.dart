@@ -10,8 +10,12 @@ import 'package:velora/presentation/screens/4Chat/chat_list.dart';
 import 'package:velora/presentation/screens/5Settings/setting_screen.dart';
 import 'package:velora/presentation/screens/Weather/weather.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
-
-import 'event_modal.dart'; // Import the new file
+import 'package:provider/provider.dart';
+import 'package:velora/core/configs/theme/theme_provider.dart';
+import 'event_modal.dart';
+import 'package:delightful_toast/delight_toast.dart';
+import 'package:delightful_toast/toast/components/toast_card.dart';
+import 'package:delightful_toast/toast/utils/enums.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -60,6 +64,7 @@ class _HomePageContentState extends State<HomePageContent> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   Stream<List<Event>>? _eventsStream;
+  List<Event> _events = [];
 
   @override
   void initState() {
@@ -80,8 +85,10 @@ class _HomePageContentState extends State<HomePageContent> {
         .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
         .where('date', isLessThan: Timestamp.fromDate(endOfDay))
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Event.fromFirestore(doc)).toList());
+        .map((snapshot) {
+      _events = snapshot.docs.map((doc) => Event.fromFirestore(doc)).toList();
+      return _events;
+    });
   }
 
   List<DateTime> getWeekDays(DateTime date) {
@@ -97,21 +104,15 @@ class _HomePageContentState extends State<HomePageContent> {
     });
   }
 
-  // Delete an event
   Future<void> _deleteEvent(String eventId) async {
     try {
       await _firestore.collection('events').doc(eventId).delete();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Event deleted successfully')),
-      );
+      _showToast('Event deleted successfully');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error deleting event: $e')),
-      );
+      _showToast('Error deleting event: $e', isError: true);
     }
   }
 
-  // Show delete confirmation dialog
   Future<void> _showDeleteConfirmation(
       BuildContext context, Event event) async {
     return showDialog<void>(
@@ -147,7 +148,6 @@ class _HomePageContentState extends State<HomePageContent> {
     );
   }
 
-  // Edit an event
   void _editEvent(Event event) {
     EventModalHelper.showNewEventModal(
       context,
@@ -157,11 +157,7 @@ class _HomePageContentState extends State<HomePageContent> {
         try {
           await _firestore.collection('events').add(newEvent.toFirestore());
         } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error creating event: $e')),
-            );
-          }
+          _showToast('Error creating event: $e', isError: true);
         }
       },
       onEventUpdated: (updatedEvent) async {
@@ -171,20 +167,38 @@ class _HomePageContentState extends State<HomePageContent> {
               .doc(updatedEvent.id)
               .update(updatedEvent.toFirestore());
         } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error updating event: $e')),
-            );
-          }
+          _showToast('Error updating event: $e', isError: true);
         }
       },
     );
   }
 
+  void _showToast(String message, {bool isError = false}) {
+    DelightToastBar(
+      builder: (context) {
+        return ToastCard(
+          title: Text(message),
+          leading: Icon(
+            isError ? Icons.error : Icons.check_circle,
+            color: isError ? Colors.red : Colors.green,
+          ),
+        );
+      },
+      position: DelightSnackbarPosition.top,
+      autoDismiss: true,
+      snackbarDuration: const Duration(seconds: 2),
+      animationDuration: const Duration(milliseconds: 300),
+    ).show(context);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor:
+          isDarkMode ? const Color(0xFF121212) : AppColors.lightBackground,
       appBar: MyAppBar(
         title: "Home",
         actions: [
@@ -198,8 +212,9 @@ class _HomePageContentState extends State<HomePageContent> {
             },
           ),
           AppBarIcon(
-              icon: Icons.notifications_outlined,
-              onTap: () => print("Notifications Tapped")),
+            icon: Icons.notifications_outlined,
+            onTap: () => print("Notifications Tapped"),
+          ),
           AppBarIcon(
             icon: Icons.person_outline,
             onTap: () {
@@ -215,9 +230,7 @@ class _HomePageContentState extends State<HomePageContent> {
         svgAsset: 'assets/svg/add.svg',
         onPressed: () {
           if (_auth.currentUser == null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Please log in to create events')),
-            );
+            _showToast('Please log in to create events');
             return;
           }
 
@@ -230,11 +243,7 @@ class _HomePageContentState extends State<HomePageContent> {
                     .collection('events')
                     .add(newEvent.toFirestore());
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error creating event: $e')),
-                  );
-                }
+                _showToast('Error creating event: $e', isError: true);
               }
             },
             onEventUpdated: (updatedEvent) async {
@@ -244,16 +253,12 @@ class _HomePageContentState extends State<HomePageContent> {
                     .doc(updatedEvent.id)
                     .update(updatedEvent.toFirestore());
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error updating event: $e')),
-                  );
-                }
+                _showToast('Error updating event: $e', isError: true);
               }
             },
           );
         },
-        backgroundColor: Colors.black,
+        backgroundColor: isDarkMode ? AppColors.primary : Colors.black,
         heroTag: "fab_add_event",
       ),
       body: StreamBuilder<List<Event>>(
@@ -277,11 +282,11 @@ class _HomePageContentState extends State<HomePageContent> {
                 child: Container(
                   padding: const EdgeInsets.all(12.0),
                   decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 211, 209, 209),
+                    color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
                         blurRadius: 6,
                         spreadRadius: 2,
                       ),
@@ -290,18 +295,22 @@ class _HomePageContentState extends State<HomePageContent> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         "Your Weekly Progress",
                         style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _progressItem("Activities", events.length.toString()),
-                          _progressItem("Time", "0h 0m"),
-                          _progressItem("Distance", "0.00km"),
+                          _progressItem("Activities", events.length.toString(),
+                              isDarkMode),
+                          _progressItem("Time", "0h 0m", isDarkMode),
+                          _progressItem("Distance", "0.00km", isDarkMode),
                         ],
                       ),
                     ],
@@ -320,12 +329,13 @@ class _HomePageContentState extends State<HomePageContent> {
                       onDateSelected: (newDate) {
                         setState(() {
                           _selectedDate = newDate;
-                          _updateEventsStream();
                         });
                       },
                       child: IconButton(
-                        icon: const Icon(Icons.menu),
-                        color: AppColors.primary,
+                        icon: Icon(
+                          Icons.menu,
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                        ),
                         onPressed: null,
                       ),
                     ),
@@ -335,15 +345,18 @@ class _HomePageContentState extends State<HomePageContent> {
                       onDateSelected: (newDate) {
                         setState(() {
                           _selectedDate = newDate;
-                          _updateEventsStream();
                         });
                       },
                       child: Text(
                         DateFormat.yMMMM().format(_selectedDate),
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                        ),
                       ),
                     ),
+                    const Spacer(),
                   ],
                 ),
               ),
@@ -352,9 +365,12 @@ class _HomePageContentState extends State<HomePageContent> {
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  border:
-                      Border(bottom: BorderSide(color: Colors.grey.shade300)),
+                  color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: isDarkMode ? Colors.white24 : Colors.grey.shade300,
+                    ),
+                  ),
                 ),
                 child: SizedBox(
                   height: 60,
@@ -365,8 +381,11 @@ class _HomePageContentState extends State<HomePageContent> {
                         DateTime(_selectedDate.year, _selectedDate.month + 1, 0)
                             .day,
                         (index) {
-                          DateTime currentDate = DateTime(_selectedDate.year,
-                              _selectedDate.month, index + 1);
+                          DateTime currentDate = DateTime(
+                            _selectedDate.year,
+                            _selectedDate.month,
+                            index + 1,
+                          );
                           bool isSelected =
                               _selectedDate.day == currentDate.day &&
                                   _selectedDate.month == currentDate.month &&
@@ -381,35 +400,55 @@ class _HomePageContentState extends State<HomePageContent> {
                             onTap: () => _onDateSelected(currentDate),
                             child: Padding(
                               padding:
-                                  const EdgeInsets.symmetric(horizontal: 12),
+                                  const EdgeInsets.symmetric(horizontal: 8),
                               child: Column(
                                 children: [
                                   Text(
                                     DateFormat.E().format(currentDate),
-                                    style: const TextStyle(
-                                        fontSize: 12, color: Colors.grey),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: isDarkMode
+                                          ? Colors.white70
+                                          : Colors.grey,
+                                    ),
                                   ),
                                   const SizedBox(height: 4),
                                   Stack(
                                     alignment: Alignment.bottomCenter,
                                     children: [
                                       Container(
-                                        padding: const EdgeInsets.all(6),
+                                        width: 36,
+                                        height: 36,
                                         decoration: BoxDecoration(
                                           color: isSelected
-                                              ? const Color.fromARGB(
-                                                  255, 140, 55, 24)
+                                              ? (isDarkMode
+                                                  ? Colors.white24
+                                                  : Colors.black12)
                                               : Colors.transparent,
                                           shape: BoxShape.circle,
-                                        ),
-                                        child: Text(
-                                          currentDate.day.toString(),
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
+                                          border: Border.all(
                                             color: isSelected
-                                                ? Colors.white
-                                                : Colors.black,
+                                                ? (isDarkMode
+                                                    ? Colors.white38
+                                                    : Colors.black26)
+                                                : Colors.transparent,
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            currentDate.day.toString(),
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w600,
+                                              color: isSelected
+                                                  ? (isDarkMode
+                                                      ? Colors.white
+                                                      : Colors.black87)
+                                                  : isDarkMode
+                                                      ? Colors.white
+                                                      : Colors.black87,
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -419,8 +458,12 @@ class _HomePageContentState extends State<HomePageContent> {
                                           child: Container(
                                             width: 4,
                                             height: 4,
-                                            decoration: const BoxDecoration(
-                                              color: Colors.red,
+                                            decoration: BoxDecoration(
+                                              color: isSelected
+                                                  ? (isDarkMode
+                                                      ? Colors.white
+                                                      : Colors.black87)
+                                                  : Colors.red,
                                               shape: BoxShape.circle,
                                             ),
                                           ),
@@ -445,17 +488,25 @@ class _HomePageContentState extends State<HomePageContent> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.event_note,
-                                size: 48, color: Colors.grey),
+                            Icon(Icons.event_note,
+                                size: 48,
+                                color:
+                                    isDarkMode ? Colors.white38 : Colors.grey),
                             const SizedBox(height: 16),
                             Text(
                               "No Plans for ${DateFormat('EEEE, MMMM d').format(_selectedDate)}",
-                              style: const TextStyle(color: Colors.grey),
+                              style: TextStyle(
+                                color:
+                                    isDarkMode ? Colors.white70 : Colors.grey,
+                              ),
                             ),
                             const SizedBox(height: 8),
-                            const Text(
+                            Text(
                               "Tap + to add a new Plan",
-                              style: TextStyle(color: Colors.grey),
+                              style: TextStyle(
+                                color:
+                                    isDarkMode ? Colors.white70 : Colors.grey,
+                              ),
                             ),
                           ],
                         ),
@@ -478,7 +529,8 @@ class _HomePageContentState extends State<HomePageContent> {
                             child: Card(
                               margin: const EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 8),
-                              color: event.color,
+                              color: event.color
+                                  .withOpacity(isDarkMode ? 0.8 : 1.0),
                               child: Padding(
                                 padding: const EdgeInsets.all(12.0),
                                 child: Column(
@@ -491,33 +543,47 @@ class _HomePageContentState extends State<HomePageContent> {
                                         Expanded(
                                           child: Text(
                                             event.title,
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16),
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                              color: isDarkMode
+                                                  ? Colors.white
+                                                  : Colors.black87,
+                                            ),
                                           ),
                                         ),
                                         Row(
+                                          mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            IconButton(
-                                              icon: const Icon(Icons.edit,
-                                                  size: 20),
-                                              onPressed: () =>
-                                                  _editEvent(event),
-                                              padding: EdgeInsets.zero,
-                                              constraints:
-                                                  const BoxConstraints(),
+                                            GestureDetector(
+                                              onTap: () => _editEvent(event),
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 2),
+                                                child: Icon(
+                                                  Icons.edit,
+                                                  size: 20,
+                                                  color: isDarkMode
+                                                      ? Colors.white70
+                                                      : Colors.black54,
+                                                ),
+                                              ),
                                             ),
-                                            const SizedBox(width: 16),
-                                            IconButton(
-                                              icon: const Icon(Icons.delete,
-                                                  size: 20),
-                                              onPressed: () =>
+                                            GestureDetector(
+                                              onTap: () =>
                                                   _showDeleteConfirmation(
                                                       context, event),
-                                              padding: EdgeInsets.zero,
-                                              constraints:
-                                                  const BoxConstraints(),
-                                              color: Colors.red[700],
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 2),
+                                                child: Icon(
+                                                  Icons.delete,
+                                                  size: 20,
+                                                  color: Colors.red[700],
+                                                ),
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -525,9 +591,22 @@ class _HomePageContentState extends State<HomePageContent> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                        "${DateFormat('EEEE, MMMM d').format(event.date)} | ${formatTimeOfDay(event.startTime)} - ${formatTimeOfDay(event.endTime)}"),
+                                      "${DateFormat('EEEE, MMMM d').format(event.date)} | ${formatTimeOfDay(event.startTime)} - ${formatTimeOfDay(event.endTime)}",
+                                      style: TextStyle(
+                                        color: isDarkMode
+                                            ? Colors.white70
+                                            : Colors.black54,
+                                      ),
+                                    ),
                                     const SizedBox(height: 4),
-                                    Text(event.description),
+                                    Text(
+                                      event.description,
+                                      style: TextStyle(
+                                        color: isDarkMode
+                                            ? Colors.white70
+                                            : Colors.black87,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -543,14 +622,34 @@ class _HomePageContentState extends State<HomePageContent> {
     );
   }
 
-  Widget _progressItem(String title, String value) {
+  Widget _progressItem(String title, String value, bool isDarkMode) {
     return Column(
       children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: isDarkMode ? Colors.white : Colors.black87,
+          ),
+        ),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontSize: 16)),
-        const Icon(Icons.arrow_drop_up, color: Colors.black54),
-        const Text("0"),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 16,
+            color: isDarkMode ? Colors.white70 : Colors.black87,
+          ),
+        ),
+        Icon(
+          Icons.arrow_drop_up,
+          color: isDarkMode ? Colors.white54 : Colors.black54,
+        ),
+        Text(
+          "0",
+          style: TextStyle(
+            color: isDarkMode ? Colors.white70 : Colors.black87,
+          ),
+        ),
       ],
     );
   }

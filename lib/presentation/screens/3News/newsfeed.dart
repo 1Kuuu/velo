@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/core/configs/theme/app_fonts.dart';
+import 'package:velora/core/configs/theme/theme_provider.dart';
 import 'package:velora/data/sources/post_service.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/screens/3News/search_view.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
+import 'package:provider/provider.dart';
 import 'package:delightful_toast/delight_toast.dart';
 import 'package:delightful_toast/toast/components/toast_card.dart';
 import 'package:delightful_toast/toast/utils/enums.dart';
@@ -38,8 +40,12 @@ class _NewsFeedPageContentState extends State<NewsFeedPageContent>
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor:
+          isDarkMode ? const Color(0xFF121212) : AppColors.lightBackground,
       appBar: MyAppBar(
         title: "Velora",
         actions: [
@@ -49,7 +55,6 @@ class _NewsFeedPageContentState extends State<NewsFeedPageContent>
               context,
               MaterialPageRoute(builder: (context) => SearchView()),
             ),
-            showBadge: false,
           ),
           AppBarIcon(
             icon: Icons.notifications_outlined,
@@ -72,7 +77,9 @@ class _NewsFeedPageContentState extends State<NewsFeedPageContent>
           Container(
             decoration: BoxDecoration(
               border: Border(
-                bottom: BorderSide(color: Colors.grey.shade300),
+                bottom: BorderSide(
+                  color: isDarkMode ? Colors.white24 : Colors.grey.shade300,
+                ),
               ),
             ),
             child: TabBar(
@@ -81,9 +88,9 @@ class _NewsFeedPageContentState extends State<NewsFeedPageContent>
                 Tab(text: "Following"),
                 Tab(text: "Discover"),
               ],
-              labelColor: AppColors.primary,
-              unselectedLabelColor: Colors.grey,
-              indicatorColor: AppColors.primary,
+              labelColor: isDarkMode ? Colors.white : AppColors.primary,
+              unselectedLabelColor: isDarkMode ? Colors.white60 : Colors.grey,
+              indicatorColor: isDarkMode ? Colors.white : AppColors.primary,
               labelStyle: AppFonts.bold.copyWith(fontSize: 16),
             ),
           ),
@@ -187,12 +194,17 @@ class _PostInputFieldState extends State<PostInputField> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
         border: Border(
-          bottom: BorderSide(color: Colors.grey.shade200),
+          bottom: BorderSide(
+            color: isDarkMode ? Colors.white24 : Colors.grey.shade200,
+          ),
         ),
       ),
       child: Column(
@@ -203,9 +215,11 @@ class _PostInputFieldState extends State<PostInputField> {
               CircleAvatar(
                 backgroundImage: NetworkImage(user?.photoURL ?? ''),
                 radius: 20,
-                backgroundColor: Colors.grey[300],
+                backgroundColor:
+                    isDarkMode ? Colors.grey[800] : Colors.grey[300],
                 child: user?.photoURL == null
-                    ? Icon(Icons.person, color: Colors.grey[600])
+                    ? Icon(Icons.person,
+                        color: isDarkMode ? Colors.white70 : Colors.grey[600])
                     : null,
               ),
               const SizedBox(width: 12),
@@ -213,11 +227,14 @@ class _PostInputFieldState extends State<PostInputField> {
                 child: TextField(
                   controller: _controller,
                   maxLines: null,
-                  style: AppFonts.regular.copyWith(fontSize: 16),
+                  style: AppFonts.regular.copyWith(
+                    fontSize: 16,
+                    color: isDarkMode ? Colors.white : Colors.black,
+                  ),
                   decoration: InputDecoration(
                     hintText: "What's on your mind?",
                     hintStyle: AppFonts.regular.copyWith(
-                      color: Colors.grey[500],
+                      color: isDarkMode ? Colors.white60 : Colors.grey[500],
                       fontSize: 16,
                     ),
                     border: InputBorder.none,
@@ -308,18 +325,22 @@ class _PostInputFieldState extends State<PostInputField> {
                       TextButton.icon(
                         onPressed: _pickImage,
                         icon: Icon(Icons.image,
-                            color: AppColors.primary, size: 20),
+                            color:
+                                isDarkMode ? Colors.white : AppColors.primary),
                         label: Text(
                           'Photo',
                           style: AppFonts.medium.copyWith(
-                            color: AppColors.primary,
+                            color:
+                                isDarkMode ? Colors.white : AppColors.primary,
                             fontSize: 14,
                           ),
                         ),
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
-                          backgroundColor: AppColors.primary.withOpacity(0.1),
+                              horizontal: 16, vertical: 8),
+                          backgroundColor: isDarkMode
+                              ? Colors.white.withOpacity(0.1)
+                              : AppColors.primary.withOpacity(0.1),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
@@ -329,18 +350,22 @@ class _PostInputFieldState extends State<PostInputField> {
                       TextButton.icon(
                         onPressed: _pickVideo,
                         icon: Icon(Icons.videocam,
-                            color: AppColors.primary, size: 20),
+                            color:
+                                isDarkMode ? Colors.white : AppColors.primary),
                         label: Text(
                           'Video',
                           style: AppFonts.medium.copyWith(
-                            color: AppColors.primary,
+                            color:
+                                isDarkMode ? Colors.white : AppColors.primary,
                             fontSize: 14,
                           ),
                         ),
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 8),
-                          backgroundColor: AppColors.primary.withOpacity(0.1),
+                          backgroundColor: isDarkMode
+                              ? Colors.white.withOpacity(0.1)
+                              : AppColors.primary.withOpacity(0.1),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
@@ -356,7 +381,9 @@ class _PostInputFieldState extends State<PostInputField> {
                 child: ElevatedButton(
                   onPressed: _controller.text.trim().isEmpty ? null : _postRide,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: isDarkMode
+                        ? const Color(0xFF4A3B7C)
+                        : AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     shape: RoundedRectangleBorder(
@@ -537,6 +564,9 @@ class _RideFeedItemState extends State<RideFeedItem> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     var postData = widget.ride.data() as Map<String, dynamic>;
     String content = postData['content'] ?? '';
     String? mediaUrl = postData['mediaUrl'];
@@ -555,8 +585,9 @@ class _RideFeedItemState extends State<RideFeedItem> {
 
     return Card(
       margin: const EdgeInsets.all(12.0),
+      color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
-      elevation: 5,
+      elevation: isDarkMode ? 0 : 5,
       child: Padding(
         padding: const EdgeInsets.all(15.0),
         child: Column(
@@ -618,8 +649,13 @@ class _RideFeedItemState extends State<RideFeedItem> {
             if (content.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(content,
-                    style: AppFonts.medium.copyWith(fontSize: 16)),
+                child: Text(
+                  content,
+                  style: AppFonts.medium.copyWith(
+                    fontSize: 16,
+                    color: isDarkMode ? Colors.white : Colors.black,
+                  ),
+                ),
               ),
             if (mediaUrl != null && mediaUrl.isNotEmpty)
               Padding(
@@ -674,19 +710,36 @@ class _RideFeedItemState extends State<RideFeedItem> {
               ),
             if (rideData != null) ...[
               const SizedBox(height: 12),
-              Text("Route: ${rideData['route']}",
-                  style: AppFonts.regular.copyWith(fontSize: 14)),
-              Text("Distance: ${rideData['distance']} km",
-                  style: AppFonts.regular.copyWith(fontSize: 14)),
-              Text("Duration: ${rideData['duration']}",
-                  style: AppFonts.regular.copyWith(fontSize: 14)),
+              Text(
+                "Route: ${rideData['route']}",
+                style: AppFonts.regular.copyWith(
+                  fontSize: 14,
+                  color: isDarkMode ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              Text(
+                "Distance: ${rideData['distance']} km",
+                style: AppFonts.regular.copyWith(
+                  fontSize: 14,
+                  color: isDarkMode ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              Text(
+                "Duration: ${rideData['duration']}",
+                style: AppFonts.regular.copyWith(
+                  fontSize: 14,
+                  color: isDarkMode ? Colors.white70 : Colors.black87,
+                ),
+              ),
             ],
             const SizedBox(height: 12),
             Row(
               children: [
                 Text(
                   "$likesCount ${likesCount == 1 ? 'like' : 'likes'}",
-                  style: AppFonts.regular.copyWith(color: Colors.grey[600]),
+                  style: AppFonts.regular.copyWith(
+                    color: isDarkMode ? Colors.white60 : Colors.grey[600],
+                  ),
                 ),
                 const SizedBox(width: 16),
                 StreamBuilder<QuerySnapshot>(
@@ -700,13 +753,18 @@ class _RideFeedItemState extends State<RideFeedItem> {
                         snapshot.hasData ? snapshot.data!.size : commentsCount;
                     return Text(
                       "$count ${count == 1 ? 'comment' : 'comments'}",
-                      style: AppFonts.regular.copyWith(color: Colors.grey[600]),
+                      style: AppFonts.regular.copyWith(
+                        color: isDarkMode ? Colors.white60 : Colors.grey[600],
+                      ),
                     );
                   },
                 ),
               ],
             ),
-            const Divider(height: 24),
+            Divider(
+              height: 24,
+              color: isDarkMode ? Colors.white24 : Colors.grey[300],
+            ),
             Row(
               children: [
                 Expanded(
@@ -1000,17 +1058,20 @@ class _CommentsSectionState extends State<CommentsSection> {
                       ),
                       title: Row(
                         children: [
-                          GestureDetector(
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    ProfilePage(userId: data['userId']),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      ProfilePage(userId: data['userId']),
+                                ),
                               ),
-                            ),
-                            child: Text(
-                              data['userName'] ?? 'Anonymous',
-                              style: AppFonts.bold.copyWith(fontSize: 14),
+                              child: Text(
+                                data['userName'] ?? 'Anonymous',
+                                style: AppFonts.bold.copyWith(fontSize: 14),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),

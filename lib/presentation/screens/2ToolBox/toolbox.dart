@@ -3,12 +3,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/core/configs/theme/app_fonts.dart';
+import 'package:velora/core/configs/theme/theme_provider.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/screens/2ToolBox/fixie_info.dart';
 import 'package:velora/presentation/screens/2ToolBox/mountainbike_info.dart';
 import 'package:velora/presentation/screens/2ToolBox/roadbike_info.dart';
 import 'package:velora/presentation/screens/Weather/weather.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
+import 'package:provider/provider.dart';
 
 class ToolboxPageContent extends StatelessWidget {
   const ToolboxPageContent({super.key});
@@ -28,8 +30,12 @@ class ToolboxPageContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor:
+          isDarkMode ? const Color(0xFF121212) : AppColors.lightBackground,
       appBar: MyAppBar(
         title: "Toolbox",
         actions: [
@@ -70,7 +76,7 @@ class ToolboxPageContent extends StatelessWidget {
       floatingActionButton: TheFloatingActionButton(
         svgAsset: 'assets/svg/white-m.svg',
         onPressed: () => print("FAB Pressed"),
-        backgroundColor: Colors.black,
+        backgroundColor: isDarkMode ? const Color(0xFF4A3B7C) : Colors.black,
         heroTag: 'openai_fab',
       ),
     );
@@ -314,70 +320,68 @@ class _BikeScreenState extends State<BikeScreens> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
     List<String> titles = BikeUtils.getTitles(selectedBike);
     List<String> images = BikeUtils.getImages(selectedBike);
 
     return Container(
       padding: EdgeInsets.all(16),
+      color: isDarkMode ? const Color(0xFF121212) : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Card(
-            elevation: 4,
+            elevation: isDarkMode ? 0 : 4,
+            color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Colors.brown,
+            child: Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: isDarkMode ? const Color(0xFF4A3B7C) : Colors.brown,
+                  width: 1.5,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              height: 200,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    selectedBike,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.underline,
+                      color: isDarkMode ? Colors.white : Colors.black,
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                height: 200,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      selectedBike,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        decoration: TextDecoration.underline,
-                      ),
+                  SizedBox(height: 16),
+                  Expanded(
+                    child: Image.asset(
+                      'assets/images/${selectedBike.toLowerCase()}.png',
+                      width: 250,
+                      height: 150,
+                      fit: BoxFit.contain,
                     ),
-                    SizedBox(height: 16),
-                    Expanded(
-                      child: Image.asset(
-                        'assets/images/${selectedBike.toLowerCase()}.png',
-                        width: 250,
-                        height: 150,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            height: 150,
-                            alignment: Alignment.center,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
-          // Sorting Dropdown & "Change" Button
           Container(
             padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.grey, width: 1)),
+              border: Border(
+                bottom: BorderSide(
+                  color: isDarkMode ? Colors.white24 : Colors.grey,
+                  width: 1,
+                ),
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -385,20 +389,29 @@ class _BikeScreenState extends State<BikeScreens> {
                 Row(
                   children: [
                     SizedBox(width: 3),
-                    DropdownButton<String>(
-                      value: 'Most Recent',
-                      underline: SizedBox(),
-                      items: ['Most Recent', 'Previous', 'Old']
-                          .map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(
-                            value,
-                            style: TextStyle(fontSize: 13, color: Colors.black),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (value) {},
+                    Theme(
+                      data: Theme.of(context).copyWith(
+                        canvasColor:
+                            isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+                      ),
+                      child: DropdownButton<String>(
+                        value: 'Most Recent',
+                        underline: SizedBox(),
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.white : Colors.black,
+                          fontSize: 13,
+                        ),
+                        dropdownColor:
+                            isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+                        items: ['Most Recent', 'Previous', 'Old']
+                            .map((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                        onChanged: (value) {},
+                      ),
                     ),
                   ],
                 ),
@@ -424,7 +437,9 @@ class _BikeScreenState extends State<BikeScreens> {
                     'Change',
                     style: AppFonts.bold.copyWith(
                       fontSize: 13,
-                      color: AppColors.lightGrey,
+                      color: isDarkMode
+                          ? const Color(0xFF4A3B7C)
+                          : AppColors.lightGrey,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -433,15 +448,50 @@ class _BikeScreenState extends State<BikeScreens> {
             ),
           ),
           SizedBox(height: 2),
-
-          // GridView for Components
           Expanded(
-            child: BikePartsGrid(
-              titles: titles,
-              images: images,
-              onPartTap: (index) {
-                print('${titles[index]} Tapped');
-                navigateToPartInfo(context, index);
+            child: GridView.builder(
+              padding: EdgeInsets.all(8),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
+                childAspectRatio: 1.2,
+              ),
+              itemCount: titles.length,
+              itemBuilder: (context, index) {
+                return InkWell(
+                  onTap: () => navigateToPartInfo(context, index),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color:
+                          isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+                      border: Border.all(
+                        color:
+                            isDarkMode ? const Color(0xFF4A3B7C) : Colors.brown,
+                        width: 1.5,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          images[index],
+                          height: 60,
+                        ),
+                        SizedBox(height: 6),
+                        Text(
+                          titles[index],
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: isDarkMode ? Colors.white : Colors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
               },
             ),
           ),

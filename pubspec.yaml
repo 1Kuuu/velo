@@ -32,6 +32,7 @@ dependencies:
   shared_preferences: ^2.5.2
   syncfusion_flutter_datepicker: ^28.2.9
   image_picker: ^1.1.2
+  provider: ^6.1.2
   weather: ^3.1.1
   intl: ^0.20.2
   flutter_dotenv: ^5.1.0
