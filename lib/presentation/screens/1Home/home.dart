@@ -8,6 +8,8 @@ import 'package:velora/presentation/screens/2ToolBox/toolbox.dart';
 import 'package:velora/presentation/screens/3News/newsfeed.dart';
 import 'package:velora/presentation/screens/4Chat/chat_list.dart';
 import 'package:velora/presentation/screens/5Settings/setting_screen.dart';
+import 'package:velora/presentation/screens/Weather/weather.dart';
+import 'package:velora/presentation/screens/Weather/weather.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 import 'event_modal.dart';
 
@@ -187,7 +189,22 @@ class _HomePageContentState extends State<HomePageContent> {
         title: "Home",
         actions: [
           AppBarIcon(
-              icon: Icons.cloud_outlined, onTap: () => print("Weather Tapped")),
+            icon: Icons.cloud_outlined,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => WeatherScreen()),
+              );
+            },
+          ),
+            icon: Icons.cloud_outlined,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => WeatherScreen()),
+              );
+            },
+          ),
           AppBarIcon(
               icon: Icons.notifications_outlined,
               onTap: () => print("Notifications Tapped")),

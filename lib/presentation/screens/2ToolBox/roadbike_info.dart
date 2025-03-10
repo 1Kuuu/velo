@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
+import 'package:velora/presentation/screens/Weather/weather.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
 class RoadbikeInfo extends StatelessWidget {
@@ -18,8 +19,12 @@ class RoadbikeInfo extends StatelessWidget {
         actions: [
           AppBarIcon(
             icon: Icons.cloud_outlined,
-            onTap: () => print("Weather Tapped"),
-            showBadge: false,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => WeatherScreen()),
+              );
+            },
           ),
           AppBarIcon(
             icon: Icons.notifications_outlined,

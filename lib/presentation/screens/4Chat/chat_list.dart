@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/screens/4Chat/chat.dart';
+import 'package:velora/presentation/screens/Weather/weather.dart';
+import 'package:velora/presentation/screens/Weather/weather.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart'; // Import reusable widgets
 
 class ChatListPage extends StatelessWidget {

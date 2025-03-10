@@ -27,13 +27,15 @@ dependencies:
   google_sign_in_ios: ^5.8.0
   google_sign_in_platform_interface: ^2.4.5
   google_sign_in_web: ^0.12.4+3
-  intl: ^0.20.2
   email_validator: ^3.0.0
   table_calendar: ^3.2.0
   shared_preferences: ^2.5.2
   syncfusion_flutter_datepicker: ^28.2.9
   image_picker: ^1.1.2
-
+  weather: ^3.1.1
+  intl: ^0.20.2
+  flutter_dotenv: ^5.1.0
+    
 dev_dependencies:
   flutter_launcher_icons: ^0.14.3
   flutter_test:
@@ -81,6 +83,10 @@ flutter:
     - assets/images/fx-Wheels.png
     - assets/images/fx-Break.png
     - assets/images/fx-Crank.png
+    - assets/images/maps-location.png
+    - assets/images/weather-background.png
+
+
 
   fonts:
     - family: Poppins

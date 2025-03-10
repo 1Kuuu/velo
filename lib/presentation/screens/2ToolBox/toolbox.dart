@@ -7,6 +7,8 @@ import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/screens/2ToolBox/fixie_info.dart';
 import 'package:velora/presentation/screens/2ToolBox/mountainbike_info.dart';
 import 'package:velora/presentation/screens/2ToolBox/roadbike_info.dart';
+import 'package:velora/presentation/screens/Weather/weather.dart';
+import 'package:velora/presentation/screens/Weather/weather.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
 class ToolboxPageContent extends StatelessWidget {
@@ -34,8 +36,18 @@ class ToolboxPageContent extends StatelessWidget {
         actions: [
           AppBarIcon(
             icon: Icons.cloud_outlined,
-            onTap: () => print("Weather Tapped"),
-            showBadge: false,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => WeatherScreen()),
+              );
+            },
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => WeatherScreen()),
+              );
+            },
           ),
           AppBarIcon(
             icon: Icons.notifications_outlined,
