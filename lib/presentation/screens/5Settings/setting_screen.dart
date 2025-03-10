@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
-import 'package:velora/data/sources/firebase_service.dart';
 import 'package:velora/presentation/screens/0Auth/login.dart';
 import 'package:velora/presentation/screens/5Settings/editprofile.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -24,6 +24,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     'profileUrl': '',
   };
   bool isLoading = true;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
@@ -35,11 +36,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadUserPreferences() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      
+
       if (mounted) {
         setState(() {
           isDarkMode = prefs.getBool('isDarkMode') ?? false;
-          isNotificationsEnabled = prefs.getBool('isNotificationsEnabled') ?? true;
+          isNotificationsEnabled =
+              prefs.getBool('isNotificationsEnabled') ?? true;
         });
       }
     } catch (e) {
@@ -52,18 +54,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setBool('isDarkMode', isDarkMode);
       await prefs.setBool('isNotificationsEnabled', isNotificationsEnabled);
-      
-      // Also save to Firebase if user is logged in
-      if (FirebaseServices.currentUserId != null) {
-        await FirebaseServices.updateUserData(
-          FirebaseServices.currentUserId!,
-          {
-            'preferences': {
-              'isDarkMode': isDarkMode,
-              'isNotificationsEnabled': isNotificationsEnabled,
-            }
+
+      User? currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        await _firestore.collection('users').doc(currentUser.uid).update({
+          'preferences': {
+            'isDarkMode': isDarkMode,
+            'isNotificationsEnabled': isNotificationsEnabled,
           }
-        );
+        });
       }
     } catch (e) {
       print("Error saving preferences: $e");
@@ -78,15 +77,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
           user = currentUser;
           isLoading = true;
         });
-        
-        // Use your Firebase service to get user profile data
-        Map<String, dynamic> profile = await FirebaseServices.getUserProfile();
-        
-        if (mounted) {
+
+        DocumentSnapshot userDoc =
+            await _firestore.collection('users').doc(currentUser.uid).get();
+
+        if (userDoc.exists && mounted) {
+          Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
           setState(() {
-            userData = profile;
+            userData = {
+              'userName':
+                  data['userName'] ?? currentUser.displayName ?? 'No Name',
+              'email': data['email'] ?? currentUser.email ?? 'No Email',
+              'bio': data['bio'] ?? 'No bio available',
+              'profileUrl': data['profileUrl'] ?? currentUser.photoURL ?? '',
+              'preferences': data['preferences'] ?? {},
+            };
+
+            // Update preferences if they exist in Firestore
+            if (data['preferences'] != null) {
+              isDarkMode = data['preferences']['isDarkMode'] ?? isDarkMode;
+              isNotificationsEnabled = data['preferences']
+                      ['isNotificationsEnabled'] ??
+                  isNotificationsEnabled;
+            }
+
             isLoading = false;
           });
+        } else {
+          // Create user document if it doesn't exist
+          await _firestore.collection('users').doc(currentUser.uid).set({
+            'userName': currentUser.displayName ?? 'No Name',
+            'email': currentUser.email ?? 'No Email',
+            'bio': 'No bio available',
+            'profileUrl': currentUser.photoURL ?? '',
+            'preferences': {
+              'isDarkMode': isDarkMode,
+              'isNotificationsEnabled': isNotificationsEnabled,
+            },
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+
+          if (mounted) {
+            setState(() {
+              userData = {
+                'userName': currentUser.displayName ?? 'No Name',
+                'email': currentUser.email ?? 'No Email',
+                'bio': 'No bio available',
+                'profileUrl': currentUser.photoURL ?? '',
+              };
+              isLoading = false;
+            });
+          }
         }
       } else {
         if (mounted) {
@@ -129,7 +171,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       backgroundColor: AppColors.primary,
       appBar: AppBar(
-        title: const Text("Settings", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text("Settings",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.primary,
         elevation: 0,
       ),
@@ -231,51 +274,135 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.symmetric(vertical: 20),
       child: Column(
         children: [
-          CircleAvatar(
-            radius: 50,
-            backgroundImage: userData['profileUrl'] != null && userData['profileUrl'].isNotEmpty
-                ? NetworkImage(userData['profileUrl'])
-                : const AssetImage("assets/profile.jpg") as ImageProvider,
+          Stack(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 3,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: CircleAvatar(
+                  radius: 50,
+                  backgroundColor: Colors.grey[200],
+                  backgroundImage: _getProfileImage(),
+                  child: _getProfileImage() == null
+                      ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                      : null,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
           Text(
             userData['userName'] ?? "User Name",
             style: const TextStyle(
-                color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              shadows: [
+                Shadow(
+                  offset: Offset(0, 1),
+                  blurRadius: 3.0,
+                  color: Color.fromARGB(100, 0, 0, 0),
+                ),
+              ],
+            ),
           ),
           Text(
-            userData['email'] ?? "@luceroindie17",
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
+            userData['email'] ?? "No email",
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+              shadows: [
+                Shadow(
+                  offset: Offset(0, 1),
+                  blurRadius: 2.0,
+                  color: Color.fromARGB(70, 0, 0, 0),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 5),
           Text(
             userData['bio'] ?? "No bio available",
-            style: const TextStyle(color: Colors.white70, fontSize: 12)
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              shadows: [
+                Shadow(
+                  offset: Offset(0, 1),
+                  blurRadius: 2.0,
+                  color: Color.fromARGB(70, 0, 0, 0),
+                ),
+              ],
+            ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 10),
           ElevatedButton(
             onPressed: () async {
               final result = await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const EditProfileScreen()),
+                MaterialPageRoute(
+                  builder: (context) => const EditProfileScreen(),
+                  settings: RouteSettings(
+                    arguments: {
+                      'name': userData['userName'],
+                      'email': userData['email'],
+                      'bio': userData['bio'],
+                      'profileUrl': userData['profileUrl'],
+                    },
+                  ),
+                ),
               );
 
-              if (result != null && mounted) {
-                // Reload user data to reflect changes
-                _loadUserData();
+              if (result != null && result['updated'] == true && mounted) {
+                setState(() {
+                  userData = {
+                    'userName': result['name'],
+                    'email': result['email'],
+                    'bio': result['bio'],
+                    'profileUrl': result['profileUrl'],
+                  };
+                });
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
+              backgroundColor: Colors.white,
+              foregroundColor: AppColors.primary,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              elevation: 3,
             ),
-            child: const Text("Edit Profile", style: TextStyle(color: Colors.white)),
+            child: const Text(
+              "Edit Profile",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
           ),
         ],
       ),
     );
+  }
+
+  ImageProvider? _getProfileImage() {
+    if (userData['profileUrl'] != null && userData['profileUrl'].isNotEmpty) {
+      return NetworkImage(userData['profileUrl']);
+    }
+    return null;
   }
 
   void _showLogoutConfirmationDialog(BuildContext context) {
@@ -286,7 +413,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           title: const Text(
             "Confirm Logout",
             style: TextStyle(
-              fontFamily: 'Poppins', fontWeight: FontWeight.bold, fontSize: 18,
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
             ),
           ),
           content: const Text(
@@ -301,7 +430,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: const Text(
                 "No",
                 style: TextStyle(
-                  fontFamily: 'Poppins', fontWeight: FontWeight.bold, fontSize: 16,
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
                 ),
               ),
               onPressed: () {
@@ -315,7 +446,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: const Text(
                 "Yes",
                 style: TextStyle(
-                  fontFamily: 'Poppins', fontWeight: FontWeight.bold, fontSize: 16,
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
                 ),
               ),
               onPressed: () async {

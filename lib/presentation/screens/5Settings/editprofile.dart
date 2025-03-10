@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:delightful_toast/delight_toast.dart';
 import 'package:delightful_toast/toast/components/toast_card.dart';
@@ -262,11 +261,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _loadUserData() async {
     setState(() => _isLoading = true);
+    print("Loading user data..."); // Debug print
 
     final Map<String, dynamic>? args =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
 
     if (args != null) {
+      print("Loading data from arguments: $args"); // Debug print
       setState(() {
         _originalName = args['name'] ?? '';
         _originalBio = args['bio'] ?? '';
@@ -279,27 +280,58 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
 
     User? user = _auth.currentUser;
+    print("Current user: ${user?.email}"); // Debug print
+
     if (user != null) {
       try {
-        _profileImageUrl = user.photoURL;
+        // First set basic user info from Firebase Auth
+        setState(() {
+          _profileImageUrl = user.photoURL;
+          _nameController.text = user.displayName ?? '';
+          _originalName = user.displayName ?? '';
+        });
+
+        // Then fetch additional info from Firestore
         DocumentSnapshot userDoc =
             await _firestore.collection('users').doc(user.uid).get();
 
+        print("Firestore data exists: ${userDoc.exists}"); // Debug print
+
         if (userDoc.exists) {
           Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
+          print("Fetched Firestore data: $data"); // Debug print
+
           setState(() {
-            _originalName = data['userName'] ?? '';
+            _originalName = data['userName'] ?? user.displayName ?? '';
             _originalBio = data['bio'] ?? '';
-            if (data['profileUrl'] != null) {
-              _profileImageUrl = data['profileUrl'];
-            }
+            _profileImageUrl = data['profileUrl'] ?? user.photoURL;
             _nameController.text = _originalName!;
             _bioController.text = _originalBio!;
           });
+        } else {
+          // If document doesn't exist, create it with default values
+          await _firestore.collection('users').doc(user.uid).set({
+            'userName': user.displayName ?? '',
+            'email': user.email ?? '',
+            'bio': '',
+            'profileUrl': user.photoURL ?? '',
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+
+          setState(() {
+            _originalName = user.displayName ?? '';
+            _originalBio = '';
+            _nameController.text = _originalName!;
+            _bioController.text = '';
+          });
         }
       } catch (e) {
+        print("Error loading user data: $e"); // Debug print
         _showToast("Error loading user data: $e", Icons.error, Colors.red);
       }
+    } else {
+      _showToast("No user logged in", Icons.error, Colors.red);
     }
 
     setState(() => _isLoading = false);
@@ -325,37 +357,52 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       User? user = _auth.currentUser;
       if (user == null) throw Exception("User not found");
 
+      String? updatedPhotoUrl = _profileImageUrl;
+
       if (_imageChanged && _imageFile != null) {
         final storageRef =
             FirebaseStorage.instance.ref().child('user_images/${user.uid}');
         final uploadTask = storageRef.putFile(_imageFile!);
         final snapshot = await uploadTask;
-        _profileImageUrl = await snapshot.ref.getDownloadURL();
-        await user.updatePhotoURL(_profileImageUrl);
+        updatedPhotoUrl = await snapshot.ref.getDownloadURL();
+        await user.updatePhotoURL(updatedPhotoUrl);
       }
 
-      await _firestore.collection('users').doc(user.uid).update({
+      // Update Firestore with all user data
+      final userData = {
         'userName': newName,
+        'email': user.email,
         'bio': newBio,
-        'profileUrl': _profileImageUrl,
+        'profileUrl': updatedPhotoUrl,
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      };
+
+      await _firestore.collection('users').doc(user.uid).update(userData);
+
+      // Update Firebase Auth display name
+      await user.updateDisplayName(newName);
 
       setState(() {
         _originalName = newName;
         _originalBio = newBio;
+        _profileImageUrl = updatedPhotoUrl;
         _imageChanged = false;
       });
 
       _showToast(
           "Profile updated successfully!", Icons.check_circle, Colors.green);
+
+      // Pass back complete user data
       Navigator.pop(context, {
         'updated': true,
         'name': newName,
+        'email': user.email,
         'bio': newBio,
-        'profileUrl': _profileImageUrl
+        'profileUrl': updatedPhotoUrl,
+        'uid': user.uid
       });
     } catch (e) {
+      print("Error updating profile: $e"); // Debug print
       _showToast("Error updating profile: $e", Icons.error, Colors.red);
     }
 
