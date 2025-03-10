@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/screens/4Chat/chat.dart';
 import 'package:velora/presentation/screens/Weather/weather.dart';
-import 'package:velora/presentation/screens/Weather/weather.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart'; // Import reusable widgets
 
 class ChatListPage extends StatelessWidget {
@@ -19,6 +18,19 @@ class ChatListPage extends StatelessWidget {
       appBar: MyAppBar(
         title: "Messages",
         actions: [
+          AppBarIcon(
+            icon: Icons.cloud_outlined,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => WeatherScreen()),
+              );
+            },
+          ),
+          AppBarIcon(
+            icon: Icons.notifications_outlined,
+            onTap: () => print("Notifications Tapped"),
+          ),
           AppBarIcon(
             icon: Icons.person_outline,
             onTap: () => Navigator.push(
