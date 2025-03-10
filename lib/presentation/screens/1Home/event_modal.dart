@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
 // Event model to store event data
 class Event {
   final String title;
   final String description;
-  final DateTime date; // The date associated with the event
+  final DateTime date;
   final TimeOfDay startTime;
   final TimeOfDay endTime;
   final bool isAllDay;
   final String repeatStatus;
   final Color color;
-  final String id; // Add an ID to uniquely identify each event
+  final String id;
+  final String userId;
 
   Event({
     required this.title,
@@ -24,7 +27,57 @@ class Event {
     required this.repeatStatus,
     required this.color,
     required this.id,
+    required this.userId,
   });
+
+  // Convert TimeOfDay to Map
+  Map<String, int> _timeOfDayToMap(TimeOfDay time) {
+    return {
+      'hour': time.hour,
+      'minute': time.minute,
+    };
+  }
+
+  // Convert Map to TimeOfDay
+  static TimeOfDay _timeOfDayFromMap(Map<String, dynamic> map) {
+    return TimeOfDay(
+      hour: map['hour'] as int,
+      minute: map['minute'] as int,
+    );
+  }
+
+  // Convert to Firestore document
+  Map<String, dynamic> toFirestore() {
+    return {
+      'title': title,
+      'description': description,
+      'date': Timestamp.fromDate(date),
+      'startTime': _timeOfDayToMap(startTime),
+      'endTime': _timeOfDayToMap(endTime),
+      'isAllDay': isAllDay,
+      'repeatStatus': repeatStatus,
+      'color': color.value,
+      'userId': userId,
+    };
+  }
+
+  // Create Event from Firestore document
+  static Event fromFirestore(DocumentSnapshot doc) {
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    return Event(
+      id: doc.id,
+      title: data['title'] ?? '',
+      description: data['description'] ?? '',
+      date: (data['date'] as Timestamp).toDate(),
+      startTime:
+          _timeOfDayFromMap(Map<String, dynamic>.from(data['startTime'])),
+      endTime: _timeOfDayFromMap(Map<String, dynamic>.from(data['endTime'])),
+      isAllDay: data['isAllDay'] ?? false,
+      repeatStatus: data['repeatStatus'] ?? 'None',
+      color: Color(data['color'] as int),
+      userId: data['userId'] ?? '',
+    );
+  }
 
   // Create a copy of the event with updated fields
   Event copyWith({
@@ -36,6 +89,7 @@ class Event {
     bool? isAllDay,
     String? repeatStatus,
     Color? color,
+    String? userId,
   }) {
     return Event(
       id: id,
@@ -47,6 +101,7 @@ class Event {
       isAllDay: isAllDay ?? this.isAllDay,
       repeatStatus: repeatStatus ?? this.repeatStatus,
       color: color ?? this.color,
+      userId: userId ?? this.userId,
     );
   }
 }
@@ -155,6 +210,7 @@ class EventModalHelper {
                                 isAllDay: isAllDay,
                                 repeatStatus: repeatStatus,
                                 color: selectedColor, // Use the selected color
+                                userId: FirebaseAuth.instance.currentUser!.uid,
                               );
 
                               onEventCreated(newEvent);

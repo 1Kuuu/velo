@@ -10,14 +10,24 @@ import 'package:velora/data/sources/post_service.dart'; // Import PostService
 
 class ProfilePage extends StatefulWidget {
   final String? userId;
-  const ProfilePage({super.key, this.userId});
+  final bool isFollowing;
+  final Function(bool)? onFollowChanged;
+
+  const ProfilePage({
+    super.key,
+    this.userId,
+    this.isFollowing = false,
+    this.onFollowChanged,
+  });
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  bool isLoading = true, isCurrentUser = false, isFollowing = false;
+  bool isLoading = true;
+  bool isCurrentUser = false;
+  bool isFollowing = false;
   Map<String, dynamic> userData = {};
   List<Map<String, dynamic>> posts = [];
   final TextEditingController _postController = TextEditingController();
@@ -27,6 +37,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
+    isFollowing = widget.isFollowing;
     _loadData();
   }
 
@@ -48,9 +59,9 @@ class _ProfilePageState extends State<ProfilePage> {
       String targetUserId = widget.userId ?? FirebaseServices.currentUserId!;
       isCurrentUser = targetUserId == FirebaseServices.currentUserId;
 
-      // Fetch user data
+      // Fetch user data from the correct collection
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
-          .collection(FirebaseServices.userCollection)
+          .collection('users') // Using the correct collection name
           .doc(targetUserId)
           .get();
 
@@ -58,13 +69,21 @@ class _ProfilePageState extends State<ProfilePage> {
         Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
         setState(() {
           userData = {
-            'userName': data['userName'] ?? 'Unknown User',
+            'userId': targetUserId,
+            'userName': data['userName'] ??
+                data['name'] ??
+                data['email']?.split('@')[0] ??
+                'Unknown User',
+            'email': data['email'] ?? '',
             'bio': data['bio'] ?? 'No bio available',
             'profileUrl': data['profileUrl'] ?? '',
             'followers': data['followers'] ?? [],
             'following': data['following'] ?? [],
             'followerCount': (data['followers'] as List?)?.length ?? 0,
             'followingCount': (data['following'] as List?)?.length ?? 0,
+            'postsCount': data['postsCount'] ?? 0,
+            'activitiesCount': data['activitiesCount'] ?? 0,
+            'createdAt': data['createdAt'],
           };
         });
 
@@ -75,55 +94,47 @@ class _ProfilePageState extends State<ProfilePage> {
             isFollowing = followers.contains(FirebaseServices.currentUserId);
           });
         }
-      }
 
-      // Fetch posts for the profile
-      QuerySnapshot postsSnapshot;
-      if (isCurrentUser) {
-        postsSnapshot = await FirebaseFirestore.instance
-            .collection(PostService.postsCollection)
-            .where('userId', isEqualTo: FirebaseServices.currentUserId)
-            .orderBy('createdAt', descending: true)
-            .get();
-      } else {
-        postsSnapshot = await FirebaseFirestore.instance
-            .collection(PostService.postsCollection)
+        // Fetch posts for the profile
+        QuerySnapshot postsSnapshot = await FirebaseFirestore.instance
+            .collection('posts')
             .where('userId', isEqualTo: targetUserId)
             .orderBy('createdAt', descending: true)
             .get();
-      }
 
-      List<Map<String, dynamic>> userPosts = [];
+        List<Map<String, dynamic>> userPosts = [];
+        for (var doc in postsSnapshot.docs) {
+          Map<String, dynamic> postData = doc.data() as Map<String, dynamic>;
 
-      for (var doc in postsSnapshot.docs) {
-        Map<String, dynamic> postData = doc.data() as Map<String, dynamic>;
+          // Get comments count
+          QuerySnapshot commentsSnapshot =
+              await doc.reference.collection('comments').get();
+          int commentsCount = commentsSnapshot.docs.length;
 
-        // Get comments count
-        QuerySnapshot commentsSnapshot =
-            await doc.reference.collection('comments').get();
-        int commentsCount = commentsSnapshot.docs.length;
+          // Check if current user has liked this post
+          bool isLiked = false;
+          if (FirebaseServices.currentUserId != null) {
+            DocumentSnapshot likeDoc = await doc.reference
+                .collection('likes')
+                .doc(FirebaseServices.currentUserId)
+                .get();
+            isLiked = likeDoc.exists;
+          }
 
-        // Check if current user has liked this post
-        bool isLiked = false;
-        if (FirebaseServices.currentUserId != null) {
-          DocumentSnapshot likeDoc = await doc.reference
-              .collection(PostService.likesCollection)
-              .doc(FirebaseServices.currentUserId)
-              .get();
-          isLiked = likeDoc.exists;
+          userPosts.add({
+            ...postData,
+            'id': doc.id,
+            'isLiked': isLiked,
+            'commentsCount': commentsCount,
+          });
         }
 
-        userPosts.add({
-          ...postData,
-          'id': doc.id,
-          'isLiked': isLiked,
-          'commentsCount': commentsCount,
+        setState(() {
+          posts = userPosts;
         });
+      } else {
+        _showSnackbar('User profile not found', isError: true);
       }
-
-      setState(() {
-        posts = userPosts;
-      });
     } catch (e) {
       print('Error loading profile data: $e');
       _showSnackbar('Error loading profile: $e', isError: true);
@@ -140,7 +151,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       // Get target user's document
       DocumentSnapshot targetUserDoc = await FirebaseFirestore.instance
-          .collection(FirebaseServices.userCollection)
+          .collection('users') // Changed to 'users' collection
           .doc(widget.userId)
           .get();
 
@@ -150,7 +161,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       // Get current user's document
       DocumentSnapshot currentUserDoc = await FirebaseFirestore.instance
-          .collection(FirebaseServices.userCollection)
+          .collection('users') // Changed to 'users' collection
           .doc(FirebaseServices.currentUserId)
           .get();
 
@@ -179,7 +190,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       // Update target user's followers
       await FirebaseFirestore.instance
-          .collection(FirebaseServices.userCollection)
+          .collection('users')
           .doc(widget.userId)
           .update({
         'followers': targetUserFollowers,
@@ -187,7 +198,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       // Update current user's following
       await FirebaseFirestore.instance
-          .collection(FirebaseServices.userCollection)
+          .collection('users')
           .doc(FirebaseServices.currentUserId)
           .update({
         'following': currentUserFollowing,
@@ -199,13 +210,16 @@ class _ProfilePageState extends State<ProfilePage> {
         userData['followerCount'] = targetUserFollowers.length;
       });
 
+      // Call the onFollowChanged callback if provided
+      widget.onFollowChanged?.call(isFollowing);
+
       _showSnackbar(isFollowing ? 'Started following' : 'Unfollowed');
     } catch (e) {
       print('Error toggling follow: $e');
       _showSnackbar('Failed to update follow status', isError: true);
     } finally {
       setState(() => isLoading = false);
-      await _loadData();
+      await _loadData(); // Reload data to refresh the UI
     }
   }
 

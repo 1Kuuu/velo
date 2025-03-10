@@ -13,117 +13,214 @@ class ChatListPage extends StatelessWidget {
     String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? "";
 
     return Scaffold(
-      backgroundColor: Colors.white, // You can use AppColors if needed
+      backgroundColor: Colors.white,
       appBar: MyAppBar(
-        title: "Chats",
+        title: "Messages",
         actions: [
           AppBarIcon(
-            icon: Icons.cloud_outlined,
-            onTap: () => print("Weather Tapped"),
-            showBadge: false,
-          ),
-          AppBarIcon(
-            icon: Icons.notifications_outlined,
-            onTap: () => print("Notifications Tapped"),
-          ),
-          AppBarIcon(
             icon: Icons.person_outline,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ProfilePage()),
-              );
-            },
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfilePage()),
+            ),
           ),
         ],
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection("users").snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text("No users found."));
-          }
+      body: Column(
+        children: [
+          // Modern Search Bar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Container(
+              height: 45,
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search conversations',
+                  hintStyle: TextStyle(
+                    color: Colors.grey[500],
+                    fontSize: 14,
+                  ),
+                  prefixIcon:
+                      Icon(Icons.search, color: Colors.grey[500], size: 20),
+                  border: InputBorder.none,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+              ),
+            ),
+          ),
 
-          var users = snapshot.data!.docs
-              .where((doc) => doc.id != currentUserId) // Exclude current user
-              .toList();
+          // Users List
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection("users")
+                  .where('email', isNotEqualTo: '')
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.chat_bubble_outline,
+                            size: 48, color: Colors.grey[400]),
+                        const SizedBox(height: 12),
+                        Text(
+                          "No conversations yet",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[600],
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Start chatting with someone!",
+                          style: TextStyle(
+                            color: Colors.grey[400],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
 
-          return ListView.builder(
-            itemCount: users.length,
-            itemBuilder: (context, index) {
-              var userData = users[index].data() as Map<String, dynamic>;
-              String userId = users[index].id;
-              String name = userData["userName"] ?? "Unknown";
-              String profileUrl = userData["profileUrl"] ?? "";
+                var users = snapshot.data!.docs
+                    .where((doc) => doc.id != currentUserId)
+                    .toList();
 
-              return ListTile(
-                leading: GestureDetector(
-                  onTap: () {
-                    // Navigate to profile page when tapping profile picture
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ProfilePage(userId: userId),
+                return ListView.builder(
+                  itemCount: users.length,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemBuilder: (context, index) {
+                    var userData = users[index].data() as Map<String, dynamic>;
+                    String userId = users[index].id;
+                    String name = userData["userName"] ??
+                        userData["email"]?.split('@')[0] ??
+                        "Unknown";
+                    String profileUrl = userData["profileUrl"] ?? "";
+                    String lastMessage = "Tap to start chatting";
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[100]!),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ChatPageContent(
+                                  chatId:
+                                      _generateChatId(currentUserId, userId),
+                                  recipientId: userId,
+                                  recipientName: name,
+                                  recipientProfileUrl: profileUrl,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              children: [
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            ProfilePage(userId: userId),
+                                      ),
+                                    );
+                                  },
+                                  child: Hero(
+                                    tag: 'profile_$userId',
+                                    child: CircleAvatar(
+                                      radius: 28,
+                                      backgroundColor:
+                                          ChatUtils.generateRandomColor(name),
+                                      backgroundImage:
+                                          ChatUtils.hasProfilePicture(
+                                                  profileUrl)
+                                              ? NetworkImage(profileUrl)
+                                              : null,
+                                      child: !ChatUtils.hasProfilePicture(
+                                              profileUrl)
+                                          ? Text(
+                                              ChatUtils.getInitials(name),
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                                fontSize: 16,
+                                              ),
+                                            )
+                                          : null,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        name,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                        ).copyWith(fontSize: 16),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        lastMessage,
+                                        style: const TextStyle(
+                                          color:
+                                              Color.fromRGBO(158, 158, 158, 1),
+                                          fontSize: 14,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16,
+                                  color: Colors.grey[400],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     );
                   },
-                  child: CircleAvatar(
-                    backgroundColor: _generateRandomColor(name),
-                    backgroundImage: _hasProfilePicture(profileUrl)
-                        ? NetworkImage(profileUrl)
-                        : null,
-                    child: !_hasProfilePicture(profileUrl)
-                        ? Text(
-                            _getInitials(name),
-                            style: const TextStyle(
-                                fontSize: 20, color: Colors.white),
-                          )
-                        : null,
-                  ),
-                ),
-                title: Text(name),
-                onTap: () {
-                  // Navigate to chat page
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChatPageContent(
-                        chatId: _generateChatId(currentUserId, userId),
-                        recipientId: userId,
-                        recipientName: name,
-                        recipientProfileUrl: profileUrl,
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  /// ✅ **Checks if a profile picture exists**
-  bool _hasProfilePicture(String? url) {
-    return url != null && url.isNotEmpty;
-  }
-
-  /// ✅ **Extracted logic to get initials**
-  String _getInitials(String? name) {
-    if (name == null || name.isEmpty) return "?";
-    return name[0].toUpperCase();
-  }
-
-  /// ✅ **Generates a random color based on username**
-  Color _generateRandomColor(String? text) {
-    return Colors.primaries[text!.hashCode.abs() % Colors.primaries.length];
-  }
-
-  /// Generate a unique chat ID for two users
   String _generateChatId(String userId1, String userId2) {
     List<String> ids = [userId1, userId2]..sort();
     return ids.join("_");
