@@ -189,25 +189,10 @@ class PostService {
       if (user == null) return false;
 
       print('Fetching user data for comment...');
-      // Get user data from the correct collection
-      final userDoc =
-          await _firestore.collection(usersCollection).doc(user.uid).get();
-      if (!userDoc.exists) {
-        print('User document does not exist');
-        return false;
-      }
-
-      final userData = userDoc.data() ?? {};
+      final userData = await getUserData(user.uid);
       print('User data fetched: $userData');
 
-      // Get the user's name and avatar from their profile, with fallbacks
-      final userName =
-          (userData['userName'] as String?) ?? user.displayName ?? 'Anonymous';
-      final userAvatar =
-          (userData['profileUrl'] as String?) ?? user.photoURL ?? '';
-
-      print('Creating comment with userName: $userName');
-      // Create the comment with the verified user data
+      // Create the comment with all required fields
       final commentRef = await _firestore
           .collection(postsCollection)
           .doc(postId)
@@ -215,13 +200,13 @@ class PostService {
           .add({
         'text': comment.trim(),
         'userId': user.uid,
-        'userName': userName,
-        'userAvatar': userAvatar,
+        'userName': userData['userName'] ?? 'Anonymous',
+        'userAvatar': userData['profileUrl'] ?? '',
         'timestamp': FieldValue.serverTimestamp(),
       });
 
       if (commentRef.id.isNotEmpty) {
-        print('Comment created successfully with userName: $userName');
+        print('Comment created successfully');
         // Update the comment count
         await _firestore
             .collection(postsCollection)
@@ -240,38 +225,62 @@ class PostService {
   static Future<bool> deleteComment(String postId, String commentId) async {
     try {
       final user = _auth.currentUser;
-      if (user == null) return false;
-
-      final commentDoc = await _firestore
-          .collection(postsCollection)
-          .doc(postId)
-          .collection(commentsCollection)
-          .doc(commentId)
-          .get();
-
-      if (!commentDoc.exists || commentDoc.data()!['userId'] != user.uid) {
-        print(
-            'Cannot delete comment: either comment does not exist or user is not the owner');
+      if (user == null) {
+        print('No authenticated user found');
         return false;
       }
 
-      // First update the count
-      await _firestore
-          .collection(postsCollection)
-          .doc(postId)
-          .update({'commentsCount': FieldValue.increment(-1)});
+      print('Attempting to delete comment...');
+      print('Post ID: $postId');
+      print('Comment ID: $commentId');
+      print('User ID: ${user.uid}');
 
-      // Then delete the comment
-      await _firestore
-          .collection(postsCollection)
-          .doc(postId)
-          .collection(commentsCollection)
-          .doc(commentId)
-          .delete();
+      // Get references
+      final postRef = _firestore.collection(postsCollection).doc(postId);
+      final commentRef = postRef.collection(commentsCollection).doc(commentId);
 
-      return true;
+      // Get comment document first
+      final commentDoc = await commentRef.get();
+      if (!commentDoc.exists) {
+        print('Comment does not exist');
+        return false;
+      }
+
+      final commentData = commentDoc.data()!;
+      print('Comment owner ID: ${commentData['userId']}');
+
+      // If user is comment owner, delete directly
+      if (commentData['userId'] == user.uid) {
+        print('User is comment owner, proceeding with deletion');
+        await commentRef.delete();
+        await postRef.update({'commentsCount': FieldValue.increment(-1)});
+        print('Comment deleted successfully by comment owner');
+        return true;
+      }
+
+      // If not comment owner, check if user is post owner
+      final postDoc = await postRef.get();
+      if (!postDoc.exists) {
+        print('Post does not exist');
+        return false;
+      }
+
+      final postData = postDoc.data()!;
+      print('Post owner ID: ${postData['userId']}');
+
+      if (postData['userId'] == user.uid) {
+        print('User is post owner, proceeding with deletion');
+        await commentRef.delete();
+        await postRef.update({'commentsCount': FieldValue.increment(-1)});
+        print('Comment deleted successfully by post owner');
+        return true;
+      }
+
+      print('User does not have permission to delete this comment');
+      return false;
     } catch (e) {
       print('Error deleting comment: $e');
+      print('Stack trace: ${StackTrace.current}');
       return false;
     }
   }
@@ -280,22 +289,69 @@ class PostService {
   static Future<void> markPostAsViewed(String postId) async {
     try {
       final user = _auth.currentUser;
-      if (user == null) return;
+      if (user == null) {
+        print('Cannot mark post as viewed: No authenticated user');
+        return;
+      }
 
-      await _firestore
-          .collection(usersCollection)
-          .doc(user.uid)
-          .collection(viewedPostsCollection)
-          .doc(postId)
-          .set({
-        'timestamp': FieldValue.serverTimestamp(),
-      });
+      // First ensure the user profile document exists
+      final userProfileRef =
+          _firestore.collection(usersCollection).doc(user.uid);
+
+      try {
+        // Check if the post is already viewed to avoid unnecessary writes
+        final viewedPostRef =
+            userProfileRef.collection(viewedPostsCollection).doc(postId);
+        final viewedDoc = await viewedPostRef.get();
+
+        if (viewedDoc.exists) {
+          print('Post $postId is already marked as viewed');
+          return;
+        }
+
+        // Create the viewed post document with required fields
+        await viewedPostRef.set({
+          'timestamp': FieldValue.serverTimestamp(),
+          'userId': user.uid,
+          'postId': postId,
+        });
+
+        print('Successfully marked post $postId as viewed');
+      } catch (e) {
+        print('Error marking post as viewed: $e');
+        if (e is FirebaseException && e.code == 'permission-denied') {
+          // Create user profile if it doesn't exist and try again
+          await userProfileRef.set({
+            'userId': user.uid,
+            'createdAt': FieldValue.serverTimestamp(),
+            'userName': user.displayName ?? 'Anonymous',
+            'email': user.email ?? '',
+            'profileUrl': user.photoURL ?? '',
+          }, SetOptions(merge: true));
+
+          // Try marking as viewed again
+          await userProfileRef
+              .collection(viewedPostsCollection)
+              .doc(postId)
+              .set({
+            'timestamp': FieldValue.serverTimestamp(),
+            'userId': user.uid,
+            'postId': postId,
+          });
+          print(
+              'Successfully marked post $postId as viewed after creating profile');
+        } else {
+          rethrow;
+        }
+      }
     } catch (e) {
       print('Error marking post as viewed: $e');
+      print('Stack trace: ${StackTrace.current}');
+      // Don't rethrow - silently fail for viewed posts as it's not critical
     }
   }
 
-  // Get viewed post IDs
+  // Get viewed post IDs with error handling
   static Future<List<String>> getViewedPostIds() async {
     try {
       final user = _auth.currentUser;
@@ -305,6 +361,8 @@ class PostService {
           .collection(usersCollection)
           .doc(user.uid)
           .collection(viewedPostsCollection)
+          .orderBy('timestamp', descending: true)
+          .limit(1000)
           .get();
 
       return snapshot.docs.map((doc) => doc.id).toList();
@@ -314,7 +372,31 @@ class PostService {
     }
   }
 
-  // Get post stream
+  // Clear viewed posts history
+  static Future<void> clearViewedPosts() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      final batch = _firestore.batch();
+      final snapshot = await _firestore
+          .collection(usersCollection)
+          .doc(user.uid)
+          .collection(viewedPostsCollection)
+          .limit(500) // Process in batches of 500
+          .get();
+
+      for (var doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+
+      await batch.commit();
+    } catch (e) {
+      print('Error clearing viewed posts: $e');
+    }
+  }
+
+  // Get post stream with error handling
   static Stream<QuerySnapshot> getPostsStream({String? tab}) {
     final user = _auth.currentUser;
     if (user == null) {
@@ -325,59 +407,63 @@ class PostService {
     }
 
     if (tab == "Following") {
-      // Get the user's following list and fetch posts from those users
       return Stream.periodic(const Duration(seconds: 1)).asyncMap((_) async {
-        final userDoc =
-            await _firestore.collection(usersCollection).doc(user.uid).get();
+        try {
+          final userDoc =
+              await _firestore.collection(usersCollection).doc(user.uid).get();
 
-        if (!userDoc.exists) {
+          if (!userDoc.exists) {
+            return await _firestore
+                .collection(postsCollection)
+                .where('userId', isEqualTo: user.uid)
+                .orderBy('createdAt', descending: true)
+                .get();
+          }
+
+          List<String> following =
+              List<String>.from(userDoc.data()?['following'] ?? []);
+          following.add(user.uid);
+
+          return await _firestore
+              .collection(postsCollection)
+              .where('userId', whereIn: following)
+              .orderBy('createdAt', descending: true)
+              .get();
+        } catch (e) {
+          print('Error getting following posts: $e');
+          // Return empty snapshot on error
           return await _firestore
               .collection(postsCollection)
               .where('userId', isEqualTo: user.uid)
-              .orderBy('createdAt', descending: true)
+              .limit(1)
               .get();
         }
-
-        List<String> following =
-            List<String>.from(userDoc.data()?['following'] ?? []);
-        following.add(user.uid); // Include user's own posts
-
-        return await _firestore
-            .collection(postsCollection)
-            .where('userId', whereIn: following)
-            .orderBy('createdAt', descending: true)
-            .get();
       });
     }
 
-    // For Discover tab, first get viewed posts
+    // For Discover tab, show most liked posts that haven't been viewed
     return Stream.periodic(const Duration(seconds: 1)).asyncMap((_) async {
-      final viewedPosts = await getViewedPostIds();
+      try {
+        // Get viewed post IDs
+        final viewedPosts = await getViewedPostIds();
 
-      // Get posts sorted by likes
-      final query = _firestore
-          .collection(postsCollection)
-          .orderBy('likesCount', descending: true)
-          .limit(100);
-
-      final snapshot = await query.get();
-
-      // If we have viewed posts, filter them out
-      if (viewedPosts.isNotEmpty) {
-        return await _firestore
+        // Get posts ordered by likes
+        var query = _firestore
             .collection(postsCollection)
-            .where(FieldPath.documentId, whereNotIn: viewedPosts)
             .orderBy('likesCount', descending: true)
-            .limit(50)
-            .get();
-      }
+            .limit(50);
 
-      // If no viewed posts, just return top 50
-      return await _firestore
-          .collection(postsCollection)
-          .orderBy('likesCount', descending: true)
-          .limit(50)
-          .get();
+        // Only apply whereNotIn filter if we have viewed posts
+        if (viewedPosts.isNotEmpty) {
+          query = query.where(FieldPath.documentId, whereNotIn: viewedPosts);
+        }
+
+        return await query.get();
+      } catch (e) {
+        print('Error getting discover posts: $e');
+        // Return empty snapshot on error
+        return await _firestore.collection(postsCollection).limit(1).get();
+      }
     });
   }
 

@@ -9,6 +9,9 @@ import 'package:velora/data/sources/post_service.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/screens/3News/search_view.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
+import 'package:delightful_toast/delight_toast.dart';
+import 'package:delightful_toast/toast/components/toast_card.dart';
+import 'package:delightful_toast/toast/utils/enums.dart';
 
 class NewsFeedPageContent extends StatefulWidget {
   const NewsFeedPageContent({super.key});
@@ -433,10 +436,16 @@ class NewsFeedList extends StatelessWidget {
 
         // Sort and filter posts based on tab
         if (tab == "Discover") {
-          // Mark posts as viewed when they appear in the feed
-          for (var post in posts) {
-            PostService.markPostAsViewed(post.id);
-          }
+          // Mark posts as viewed when they are rendered
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            for (var post in posts) {
+              PostService.markPostAsViewed(post.id).then((_) {
+                print('Successfully marked post ${post.id} as viewed');
+              }).catchError((error) {
+                print('Error marking post ${post.id} as viewed: $error');
+              });
+            }
+          });
         }
 
         return ListView.builder(
@@ -461,8 +470,8 @@ class _RideFeedItemState extends State<RideFeedItem> {
   bool isLiked = false;
   final user = FirebaseAuth.instance.currentUser;
   bool _showComments = false;
-  final TextEditingController _commentController = TextEditingController();
   Map<String, dynamic>? authorData;
+  final TextEditingController _commentController = TextEditingController();
 
   @override
   void initState() {
@@ -470,6 +479,12 @@ class _RideFeedItemState extends State<RideFeedItem> {
     postId = widget.ride.id;
     _checkIfLiked();
     _loadAuthorData();
+  }
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadAuthorData() async {
@@ -505,26 +520,19 @@ class _RideFeedItemState extends State<RideFeedItem> {
   Future<void> _deletePost() async {
     final success = await PostService.deletePost(postId);
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Post deleted successfully')),
-      );
+      DelightToastBar(
+        builder: (context) {
+          return const ToastCard(
+            title: Text('Post deleted successfully'),
+            leading: Icon(Icons.check_circle, color: Colors.green),
+          );
+        },
+        position: DelightSnackbarPosition.top,
+        autoDismiss: true,
+        snackbarDuration: const Duration(seconds: 2),
+        animationDuration: const Duration(milliseconds: 300),
+      ).show(context);
     }
-  }
-
-  Future<void> _addComment() async {
-    if (_commentController.text.trim().isEmpty) return;
-
-    final success =
-        await PostService.addComment(postId, _commentController.text);
-    if (success) {
-      _commentController.clear();
-      if (mounted) setState(() {});
-    }
-  }
-
-  Future<void> _deleteComment(String commentId) async {
-    final success = await PostService.deleteComment(postId, commentId);
-    if (success && mounted) setState(() {});
   }
 
   @override
@@ -709,11 +717,6 @@ class _RideFeedItemState extends State<RideFeedItem> {
                     onTap: _toggleLike,
                   ),
                 ),
-                if (userId == user?.uid)
-                  IconButton(
-                    icon: const Icon(Icons.more_vert),
-                    onPressed: () => _showPostOptions(context),
-                  ),
                 Expanded(
                   child: _buildActionButton(
                     icon: Icons.comment_outlined,
@@ -742,7 +745,13 @@ class _RideFeedItemState extends State<RideFeedItem> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.send),
-                      onPressed: _addComment,
+                      onPressed: () async {
+                        if (_commentController.text.trim().isEmpty) return;
+
+                        final success = await PostService.addComment(
+                            postId, _commentController.text);
+                        _commentController.clear(); // Clear the text field
+                      },
                       color: AppColors.primary,
                     ),
                   ],
@@ -829,9 +838,18 @@ class _RideFeedItemState extends State<RideFeedItem> {
                 final success = await PostService.updatePost(
                     postId, contentController.text.trim());
                 if (success && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Post updated successfully')),
-                  );
+                  DelightToastBar(
+                    builder: (context) {
+                      return const ToastCard(
+                        title: Text('Post updated successfully'),
+                        leading: Icon(Icons.check_circle, color: Colors.green),
+                      );
+                    },
+                    position: DelightSnackbarPosition.top,
+                    autoDismiss: true,
+                    snackbarDuration: const Duration(seconds: 2),
+                    animationDuration: const Duration(milliseconds: 300),
+                  ).show(context);
                 }
               }
             },
@@ -859,17 +877,18 @@ class _RideFeedItemState extends State<RideFeedItem> {
       return 'Just now';
     }
   }
+
+  Future<void> _deleteComment(String commentId) async {
+    final success = await PostService.deleteComment(postId, commentId);
+  }
 }
 
 class CommentsSection extends StatefulWidget {
   final String postId;
   final Function(String) onDeleteComment;
 
-  const CommentsSection({
-    required this.postId,
-    required this.onDeleteComment,
-    super.key,
-  });
+  const CommentsSection(
+      {required this.postId, required this.onDeleteComment, super.key});
 
   @override
   State<CommentsSection> createState() => _CommentsSectionState();
@@ -921,10 +940,16 @@ class _CommentsSectionState extends State<CommentsSection> {
 
         final comments = snapshot.data!.docs.toList()
           ..sort((a, b) {
-            final aTimestamp =
-                (a.data() as Map<String, dynamic>)['timestamp'] as Timestamp;
-            final bTimestamp =
-                (b.data() as Map<String, dynamic>)['timestamp'] as Timestamp;
+            final aData = a.data() as Map<String, dynamic>;
+            final bData = b.data() as Map<String, dynamic>;
+
+            final aTimestamp = aData['timestamp'] as Timestamp?;
+            final bTimestamp = bData['timestamp'] as Timestamp?;
+
+            // If either timestamp is null, put it at the end
+            if (aTimestamp == null) return 1;
+            if (bTimestamp == null) return -1;
+
             return bTimestamp.compareTo(aTimestamp); // Sort newest first
           });
 
@@ -1006,8 +1031,11 @@ class _CommentsSectionState extends State<CommentsSection> {
                           ? IconButton(
                               icon: const Icon(Icons.delete_outline,
                                   color: Colors.red),
-                              onPressed: () =>
-                                  widget.onDeleteComment(comment.id),
+                              onPressed: () => _confirmDeleteComment(
+                                context,
+                                comment.id,
+                                data['text'] ?? '',
+                              ),
                             )
                           : null,
                     ),
@@ -1037,6 +1065,57 @@ class _CommentsSectionState extends State<CommentsSection> {
       return '${difference.inMinutes}m ago';
     } else {
       return 'Just now';
+    }
+  }
+
+  // Show confirmation dialog before deleting comment
+  Future<void> _confirmDeleteComment(
+      BuildContext context, String commentId, String commentText) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Delete Comment?', style: AppFonts.bold),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Are you sure you want to delete this comment?',
+                  style: AppFonts.regular),
+              const SizedBox(height: 8),
+              Text(
+                commentText,
+                style: AppFonts.regular.copyWith(
+                  color: Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(
+                'Cancel',
+                style: AppFonts.medium.copyWith(color: Colors.grey),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(
+                'Delete',
+                style: AppFonts.medium.copyWith(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      await widget.onDeleteComment(commentId);
     }
   }
 }
