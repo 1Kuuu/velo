@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
+import 'package:provider/provider.dart';
+import 'package:velora/core/configs/theme/theme_provider.dart';
 
 // Event model to store event data
 class Event {
   final String title;
   final String description;
-  final DateTime date; // The date associated with the event
+  final DateTime date;
   final TimeOfDay startTime;
   final TimeOfDay endTime;
   final bool isAllDay;
   final String repeatStatus;
   final Color color;
-  final String id; // Add an ID to uniquely identify each event
+  final String id;
+  final String userId;
 
   Event({
     required this.title,
@@ -24,7 +29,57 @@ class Event {
     required this.repeatStatus,
     required this.color,
     required this.id,
+    required this.userId,
   });
+
+  // Convert TimeOfDay to Map
+  Map<String, int> _timeOfDayToMap(TimeOfDay time) {
+    return {
+      'hour': time.hour,
+      'minute': time.minute,
+    };
+  }
+
+  // Convert Map to TimeOfDay
+  static TimeOfDay _timeOfDayFromMap(Map<String, dynamic> map) {
+    return TimeOfDay(
+      hour: map['hour'] as int,
+      minute: map['minute'] as int,
+    );
+  }
+
+  // Convert to Firestore document
+  Map<String, dynamic> toFirestore() {
+    return {
+      'title': title,
+      'description': description,
+      'date': Timestamp.fromDate(date),
+      'startTime': _timeOfDayToMap(startTime),
+      'endTime': _timeOfDayToMap(endTime),
+      'isAllDay': isAllDay,
+      'repeatStatus': repeatStatus,
+      'color': color.value,
+      'userId': userId,
+    };
+  }
+
+  // Create Event from Firestore document
+  static Event fromFirestore(DocumentSnapshot doc) {
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    return Event(
+      id: doc.id,
+      title: data['title'] ?? '',
+      description: data['description'] ?? '',
+      date: (data['date'] as Timestamp).toDate(),
+      startTime:
+          _timeOfDayFromMap(Map<String, dynamic>.from(data['startTime'])),
+      endTime: _timeOfDayFromMap(Map<String, dynamic>.from(data['endTime'])),
+      isAllDay: data['isAllDay'] ?? false,
+      repeatStatus: data['repeatStatus'] ?? 'None',
+      color: Color(data['color'] as int),
+      userId: data['userId'] ?? '',
+    );
+  }
 
   // Create a copy of the event with updated fields
   Event copyWith({
@@ -36,6 +91,7 @@ class Event {
     bool? isAllDay,
     String? repeatStatus,
     Color? color,
+    String? userId,
   }) {
     return Event(
       id: id,
@@ -47,6 +103,7 @@ class Event {
       isAllDay: isAllDay ?? this.isAllDay,
       repeatStatus: repeatStatus ?? this.repeatStatus,
       color: color ?? this.color,
+      userId: userId ?? this.userId,
     );
   }
 }
@@ -66,29 +123,29 @@ class EventModalHelper {
   static void showNewEventModal(
     BuildContext context, {
     Event? existingEvent,
-    required DateTime selectedDate,
+    DateTime? selectedDate,
     required Function(Event) onEventCreated,
     required Function(Event) onEventUpdated,
   }) {
-    // If editing an existing event, use its values, otherwise use defaults
-    DateTime? eventDate = existingEvent?.date ?? selectedDate;
+    final titleController =
+        TextEditingController(text: existingEvent?.title ?? "");
+    final descriptionController =
+        TextEditingController(text: existingEvent?.description ?? "");
+    TimeOfDay startTime =
+        existingEvent?.startTime ?? const TimeOfDay(hour: 9, minute: 0);
+    TimeOfDay endTime =
+        existingEvent?.endTime ?? const TimeOfDay(hour: 10, minute: 0);
+    DateTime? eventDate = selectedDate ?? existingEvent?.date ?? DateTime.now();
     bool isAllDay = existingEvent?.isAllDay ?? false;
     String repeatStatus = existingEvent?.repeatStatus ?? "None";
-    TimeOfDay startTime = existingEvent?.startTime ?? TimeOfDay.now();
-    TimeOfDay endTime = existingEvent?.endTime ??
-        TimeOfDay(
-            hour: TimeOfDay.now().hour + 1, minute: TimeOfDay.now().minute);
-    Color selectedColor = existingEvent?.color ?? Colors.blue; // Default color
-
-    // Controllers for text fields
-    final TextEditingController titleController =
-        TextEditingController(text: existingEvent?.title ?? "");
-    final TextEditingController descriptionController =
-        TextEditingController(text: existingEvent?.description ?? "");
+    Color selectedColor = existingEvent?.color ?? Colors.blue;
+    final isDarkMode =
+        Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -118,8 +175,11 @@ class EventModalHelper {
                         ),
                         Text(
                           existingEvent != null ? "Edit Task" : "New Task",
-                          style: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                          ),
                         ),
                         TextButton(
                           onPressed: () {
@@ -135,7 +195,7 @@ class EventModalHelper {
                                 endTime: endTime,
                                 isAllDay: isAllDay,
                                 repeatStatus: repeatStatus,
-                                color: selectedColor, // Use the selected color
+                                color: selectedColor,
                               );
 
                               onEventUpdated(updatedEvent);
@@ -144,7 +204,7 @@ class EventModalHelper {
                               final newEvent = Event(
                                 id: DateTime.now()
                                     .millisecondsSinceEpoch
-                                    .toString(), // Generate a unique ID
+                                    .toString(),
                                 title: titleController.text.isEmpty
                                     ? "Untitled Task"
                                     : titleController.text,
@@ -154,7 +214,8 @@ class EventModalHelper {
                                 endTime: endTime,
                                 isAllDay: isAllDay,
                                 repeatStatus: repeatStatus,
-                                color: selectedColor, // Use the selected color
+                                color: selectedColor,
+                                userId: FirebaseAuth.instance.currentUser!.uid,
                               );
 
                               onEventCreated(newEvent);
@@ -171,9 +232,35 @@ class EventModalHelper {
                     // Event Title Input
                     TextField(
                       controller: titleController,
-                      decoration: const InputDecoration(
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                      decoration: InputDecoration(
                         hintText: "Enter event title",
-                        border: OutlineInputBorder(),
+                        hintStyle: TextStyle(
+                          color: isDarkMode ? Colors.white38 : Colors.grey,
+                        ),
+                        border: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: isDarkMode
+                                ? Colors.white24
+                                : Colors.grey.shade300,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: isDarkMode
+                                ? Colors.white24
+                                : Colors.grey.shade300,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: isDarkMode
+                                ? Colors.white38
+                                : Colors.grey.shade400,
+                          ),
+                        ),
                       ),
                     ),
 
@@ -183,7 +270,9 @@ class EventModalHelper {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.grey[300],
+                        color: isDarkMode
+                            ? const Color(0xFF2D2D2D)
+                            : Colors.grey[300],
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Column(
@@ -205,8 +294,14 @@ class EventModalHelper {
                                     });
                                   }
                                 },
+                                isDarkMode: isDarkMode,
                               ),
-                              const Icon(Icons.arrow_right_alt),
+                              Icon(
+                                Icons.arrow_right_alt,
+                                color: isDarkMode
+                                    ? Colors.white70
+                                    : Colors.black54,
+                              ),
                               _buildTimeButton(
                                 endTime.format(context),
                                 onTap: () async {
@@ -220,6 +315,7 @@ class EventModalHelper {
                                     });
                                   }
                                 },
+                                isDarkMode: isDarkMode,
                               ),
                             ],
                           ),
@@ -236,6 +332,7 @@ class EventModalHelper {
                               icon: Icons.calendar_today,
                               text:
                                   DateFormat('EEEE, MMMM d').format(eventDate!),
+                              isDarkMode: isDarkMode,
                             ),
                           ),
 
@@ -249,6 +346,7 @@ class EventModalHelper {
                                 isAllDay = val;
                               });
                             },
+                            isDarkMode: isDarkMode,
                           ),
 
                           // Repeat Dropdown
@@ -262,6 +360,7 @@ class EventModalHelper {
                                 });
                               }
                             },
+                            isDarkMode: isDarkMode,
                           ),
                         ],
                       ),
@@ -273,13 +372,21 @@ class EventModalHelper {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.grey[300],
+                        color: isDarkMode
+                            ? const Color(0xFF2D2D2D)
+                            : Colors.grey[300],
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: TextField(
                         controller: descriptionController,
-                        decoration: const InputDecoration(
+                        style: TextStyle(
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                        decoration: InputDecoration(
                           hintText: "Description",
+                          hintStyle: TextStyle(
+                            color: isDarkMode ? Colors.white38 : Colors.grey,
+                          ),
                           border: InputBorder.none,
                         ),
                         maxLines: 3,
@@ -292,16 +399,21 @@ class EventModalHelper {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.grey[300],
+                        color: isDarkMode
+                            ? const Color(0xFF2D2D2D)
+                            : Colors.grey[300],
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             "Select Task Color",
                             style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: isDarkMode ? Colors.white : Colors.black87,
+                            ),
                           ),
                           const SizedBox(height: 10),
                           Wrap(
@@ -387,30 +499,54 @@ class EventModalHelper {
   }
 
   // Helper widgets for the modal
-  static Widget _buildTimeButton(String time, {required VoidCallback onTap}) {
+  static Widget _buildTimeButton(String time,
+      {required VoidCallback onTap, required bool isDarkMode}) {
     return ElevatedButton(
       onPressed: onTap,
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white,
+        backgroundColor: isDarkMode ? const Color(0xFF3D3D3D) : Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       ),
       child: Row(
         children: [
-          const Icon(Icons.access_time, color: Colors.black),
+          Icon(
+            Icons.access_time,
+            color: isDarkMode ? Colors.white : Colors.black,
+          ),
           const SizedBox(width: 5),
-          Text(time, style: const TextStyle(color: Colors.black)),
+          Text(
+            time,
+            style: TextStyle(
+              color: isDarkMode ? Colors.white : Colors.black,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  static Widget _buildTile(
-      {required IconData icon, required String text, VoidCallback? onTap}) {
+  static Widget _buildTile({
+    required IconData icon,
+    required String text,
+    required bool isDarkMode,
+    VoidCallback? onTap,
+  }) {
     return ListTile(
-      leading: Icon(icon),
-      title: Text(text),
+      leading: Icon(
+        icon,
+        color: isDarkMode ? Colors.white70 : Colors.black54,
+      ),
+      title: Text(
+        text,
+        style: TextStyle(
+          color: isDarkMode ? Colors.white : Colors.black87,
+        ),
+      ),
       onTap: onTap,
-      trailing: const Icon(Icons.arrow_drop_down),
+      trailing: Icon(
+        Icons.arrow_drop_down,
+        color: isDarkMode ? Colors.white70 : Colors.black54,
+      ),
     );
   }
 
@@ -419,12 +555,21 @@ class EventModalHelper {
     required String text,
     required bool value,
     required Function(bool) onChanged,
+    required bool isDarkMode,
   }) {
     return SwitchListTile(
-      title: Text(text),
+      title: Text(
+        text,
+        style: TextStyle(
+          color: isDarkMode ? Colors.white : Colors.black87,
+        ),
+      ),
       value: value,
       onChanged: onChanged,
-      secondary: Icon(icon),
+      secondary: Icon(
+        icon,
+        color: isDarkMode ? Colors.white70 : Colors.black54,
+      ),
     );
   }
 
@@ -432,19 +577,29 @@ class EventModalHelper {
     required IconData icon,
     required String selectedValue,
     required Function(String?) onChanged,
+    required bool isDarkMode,
   }) {
     return ListTile(
-      leading: Icon(icon),
+      leading: Icon(
+        icon,
+        color: isDarkMode ? Colors.white70 : Colors.black54,
+      ),
       title: DropdownButton(
         value: selectedValue,
         items: ["None", "Daily", "Weekly", "Monthly"].map((String value) {
           return DropdownMenuItem(
             value: value,
-            child: Text(value),
+            child: Text(
+              value,
+              style: TextStyle(
+                color: isDarkMode ? Colors.white : Colors.black87,
+              ),
+            ),
           );
         }).toList(),
         onChanged: onChanged,
         underline: const SizedBox(),
+        dropdownColor: isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
       ),
     );
   }

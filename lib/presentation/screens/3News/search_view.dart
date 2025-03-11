@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart' show MyAppBar;
+import 'package:velora/presentation/screens/0Auth/profile.dart';
 
 class SearchView extends StatefulWidget {
   const SearchView({super.key});
@@ -18,33 +19,31 @@ class _SearchViewState extends State<SearchView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: MyAppBar(
-        title: '',
-        automaticallyImplyLeading: true, // Enables default back button
+        title: 'Search',
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 10, left: 10),
+            padding: const EdgeInsets.only(right: 40, left: 10),
             child: SizedBox(
-              width: MediaQuery.of(context).size.width * 0.85,
+              width: MediaQuery.of(context).size.width * 0.75,
               child: TextField(
                 onChanged: (value) {
                   setState(() {
                     searchName = value.toLowerCase();
                   });
                 },
-                style: TextStyle(
-                    color: Colors.white), // 🔹 Set text color to white
+                style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide.none,
                   ),
                   contentPadding:
-                      EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                   filled: true,
-                  fillColor: Color.fromARGB(255, 39, 39, 39),
+                  fillColor: const Color.fromARGB(255, 39, 39, 39),
                   hintText: 'Search users...',
-                  hintStyle: TextStyle(color: Colors.grey),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey),
+                  hintStyle: const TextStyle(color: Colors.grey),
+                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 ),
               ),
             ),
@@ -96,8 +95,8 @@ class _SearchViewState extends State<SearchView> {
   }
 
   /// 🔹 Extracted method for rendering each user tile
-  /// 🔹 Extracted method for rendering each user tile
   Widget _buildUserTile(Map<String, dynamic> data) {
+    final theme = Theme.of(context);
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: _generateRandomColor(data['userName']),
@@ -112,9 +111,18 @@ class _SearchViewState extends State<SearchView> {
             : null,
       ),
       title: Text(data['userName'] ?? "Unknown User",
-          style: const TextStyle(color: Colors.black)),
+          style: TextStyle(color: theme.colorScheme.onSurface)),
       subtitle: Text(data['email'] ?? "No email available",
-          style: const TextStyle(color: Colors.grey)),
+          style:
+              TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7))),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProfilePage(userId: data['uid']),
+          ),
+        );
+      },
     );
   }
 

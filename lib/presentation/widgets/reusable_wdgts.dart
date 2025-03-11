@@ -9,6 +9,8 @@ import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 import 'package:http/http.dart' as http;
 import 'package:velora/presentation/screens/0Auth/profile.dart';
+import 'package:provider/provider.dart';
+import 'package:velora/core/configs/theme/theme_provider.dart';
 
 // ---------------------- BUTTON ----------------------
 class CustomButton extends StatelessWidget {
@@ -254,87 +256,59 @@ class AccountNavigationRow extends StatelessWidget {
 // ---------------------- APP BAR ----------------------
 class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
-  final VoidCallback? onWeatherTap;
-  final VoidCallback? onNotificationTap;
-  final VoidCallback? onProfileTap;
-  final bool hasWeatherAlert;
-  final List<Widget>? actions; // Accept custom actions
-  final bool automaticallyImplyLeading; // Added this parameter
+  final List<Widget>? actions;
 
   const MyAppBar({
     super.key,
     required this.title,
-    this.onWeatherTap,
-    this.onNotificationTap,
-    this.onProfileTap,
-    this.hasWeatherAlert = false,
-    this.actions, // Accept a list of action widgets
-    this.automaticallyImplyLeading = true, // Default to true
+    this.actions,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
 
     return AppBar(
-      backgroundColor: theme.primaryColor,
+      backgroundColor: isDarkMode ? const Color(0xFF4A3B7C) : AppColors.primary,
       elevation: 0,
-      automaticallyImplyLeading: automaticallyImplyLeading, // Apply it here
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          bottom: Radius.circular(30),
+        ),
+      ),
       title: Text(
         title,
-        style: theme.textTheme.titleLarge?.copyWith(
-          color: theme.colorScheme.onPrimary,
+        style: const TextStyle(
+          color: Colors.white,
           fontWeight: FontWeight.bold,
         ),
       ),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(18), // Adjust curve radius as needed
-        ),
-      ),
-      actions: actions ?? [], // Ensure actions are properly set
+      actions: actions,
     );
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(67.0);
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
 
 // ---------------------- APP BAR ICON ----------------------
 class AppBarIcon extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-  final bool showBadge;
 
   const AppBarIcon({
     super.key,
     required this.icon,
     required this.onTap,
-    this.showBadge = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        IconButton(
-          icon: Icon(icon, color: Colors.white), // Ensure icon color is visible
-          onPressed: onTap,
-        ),
-        if (showBadge)
-          Positioned(
-            top: 8,
-            right: 8,
-            child: Container(
-              width: 8,
-              height: 8,
-              decoration: const BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-      ],
+    return IconButton(
+      icon: Icon(icon),
+      color: Colors.white,
+      onPressed: onTap,
     );
   }
 }
@@ -343,35 +317,37 @@ class AppBarIcon extends StatelessWidget {
 class AnimatedBottomBarButton extends StatelessWidget {
   final Widget body;
   final int selectedIndex;
-  final ValueChanged<int>? onItemTapped; // Callback for tab change
+  final Function(int) onItemTapped;
 
   const AnimatedBottomBarButton({
     super.key,
     required this.body,
     required this.selectedIndex,
-    this.onItemTapped,
+    required this.onItemTapped,
   });
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return Scaffold(
       body: body,
       bottomNavigationBar: CurvedNavigationBar(
-        backgroundColor: Colors.white,
-        color: AppColors.primary,
-        animationCurve: Curves.easeOut,
-        maxWidth: 450,
+        backgroundColor: Colors.transparent,
+        color: isDarkMode ? const Color(0xFF4A3B7C) : AppColors.primary,
+        buttonBackgroundColor:
+            isDarkMode ? const Color(0xFF4A3B7C) : AppColors.primary,
         height: 60,
-        animationDuration: const Duration(milliseconds: 600),
         index: selectedIndex,
-        items: const [
-          Icon(Icons.home, color: Colors.white),
-          Icon(Icons.work, color: Colors.white),
-          Icon(Icons.calendar_today, color: Colors.white),
+        onTap: onItemTapped,
+        items: [
+          Icon(Icons.home_outlined, color: Colors.white),
+          Icon(Icons.build_outlined, color: Colors.white),
+          Icon(Icons.newspaper_outlined, color: Colors.white),
           Icon(Icons.chat_bubble_outline, color: Colors.white),
-          Icon(Icons.settings, color: Colors.white),
+          Icon(Icons.settings_outlined, color: Colors.white),
         ],
-        onTap: onItemTapped, // Use callback to update state
       ),
     );
   }
@@ -396,19 +372,53 @@ class TheFloatingActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 3),
-      child: FloatingActionButton(
-        heroTag: heroTag ?? (svgAsset ?? icon.toString()),
-        onPressed: onPressed,
-        backgroundColor: backgroundColor,
-        child: svgAsset != null
-            ? SvgPicture.asset(
-                svgAsset!,
-                width: 40,
-                height: 40,
-              )
-            : Icon(icon, size: 1, color: Colors.white),
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: isDarkMode
+              ? const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF6B4C9E), Color(0xFF4A3B7C)],
+                  stops: [0.2, 0.8],
+                )
+              : null,
+          boxShadow: [
+            BoxShadow(
+              color: isDarkMode
+                  ? const Color(0xFF4A3B7C).withOpacity(0.5)
+                  : Colors.black.withOpacity(0.2),
+              spreadRadius: 2,
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          heroTag: heroTag ?? (svgAsset ?? icon.toString()),
+          onPressed: onPressed,
+          backgroundColor: isDarkMode ? Colors.transparent : AppColors.primary,
+          elevation: isDarkMode ? 0 : 6,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+          child: svgAsset != null
+              ? SvgPicture.asset(
+                  svgAsset!,
+                  width: 40,
+                  height: 40,
+                )
+              : Icon(
+                  icon,
+                  size: 24,
+                  color: Colors.white,
+                ),
+        ),
       ),
     );
   }
@@ -459,6 +469,8 @@ class _CustomDatePickerState extends State<CustomDatePicker> {
   }
 
   void _pickDate(BuildContext context) {
+    final isDarkMode =
+        Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -519,7 +531,7 @@ class _CustomDatePickerState extends State<CustomDatePicker> {
                     child: Text(
                       "Today",
                       style: TextStyle(
-                        color: AppColors.primary,
+                        color: isDarkMode ? Colors.white70 : Colors.black87,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -698,24 +710,23 @@ class MessageBubble extends StatelessWidget {
                           color: isMe ? Colors.white : Colors.black,
                         ),
                       ),
-                      if (timestamp != null)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _formatTimestamp(timestamp),
-                              style: AppFonts.light.copyWith(
-                                fontSize: 10,
-                                color: isMe ? Colors.white70 : Colors.grey[600],
-                              ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _formatTimestamp(timestamp!),
+                            style: AppFonts.light.copyWith(
+                              fontSize: 10,
+                              color: isMe ? Colors.white70 : Colors.grey[600],
                             ),
-                            if (isMe)
-                              Padding(
-                                padding: const EdgeInsets.only(left: 4),
-                                child: _buildStatusIndicator(status),
-                              ),
-                          ],
-                        ),
+                          ),
+                          if (isMe)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 4),
+                              child: _buildStatusIndicator(status),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -730,9 +741,9 @@ class MessageBubble extends StatelessWidget {
   Widget _buildStatusIndicator(String status) {
     switch (status) {
       case 'sent':
-        return Icon(Icons.check, size: 14, color: Colors.white);
+        return Icon(Icons.check, size: 14, color: Colors.grey);
       case 'delivered':
-        return Icon(Icons.done_all, size: 14, color: Colors.white);
+        return Icon(Icons.done_all, size: 14, color: Colors.grey);
       case 'seen':
         return Icon(Icons.done_all, size: 14, color: Colors.white);
       default:
@@ -849,5 +860,185 @@ class MessageInputField extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+// USED IN TOOLBOX
+class BikeSelectionDialog extends StatelessWidget {
+  final Function(String) onBikeSelected;
+
+  const BikeSelectionDialog({super.key, required this.onBikeSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Colors.grey[800],
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      content: SingleChildScrollView(
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+          ),
+          width: 535,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildBikeOption(context, 'ROAD BIKE',
+                  'assets/images/roadbike.png', 'ROADBIKE'),
+              _buildBikeOption(context, 'MOUNTAIN BIKE',
+                  'assets/images/mountainbike.png', 'MOUNTAINBIKE'),
+              _buildBikeOption(
+                  context, 'FIXIE', 'assets/images/fixie.png', 'FIXIE'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBikeOption(
+      BuildContext context, String title, String imagePath, String bikeType) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).pop();
+        onBikeSelected(bikeType);
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.only(left: 20, top: 10),
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            SizedBox(height: 5),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.asset(
+                imagePath,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Add this to reusable_wdgts.dart
+class BikePartsGrid extends StatelessWidget {
+  final List<String> titles;
+  final List<String> images;
+  final Function(int) onPartTap;
+
+  const BikePartsGrid({
+    super.key,
+    required this.titles,
+    required this.images,
+    required this.onPartTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      padding: EdgeInsets.all(8),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 14,
+        childAspectRatio: 1.2,
+      ),
+      itemCount: titles.length,
+      itemBuilder: (context, index) {
+        return InkWell(
+          onTap: () => onPartTap(index),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.brown, width: 2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(images[index], height: 60),
+                SizedBox(height: 6),
+                Text(
+                  titles[index],
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Add this to reusable_wdgts.dart
+class BikeUtils {
+  static List<String> getTitles(String selectedBike) {
+    if (selectedBike.toLowerCase() == 'roadbike') {
+      return ['HANDLE', 'WHEELS', 'FRAME', 'SADDLE', 'CRANK', 'SHIFTER'];
+    } else if (selectedBike.toLowerCase() == 'mountainbike') {
+      return ['HANDLE', 'WHEELS', 'FRAME', 'SADDLE', 'CRANK', 'SHIFTER'];
+    } else if (selectedBike.toLowerCase() == 'fixie') {
+      return ['HANDLE', 'WHEELS', 'FRAME', 'SADDLE', 'CRANK', 'BRAKE'];
+    }
+    return [
+      'HANDLE',
+      'WHEELS',
+      'FRAME',
+      'SADDLE',
+      'CRANK',
+      'SHIFTER'
+    ]; // Default
+  }
+
+  static List<String> getImages(String selectedBike) {
+    String prefix = '';
+    if (selectedBike.toLowerCase() == 'roadbike') {
+      prefix = 'rd';
+    } else if (selectedBike.toLowerCase() == 'mountainbike') {
+      prefix = 'mb';
+    } else if (selectedBike.toLowerCase() == 'fixie') {
+      prefix = 'fx';
+    } else {
+      prefix = 'rd'; // Default
+    }
+
+    List<String> parts = getTitles(selectedBike);
+    List<String> images = parts.map((part) {
+      if (part == 'BRAKE') {
+        return 'assets/images/$prefix-Break.png';
+      }
+      return 'assets/images/$prefix-${part.capitalize()}.png';
+    }).toList();
+
+    return images;
+  }
+}
+
+extension StringExtension on String {
+  String capitalize() {
+    if (this.isEmpty) return this;
+    return "${this[0].toUpperCase()}${this.substring(1).toLowerCase()}";
   }
 }
