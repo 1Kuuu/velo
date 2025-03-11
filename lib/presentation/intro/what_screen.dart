@@ -18,24 +18,11 @@ class _WhatScreenState extends State<WhatScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   void _selectBike(String bikeType) async {
-    if (selectedBike == bikeType) {
-      // Deselect if tapping the same bike
-      setState(() {
-        selectedBike = null;
-      });
-      return;
-    }
-
     setState(() {
       selectedBike = bikeType;
     });
 
     try {
-      if (selectedBike == null) {
-        _showToast("Please select a bike type", true);
-        return;
-      }
-
       // Store selection in Firebase
       await _firestore
           .collection('user_preferences')
@@ -43,6 +30,23 @@ class _WhatScreenState extends State<WhatScreen> {
           .set({
         'bike_type': bikeType,
       }, SetOptions(merge: true));
+
+      // 🎉 Show success toast
+      if (mounted) {
+        DelightToastBar(
+          builder: (context) {
+            return ToastCard(
+              title: const Text('Saved!'),
+              subtitle: Text("You've selected: $bikeType"),
+              leading: const Icon(Icons.check_circle, color: Colors.green),
+            );
+          },
+          position: DelightSnackbarPosition.top,
+          autoDismiss: true,
+          snackbarDuration: const Duration(seconds: 2),
+          animationDuration: const Duration(milliseconds: 300),
+        ).show(context);
+      }
 
       // Navigate to next screen
       if (mounted) {
@@ -52,30 +56,22 @@ class _WhatScreenState extends State<WhatScreen> {
         );
       }
     } catch (e) {
+      // ❌ Show error toast
       if (mounted) {
-        _showToast("Failed to save: $e", true);
+        DelightToastBar(
+          builder: (context) {
+            return ToastCard(
+              title: const Text('Error'),
+              subtitle: Text("Failed to save: $e"),
+              leading: const Icon(Icons.error, color: Colors.red),
+            );
+          },
+          position: DelightSnackbarPosition.top,
+          autoDismiss: true,
+          snackbarDuration: const Duration(seconds: 2),
+          animationDuration: const Duration(milliseconds: 300),
+        ).show(context);
       }
-    }
-  }
-
-  void _showToast(String message, bool isError) {
-    if (mounted) {
-      DelightToastBar(
-        builder: (context) {
-          return ToastCard(
-            title: Text(isError ? 'Error' : 'Success'),
-            subtitle: Text(message),
-            leading: Icon(
-              isError ? Icons.error : Icons.check_circle,
-              color: isError ? Colors.red : Colors.green,
-            ),
-          );
-        },
-        position: DelightSnackbarPosition.top,
-        autoDismiss: true,
-        snackbarDuration: const Duration(seconds: 2),
-        animationDuration: const Duration(milliseconds: 300),
-      ).show(context);
     }
   }
 

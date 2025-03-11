@@ -107,67 +107,18 @@ class AuthService {
       User? user = userCredential.user;
 
       if (user != null) {
-        // Check if user exists in Firestore
         DocumentSnapshot userDoc =
             await _firestore.collection('users').doc(user.uid).get();
 
         if (!userDoc.exists) {
-          // Create basic user profile
+          // 🔹 New Google User → Add Firestore Data
           await _firestore.collection('users').doc(user.uid).set({
             'uid': user.uid,
             'userName': user.displayName ?? "Google User",
             'email': user.email,
             'createdAt': FieldValue.serverTimestamp(),
+            'setupComplete': false, // 👈 Ensure onboarding logic works
           });
-
-          // Initialize user preferences with default values
-          await _firestore.collection('user_preferences').doc(user.uid).set({
-            'bike_type': 'ROADBIKE', // Default bike type
-            'time_preferences': {
-              'Morning': false,
-              'Afternoon': false,
-              'Night': false,
-              'Weekdays': false,
-              'Weekends': false,
-              'Fitness': false,
-            },
-            'location_preferences': [], // Empty list for locations
-            'created_at': FieldValue.serverTimestamp(),
-          });
-
-          // Show success message
-          if (context.mounted) {
-            _showToast(context, "Account created successfully!",
-                Icons.check_circle, Colors.green);
-          }
-        } else {
-          // Existing user - check if preferences exist
-          DocumentSnapshot prefsDoc = await _firestore
-              .collection('user_preferences')
-              .doc(user.uid)
-              .get();
-
-          if (!prefsDoc.exists) {
-            // Create default preferences if they don't exist
-            await _firestore.collection('user_preferences').doc(user.uid).set({
-              'bike_type': 'ROADBIKE',
-              'time_preferences': {
-                'Morning': false,
-                'Afternoon': false,
-                'Night': false,
-                'Weekdays': false,
-                'Weekends': false,
-                'Fitness': false,
-              },
-              'location_preferences': [],
-              'created_at': FieldValue.serverTimestamp(),
-            });
-          }
-        }
-
-        if (context.mounted) {
-          _showToast(
-              context, "Sign in successful!", Icons.check_circle, Colors.green);
         }
       }
 

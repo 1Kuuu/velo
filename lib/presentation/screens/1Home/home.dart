@@ -148,114 +148,24 @@ class _HomePageContentState extends State<HomePageContent> {
     );
   }
 
-  Future<bool> _hasTimeOverlap(Event newEvent,
-      {String? excludeEventId, bool showToast = false}) async {
-    if (_auth.currentUser == null) return false;
-
-    final startOfDay =
-        DateTime(newEvent.date.year, newEvent.date.month, newEvent.date.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
-
-    final eventsSnapshot = await _firestore
-        .collection('events')
-        .where('userId', isEqualTo: _auth.currentUser?.uid)
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-        .where('date', isLessThan: Timestamp.fromDate(endOfDay))
-        .get();
-
-    int newEventStart =
-        newEvent.startTime.hour * 60 + newEvent.startTime.minute;
-    int newEventEnd = newEvent.endTime.hour * 60 + newEvent.endTime.minute;
-
-    // Check if end time is before or equal to start time
-    if (newEventEnd <= newEventStart) {
-      if (showToast) {
-        _showToast('End time must be after start time', isError: true);
-      }
-      return true;
-    }
-
-    // Check if start time is in the past
-    final now = DateTime.now();
-    final eventDateTime = DateTime(
-      newEvent.date.year,
-      newEvent.date.month,
-      newEvent.date.day,
-      newEvent.startTime.hour,
-      newEvent.startTime.minute,
-    );
-    if (eventDateTime.isBefore(now)) {
-      if (showToast) {
-        _showToast('Cannot create events in the past', isError: true);
-      }
-      return true;
-    }
-
-    for (var doc in eventsSnapshot.docs) {
-      if (excludeEventId != null && doc.id == excludeEventId) continue;
-
-      var existingEvent = Event.fromFirestore(doc);
-      int existingStart =
-          existingEvent.startTime.hour * 60 + existingEvent.startTime.minute;
-      int existingEnd =
-          existingEvent.endTime.hour * 60 + existingEvent.endTime.minute;
-
-      // Check for exact same time frame
-      if (newEventStart == existingStart && newEventEnd == existingEnd) {
-        if (showToast) {
-          _showToast(
-              'An event already exists at exactly this time frame: ${existingEvent.title}',
-              isError: true);
-        }
-        return true;
-      }
-
-      // Check for overlap
-      if ((newEventStart >= existingStart && newEventStart < existingEnd) ||
-          (newEventEnd > existingStart && newEventEnd <= existingEnd) ||
-          (newEventStart <= existingStart && newEventEnd >= existingEnd)) {
-        if (showToast) {
-          _showToast(
-              'Time conflict with event: ${existingEvent.title}\n${formatTimeOfDay(existingEvent.startTime)} - ${formatTimeOfDay(existingEvent.endTime)}',
-              isError: true);
-        }
-        return true;
-      }
-    }
-    return false;
-  }
-
   void _editEvent(Event event) {
     EventModalHelper.showNewEventModal(
       context,
       existingEvent: event,
       selectedDate: _selectedDate,
-      onCheckTimeOverlap: (Event checkEvent) => _hasTimeOverlap(
-        checkEvent,
-        excludeEventId: event.id,
-      ),
       onEventCreated: (newEvent) async {
         try {
-          if (await _hasTimeOverlap(newEvent, showToast: true)) {
-            return;
-          }
           await _firestore.collection('events').add(newEvent.toFirestore());
-          _showToast('Event created successfully');
         } catch (e) {
           _showToast('Error creating event: $e', isError: true);
         }
       },
       onEventUpdated: (updatedEvent) async {
         try {
-          if (await _hasTimeOverlap(updatedEvent,
-              excludeEventId: event.id, showToast: true)) {
-            return;
-          }
           await _firestore
               .collection('events')
               .doc(updatedEvent.id)
               .update(updatedEvent.toFirestore());
-          _showToast('Event updated successfully');
         } catch (e) {
           _showToast('Error updating event: $e', isError: true);
         }
@@ -320,38 +230,28 @@ class _HomePageContentState extends State<HomePageContent> {
         svgAsset: 'assets/svg/add.svg',
         onPressed: () {
           if (_auth.currentUser == null) {
-            _showToast('Please log in to create events', isError: true);
+            _showToast('Please log in to create events');
             return;
           }
 
           EventModalHelper.showNewEventModal(
             context,
             selectedDate: _selectedDate,
-            onCheckTimeOverlap: (Event event) => _hasTimeOverlap(event),
             onEventCreated: (newEvent) async {
               try {
-                if (await _hasTimeOverlap(newEvent, showToast: true)) {
-                  return;
-                }
                 await _firestore
                     .collection('events')
                     .add(newEvent.toFirestore());
-                _showToast('Event created successfully');
               } catch (e) {
                 _showToast('Error creating event: $e', isError: true);
               }
             },
             onEventUpdated: (updatedEvent) async {
               try {
-                if (await _hasTimeOverlap(updatedEvent,
-                    excludeEventId: updatedEvent.id, showToast: true)) {
-                  return;
-                }
                 await _firestore
                     .collection('events')
                     .doc(updatedEvent.id)
                     .update(updatedEvent.toFirestore());
-                _showToast('Event updated successfully');
               } catch (e) {
                 _showToast('Error updating event: $e', isError: true);
               }
