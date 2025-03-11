@@ -26,8 +26,14 @@ class _WhenScreenState extends State<WhenScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   void _saveAndNavigate() async {
+    // Check if at least one preference is selected
+    if (!timePreferences.values.contains(true)) {
+      _showToast("Error", "Please select at least one time preference",
+          Icons.error, Colors.red);
+      return;
+    }
+
     try {
-      // Store preferences in Firebase
       await _firestore
           .collection('user_preferences')
           .doc(FirebaseAuth.instance.currentUser?.uid)
@@ -35,24 +41,6 @@ class _WhenScreenState extends State<WhenScreen> {
         'time_preferences': timePreferences,
       }, SetOptions(merge: true));
 
-      // 🎉 Show success toast
-      if (mounted) {
-        DelightToastBar(
-          builder: (context) {
-            return ToastCard(
-              title: const Text('Saved!'),
-              subtitle: const Text("Your time preferences have been saved."),
-              leading: const Icon(Icons.check_circle, color: Colors.green),
-            );
-          },
-          position: DelightSnackbarPosition.top,
-          autoDismiss: true,
-          snackbarDuration: const Duration(seconds: 2),
-          animationDuration: const Duration(milliseconds: 300),
-        ).show(context);
-      }
-
-      // Navigate to next screen
       if (mounted) {
         Navigator.push(
           context,
@@ -60,22 +48,30 @@ class _WhenScreenState extends State<WhenScreen> {
         );
       }
     } catch (e) {
-      // ❌ Show error toast
       if (mounted) {
-        DelightToastBar(
-          builder: (context) {
-            return ToastCard(
-              title: const Text('Error'),
-              subtitle: Text("Failed to save: $e"),
-              leading: const Icon(Icons.error, color: Colors.red),
-            );
-          },
-          position: DelightSnackbarPosition.top,
-          autoDismiss: true,
-          snackbarDuration: const Duration(seconds: 2),
-          animationDuration: const Duration(milliseconds: 300),
-        ).show(context);
+        _showToast("Error", "Failed to save: $e", Icons.error, Colors.red);
       }
+    }
+  }
+
+  void _showToast(String title, String message, IconData icon, Color color) {
+    if (mounted) {
+      DelightToastBar(
+        builder: (context) {
+          return ToastCard(
+            title: Text(title),
+            subtitle: Text(message),
+            leading: Icon(
+              icon,
+              color: color,
+            ),
+          );
+        },
+        position: DelightSnackbarPosition.top,
+        autoDismiss: true,
+        snackbarDuration: const Duration(seconds: 2),
+        animationDuration: const Duration(milliseconds: 300),
+      ).show(context);
     }
   }
 

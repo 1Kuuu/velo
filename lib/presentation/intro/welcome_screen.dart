@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/presentation/screens/1Home/home.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:velora/presentation/intro/what_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -35,24 +36,26 @@ class WelcomeScreen extends StatelessWidget {
             }
 
             if (snapshot.hasError) {
-              _showErrorToast(context, 'Failed to load data.');
+              _showErrorToast(
+                  context, 'Failed to load data: ${snapshot.error}');
               return const Center(child: Text('Something went wrong!'));
             }
 
             if (!snapshot.hasData || !snapshot.data!.exists) {
-              _showErrorToast(context, 'User preferences not found.');
-              return const Center(child: Text('No data available!'));
+              // Instead of showing error, redirect to What screen
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const WhatScreen()),
+                );
+              });
+              return const Center(child: CircularProgressIndicator());
             }
 
             final rawData = snapshot.data!.data();
-
-            // Debugging: Print Firestore data
-            print("Raw Firestore Data: $rawData");
-
-            if (rawData is! Map<String, dynamic>) {
-              _showErrorToast(context, "Unexpected data format.");
-              return const Center(
-                  child: Text("Invalid Firestore data format."));
+            if (rawData == null || rawData is! Map<String, dynamic>) {
+              _showErrorToast(context, "Invalid data format");
+              return const Center(child: Text("Invalid data format"));
             }
 
             final data = rawData; // Now safely casted

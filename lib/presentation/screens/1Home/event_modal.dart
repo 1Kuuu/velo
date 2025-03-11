@@ -126,6 +126,7 @@ class EventModalHelper {
     DateTime? selectedDate,
     required Function(Event) onEventCreated,
     required Function(Event) onEventUpdated,
+    required Future<bool> Function(Event) onCheckTimeOverlap,
   }) {
     final titleController =
         TextEditingController(text: existingEvent?.title ?? "");
@@ -152,6 +153,36 @@ class EventModalHelper {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            bool hasOverlap = false;
+
+            Future<void> validateTime() async {
+              if (!context.mounted) return;
+
+              final tempEvent = Event(
+                id: existingEvent?.id ?? '',
+                title: titleController.text,
+                description: descriptionController.text,
+                date: eventDate!,
+                startTime: startTime,
+                endTime: endTime,
+                isAllDay: isAllDay,
+                repeatStatus: repeatStatus,
+                color: selectedColor,
+                userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+              );
+
+              final isOverlapping = await onCheckTimeOverlap(tempEvent);
+              if (!context.mounted) return;
+
+              setModalState(() {
+                hasOverlap = isOverlapping;
+              });
+            }
+
+            Future.delayed(Duration.zero, () async {
+              await validateTime();
+            });
+
             return SingleChildScrollView(
               child: Padding(
                 padding: EdgeInsets.only(
@@ -182,49 +213,51 @@ class EventModalHelper {
                           ),
                         ),
                         TextButton(
-                          onPressed: () {
-                            if (existingEvent != null) {
-                              // Update existing event
-                              final updatedEvent = existingEvent.copyWith(
-                                title: titleController.text.isEmpty
-                                    ? "Untitled Task"
-                                    : titleController.text,
-                                description: descriptionController.text,
-                                date: eventDate ?? DateTime.now(),
-                                startTime: startTime,
-                                endTime: endTime,
-                                isAllDay: isAllDay,
-                                repeatStatus: repeatStatus,
-                                color: selectedColor,
-                              );
-
-                              onEventUpdated(updatedEvent);
-                            } else {
-                              // Create a new event
-                              final newEvent = Event(
-                                id: DateTime.now()
-                                    .millisecondsSinceEpoch
-                                    .toString(),
-                                title: titleController.text.isEmpty
-                                    ? "Untitled Task"
-                                    : titleController.text,
-                                description: descriptionController.text,
-                                date: eventDate ?? DateTime.now(),
-                                startTime: startTime,
-                                endTime: endTime,
-                                isAllDay: isAllDay,
-                                repeatStatus: repeatStatus,
-                                color: selectedColor,
-                                userId: FirebaseAuth.instance.currentUser!.uid,
-                              );
-
-                              onEventCreated(newEvent);
-                            }
-
-                            Navigator.pop(context);
-                          },
-                          child: const Text("Save",
-                              style: TextStyle(color: Colors.green)),
+                          onPressed: hasOverlap
+                              ? null
+                              : () {
+                                  if (existingEvent != null) {
+                                    final updatedEvent = existingEvent.copyWith(
+                                      title: titleController.text.isEmpty
+                                          ? "Untitled Task"
+                                          : titleController.text,
+                                      description: descriptionController.text,
+                                      date: eventDate ?? DateTime.now(),
+                                      startTime: startTime,
+                                      endTime: endTime,
+                                      isAllDay: isAllDay,
+                                      repeatStatus: repeatStatus,
+                                      color: selectedColor,
+                                    );
+                                    onEventUpdated(updatedEvent);
+                                  } else {
+                                    final newEvent = Event(
+                                      id: DateTime.now()
+                                          .millisecondsSinceEpoch
+                                          .toString(),
+                                      title: titleController.text.isEmpty
+                                          ? "Untitled Task"
+                                          : titleController.text,
+                                      description: descriptionController.text,
+                                      date: eventDate ?? DateTime.now(),
+                                      startTime: startTime,
+                                      endTime: endTime,
+                                      isAllDay: isAllDay,
+                                      repeatStatus: repeatStatus,
+                                      color: selectedColor,
+                                      userId: FirebaseAuth
+                                          .instance.currentUser!.uid,
+                                    );
+                                    onEventCreated(newEvent);
+                                  }
+                                  Navigator.pop(context);
+                                },
+                          child: Text(
+                            "Save",
+                            style: TextStyle(
+                              color: hasOverlap ? Colors.grey : Colors.green,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -288,10 +321,11 @@ class EventModalHelper {
                                     context: context,
                                     initialTime: startTime,
                                   );
-                                  if (pickedTime != null) {
+                                  if (pickedTime != null && context.mounted) {
                                     setModalState(() {
                                       startTime = pickedTime;
                                     });
+                                    await validateTime();
                                   }
                                 },
                                 isDarkMode: isDarkMode,
@@ -309,10 +343,11 @@ class EventModalHelper {
                                     context: context,
                                     initialTime: endTime,
                                   );
-                                  if (pickedTime != null) {
+                                  if (pickedTime != null && context.mounted) {
                                     setModalState(() {
                                       endTime = pickedTime;
                                     });
+                                    await validateTime();
                                   }
                                 },
                                 isDarkMode: isDarkMode,
@@ -323,10 +358,12 @@ class EventModalHelper {
                           // Date Picker
                           CustomDatePicker(
                             initialDate: eventDate!,
-                            onDateSelected: (DateTime pickedDate) {
+                            onDateSelected: (DateTime pickedDate) async {
+                              if (!context.mounted) return;
                               setModalState(() {
                                 eventDate = pickedDate;
                               });
+                              await validateTime();
                             },
                             child: _buildTile(
                               icon: Icons.calendar_today,
