@@ -273,7 +273,7 @@ class PostService {
 
             // Get download URL with additional verification
             mediaUrl = await snapshot.ref.getDownloadURL();
-            if (mediaUrl == null || mediaUrl.isEmpty) {
+            if (mediaUrl.isEmpty) {
               throw Exception('Failed to get download URL');
             }
 

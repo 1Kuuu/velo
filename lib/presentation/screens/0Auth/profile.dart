@@ -1407,41 +1407,6 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
-
-  Widget _buildPostImage(String imageUrl) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(15),
-      child: Image.network(
-        imageUrl,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        loadingBuilder: (BuildContext context, Widget child,
-            ImageChunkEvent? loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
-            height: 200,
-            color: Colors.grey[200],
-            child: Center(
-              child: CircularProgressIndicator(
-                value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded /
-                        loadingProgress.expectedTotalBytes!
-                    : null,
-              ),
-            ),
-          );
-        },
-        errorBuilder:
-            (BuildContext context, Object error, StackTrace? stackTrace) =>
-                Container(
-          height: 200,
-          color: Colors.grey[200],
-          child:
-              const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
-        ),
-      ),
-    );
-  }
 }
 
 class VideoPlayerWidget extends StatefulWidget {

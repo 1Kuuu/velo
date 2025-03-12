@@ -18,6 +18,7 @@ import 'package:delightful_toast/toast/components/toast_card.dart';
 import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:flutter/services.dart'; // Add this import for DeviceOrientation
 import 'package:visibility_detector/visibility_detector.dart';
+import 'package:intl/intl.dart';
 
 class NewsFeedPageContent extends StatefulWidget {
   const NewsFeedPageContent({super.key});
@@ -701,7 +702,7 @@ class _RideFeedItemState extends State<RideFeedItem> {
                             ),
                           ),
                         Text(
-                          _formatTimestamp(postData['timestamp'] as Timestamp?),
+                          _formatTimestamp(postData['createdAt'] as Timestamp?),
                           style: AppFonts.regular.copyWith(
                             color: Colors.grey,
                             fontSize: 12,
@@ -1008,22 +1009,18 @@ class _RideFeedItemState extends State<RideFeedItem> {
   }
 
   String _formatTimestamp(Timestamp? timestamp) {
-    if (timestamp == null) return '';
-    final now = DateTime.now();
-    final date = timestamp.toDate();
-    final difference = now.difference(date);
+    if (timestamp == null) return 'Just now';
 
-    if (difference.inDays > 7) {
-      return '${date.day}/${date.month}/${date.year}';
-    } else if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
-    } else {
-      return 'Just now';
-    }
+    final now = DateTime.now();
+    final dateTime = timestamp.toDate();
+    final difference = now.difference(dateTime);
+
+    if (difference.inMinutes < 1) return 'Just now';
+    if (difference.inMinutes < 60) return '${difference.inMinutes}m ago';
+    if (difference.inHours < 24) return '${difference.inHours}h ago';
+    if (difference.inDays < 7) return DateFormat('EEEE').format(dateTime);
+    if (difference.inDays < 365) return DateFormat('MMM d').format(dateTime);
+    return DateFormat('MMM d, yyyy').format(dateTime);
   }
 
   Future<void> _deleteComment(String commentId) async {
@@ -1201,22 +1198,18 @@ class _CommentsSectionState extends State<CommentsSection> {
   }
 
   String _formatTimestamp(Timestamp? timestamp) {
-    if (timestamp == null) return '';
-    final now = DateTime.now();
-    final date = timestamp.toDate();
-    final difference = now.difference(date);
+    if (timestamp == null) return 'Just now';
 
-    if (difference.inDays > 7) {
-      return '${date.day}/${date.month}/${date.year}';
-    } else if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
-    } else {
-      return 'Just now';
-    }
+    final now = DateTime.now();
+    final dateTime = timestamp.toDate();
+    final difference = now.difference(dateTime);
+
+    if (difference.inMinutes < 1) return 'Just now';
+    if (difference.inMinutes < 60) return '${difference.inMinutes}m ago';
+    if (difference.inHours < 24) return '${difference.inHours}h ago';
+    if (difference.inDays < 7) return DateFormat('EEEE').format(dateTime);
+    if (difference.inDays < 365) return DateFormat('MMM d').format(dateTime);
+    return DateFormat('MMM d, yyyy').format(dateTime);
   }
 
   // Show confirmation dialog before deleting comment

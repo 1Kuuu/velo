@@ -176,7 +176,7 @@ class AuthService {
               print("✅ User document created successfully");
             } catch (e) {
               print("❌ Error creating user document: $e");
-              throw e;
+              rethrow;
             }
           } else {
             print("📝 Updating existing user document...");
@@ -188,7 +188,7 @@ class AuthService {
               print("✅ User document updated successfully");
             } catch (e) {
               print("❌ Error updating user document: $e");
-              throw e;
+              rethrow;
             }
           }
 
@@ -267,7 +267,7 @@ class AuthService {
       }
     } catch (e) {
       print("❌ Error updating setup status: $e");
-      throw e;
+      rethrow;
     }
   }
 

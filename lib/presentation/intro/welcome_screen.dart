@@ -64,7 +64,7 @@ class WelcomeScreen extends StatelessWidget {
                         .toList() ??
                     [];
 
-            return Container(
+            return SizedBox(
               height: MediaQuery.of(context).size.height,
               child: SingleChildScrollView(
                 child: Padding(

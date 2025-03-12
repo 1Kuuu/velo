@@ -141,8 +141,9 @@ class AuthWrapper extends StatelessWidget {
             return FutureBuilder<SharedPreferences>(
                 future: SharedPreferences.getInstance(),
                 builder: (context, prefsSnapshot) {
-                  if (!prefsSnapshot.hasData)
+                  if (!prefsSnapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
+                  }
 
                   final bool onboardingComplete =
                       prefsSnapshot.data!.getBool('onboardingComplete') ??
