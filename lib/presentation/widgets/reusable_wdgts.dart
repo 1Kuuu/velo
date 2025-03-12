@@ -859,13 +859,16 @@ class MessageInputField extends StatelessWidget {
   final VoidCallback onSendPressed;
 
   const MessageInputField({
-    super.key,
+    Key? key,
     required this.controller,
     required this.onSendPressed,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Row(
@@ -873,23 +876,29 @@ class MessageInputField extends StatelessWidget {
           Expanded(
             child: TextField(
               controller: controller,
-              style: AppFonts.regular.copyWith(fontSize: 14),
               decoration: InputDecoration(
-                hintText: "Type a message...",
-                hintStyle: AppFonts.light.copyWith(fontSize: 14),
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide:
-                      const BorderSide(color: AppColors.hintText, width: 1),
+                hintText: 'Type a message...',
+                hintStyle: TextStyle(
+                  color: isDarkMode ? Colors.white60 : Colors.grey,
                 ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30.0),
+                  borderSide: BorderSide(
+                    color: isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
+                  ),
+                ),
+                filled: true,
+                fillColor: isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
               ),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.send, color: AppColors.primary),
-            onPressed: onSendPressed,
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: onSendPressed,
+            child: Icon(
+              Icons.send,
+              color: isDarkMode ? const Color(0xFF4A3B7C) : AppColors.primary,
+            ),
           ),
         ],
       ),

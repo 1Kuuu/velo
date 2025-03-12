@@ -394,12 +394,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: AppColors.primary,
+              backgroundColor:
+                  isDarkMode ? const Color(0xFF4A3B7C) : Colors.white,
+              foregroundColor: isDarkMode ? Colors.white : AppColors.primary,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              elevation: 3,
+              elevation: isDarkMode ? 0 : 3,
             ),
             child: Text(
               "Edit Profile",

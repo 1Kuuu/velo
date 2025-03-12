@@ -588,7 +588,6 @@ class PostService {
     } catch (e) {
       print('Error marking post as viewed: $e');
       print('Stack trace: ${StackTrace.current}');
-      // Don't rethrow - silently fail for viewed posts as it's not critical
     }
   }
 
@@ -682,24 +681,35 @@ class PostService {
       });
     }
 
-    // For Discover tab, show most liked posts that haven't been viewed
+    // For Discover tab, show posts that haven't been viewed by the current user
     return Stream.periodic(const Duration(seconds: 1)).asyncMap((_) async {
       try {
-        // Get viewed post IDs
+        // Get only the current user's viewed post IDs
         final viewedPosts = await getViewedPostIds();
+        print('Current user viewed posts count: ${viewedPosts.length}');
 
-        // Get posts ordered by likes
+        // Get posts ordered by likes, excluding only the current user's viewed posts
         var query = _firestore
             .collection(postsCollection)
             .orderBy('likesCount', descending: true)
             .limit(50);
 
-        // Only apply whereNotIn filter if we have viewed posts
+        // Only apply whereNotIn filter if the current user has viewed posts
         if (viewedPosts.isNotEmpty) {
           query = query.where(FieldPath.documentId, whereNotIn: viewedPosts);
         }
 
-        return await query.get();
+        final snapshot = await query.get();
+        print('Retrieved ${snapshot.docs.length} posts for Discover tab');
+
+        // If no new posts found and the current user has viewed posts, clear only their viewed posts history
+        if (snapshot.docs.isEmpty && viewedPosts.isNotEmpty) {
+          print(
+              'No new posts found for current user, clearing their viewed posts history');
+          await clearViewedPosts();
+        }
+
+        return snapshot;
       } catch (e) {
         print('Error getting discover posts: $e');
         // Return empty snapshot on error

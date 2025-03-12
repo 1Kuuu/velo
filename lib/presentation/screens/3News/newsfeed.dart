@@ -541,7 +541,7 @@ class NewsFeedList extends StatelessWidget {
                 const SizedBox(height: 16),
                 Consumer<ThemeProvider>(
                   builder: (context, themeProvider, _) => Text(
-                    "No posts yet. Be the first to post!",
+                    "No new posts to show. Try again later!",
                     style: AppFonts.medium.copyWith(
                       color: themeProvider.isDarkMode
                           ? Colors.white70
@@ -557,9 +557,9 @@ class NewsFeedList extends StatelessWidget {
 
         final posts = snapshot.data!.docs.toList();
 
-        // Sort and filter posts based on tab
+        // Mark posts as viewed when they are rendered in Discover tab
         if (tab == "Discover") {
-          // Mark posts as viewed when they are rendered
+          // Use a post-frame callback to ensure the posts are rendered
           WidgetsBinding.instance.addPostFrameCallback((_) {
             for (var post in posts) {
               PostService.markPostAsViewed(post.id).then((_) {
@@ -1182,146 +1182,147 @@ class _CommentsSectionState extends State<CommentsSection> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              'No comments yet. Be the first to comment!',
-              style: AppFonts.regular.copyWith(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white60
-                    : Colors.grey[600],
-                fontSize: 14,
-              ),
+        if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+          final comments = snapshot.data!.docs.toList()
+            ..sort((a, b) {
+              final aData = a.data() as Map<String, dynamic>;
+              final bData = b.data() as Map<String, dynamic>;
+
+              final aTimestamp = aData['timestamp'] as Timestamp?;
+              final bTimestamp = bData['timestamp'] as Timestamp?;
+
+              // If either timestamp is null, put it at the end
+              if (aTimestamp == null) return 1;
+              if (bTimestamp == null) return -1;
+
+              return bTimestamp.compareTo(aTimestamp); // Sort newest first
+            });
+
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                  child: Text(
+                    'Comments',
+                    style: AppFonts.bold.copyWith(
+                      fontSize: 16,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.black87,
+                    ),
+                  ),
+                ),
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemCount: comments.length,
+                  itemBuilder: (context, index) {
+                    var comment = comments[index];
+                    var data = comment.data() as Map<String, dynamic>;
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: ListTile(
+                        leading: GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  ProfilePage(userId: data['userId']),
+                            ),
+                          ),
+                          child: CircleAvatar(
+                            backgroundImage:
+                                data['userAvatar']?.isNotEmpty == true
+                                    ? NetworkImage(data['userAvatar'])
+                                    : null,
+                            backgroundColor: Colors.grey[300],
+                            child: data['userAvatar']?.isEmpty ?? true
+                                ? Icon(Icons.person, color: Colors.grey[600])
+                                : null,
+                          ),
+                        ),
+                        title: Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        ProfilePage(userId: data['userId']),
+                                  ),
+                                ),
+                                child: Text(
+                                  data['userName'] ?? 'Anonymous',
+                                  style: AppFonts.bold.copyWith(
+                                    fontSize: 14,
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white
+                                        : Colors.black87,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _formatTimestamp(data['timestamp'] as Timestamp?),
+                              style: AppFonts.regular.copyWith(
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.white60
+                                    : Colors.grey[600],
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                        subtitle: Text(
+                          data['text'] ?? '',
+                          style: AppFonts.regular.copyWith(
+                            fontSize: 14,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black87,
+                          ),
+                        ),
+                        trailing: data['userId'] == currentUser?.uid
+                            ? IconButton(
+                                icon: const Icon(Icons.delete_outline,
+                                    color: Colors.red),
+                                onPressed: () => _confirmDeleteComment(
+                                  context,
+                                  comment.id,
+                                  data['text'] ?? '',
+                                ),
+                              )
+                            : null,
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
           );
         }
 
-        final comments = snapshot.data!.docs.toList()
-          ..sort((a, b) {
-            final aData = a.data() as Map<String, dynamic>;
-            final bData = b.data() as Map<String, dynamic>;
-
-            final aTimestamp = aData['timestamp'] as Timestamp?;
-            final bTimestamp = bData['timestamp'] as Timestamp?;
-
-            // If either timestamp is null, put it at the end
-            if (aTimestamp == null) return 1;
-            if (bTimestamp == null) return -1;
-
-            return bTimestamp.compareTo(aTimestamp); // Sort newest first
-          });
-
-        return SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Text(
-                  'Comments',
-                  style: AppFonts.bold.copyWith(
-                    fontSize: 16,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white
-                        : Colors.black87,
-                  ),
-                ),
-              ),
-              ListView.builder(
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                itemCount: comments.length,
-                itemBuilder: (context, index) {
-                  var comment = comments[index];
-                  var data = comment.data() as Map<String, dynamic>;
-
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4.0),
-                    child: ListTile(
-                      leading: GestureDetector(
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                ProfilePage(userId: data['userId']),
-                          ),
-                        ),
-                        child: CircleAvatar(
-                          backgroundImage:
-                              data['userAvatar']?.isNotEmpty == true
-                                  ? NetworkImage(data['userAvatar'])
-                                  : null,
-                          backgroundColor: Colors.grey[300],
-                          child: data['userAvatar']?.isEmpty ?? true
-                              ? Icon(Icons.person, color: Colors.grey[600])
-                              : null,
-                        ),
-                      ),
-                      title: Row(
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      ProfilePage(userId: data['userId']),
-                                ),
-                              ),
-                              child: Text(
-                                data['userName'] ?? 'Anonymous',
-                                style: AppFonts.bold.copyWith(
-                                  fontSize: 14,
-                                  color: Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.white
-                                      : Colors.black87,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _formatTimestamp(data['timestamp'] as Timestamp?),
-                            style: AppFonts.regular.copyWith(
-                              color: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.white60
-                                  : Colors.grey[600],
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                      subtitle: Text(
-                        data['text'] ?? '',
-                        style: AppFonts.regular.copyWith(
-                          fontSize: 14,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.black87,
-                        ),
-                      ),
-                      trailing: data['userId'] == currentUser?.uid
-                          ? IconButton(
-                              icon: const Icon(Icons.delete_outline,
-                                  color: Colors.red),
-                              onPressed: () => _confirmDeleteComment(
-                                context,
-                                comment.id,
-                                data['text'] ?? '',
-                              ),
-                            )
-                          : null,
-                    ),
-                  );
-                },
-              ),
-            ],
+        return Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text(
+            'No comments yet. Be the first to comment!',
+            style: AppFonts.regular.copyWith(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white60
+                  : Colors.grey[600],
+              fontSize: 14,
+            ),
           ),
         );
       },
