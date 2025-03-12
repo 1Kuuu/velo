@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
 import 'package:velora/presentation/intro/onboarding.dart';
 import 'package:velora/presentation/intro/welcome_screen.dart';
+import 'package:velora/presentation/intro/what_screen.dart';
 import 'package:velora/presentation/screens/1Home/home.dart'; // Ensure this import is correct and the HomePage class is defined in this file
 import 'package:velora/presentation/screens/0Auth/signup.dart';
 import 'package:velora/presentation/screens/0Auth/login.dart';
@@ -17,7 +18,15 @@ import 'package:velora/presentation/screens/5Settings/setting_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(); // Initialize Firebase
+
+  // Enable Firebase debug mode
+  print("🔥 Initializing Firebase with debug mode...");
+  try {
+    await Firebase.initializeApp();
+    print("✅ Firebase initialized successfully");
+  } catch (e) {
+    print("❌ Firebase initialization error: $e");
+  }
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -113,77 +122,118 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+    print("🔐 AuthWrapper: Starting authentication check...");
+    return Scaffold(
+      body: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          // First check if we're waiting for auth state
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            print("⏳ AuthWrapper: Waiting for auth state...");
+            return const Center(child: CircularProgressIndicator());
+          }
 
-        final user = snapshot.data;
+          // Check if user is not logged in
+          final user = snapshot.data;
+          if (user == null) {
+            print("❌ AuthWrapper: No authenticated user found");
+            // Check if onboarding is completed
+            return FutureBuilder<SharedPreferences>(
+                future: SharedPreferences.getInstance(),
+                builder: (context, prefsSnapshot) {
+                  if (!prefsSnapshot.hasData)
+                    return const Center(child: CircularProgressIndicator());
 
-        if (user == null) {
-          return const LoginPage(); // 🚀 Not logged in? Go to Login
-        }
+                  final bool onboardingComplete =
+                      prefsSnapshot.data!.getBool('onboardingComplete') ??
+                          false;
+                  if (!onboardingComplete) {
+                    print("🎯 AuthWrapper: Starting onboarding flow");
+                    return const GetStarted();
+                  }
+                  print("🔑 AuthWrapper: Directing to login");
+                  return const LoginPage();
+                });
+          }
 
-        return FutureBuilder<DocumentSnapshot>(
-          future: FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .get(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
-            }
+          print("✅ AuthWrapper: User authenticated - UID: ${user.uid}");
+          print("📧 AuthWrapper: User email: ${user.email}");
 
-            if (snapshot.hasData && snapshot.data!.exists) {
+          // Check user's setup status in Firestore
+          return FutureBuilder<DocumentSnapshot>(
+            future: FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .get(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                print("⏳ AuthWrapper: Loading Firestore user data...");
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                print(
+                    "❌ AuthWrapper: Error loading user data - ${snapshot.error}");
+                return const LoginPage();
+              }
+
+              // If user document doesn't exist, create it and start setup flow
+              if (!snapshot.hasData || !snapshot.data!.exists) {
+                print("📝 AuthWrapper: Creating new user document...");
+                FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(user.uid)
+                    .set({
+                  'uid': user.uid,
+                  'userName': user.displayName ?? 'New User',
+                  'email': user.email,
+                  'createdAt': FieldValue.serverTimestamp(),
+                  'setupComplete': false,
+                  'isAuthenticated': true,
+                  'authProvider': user.providerData.first.providerId,
+                  'lastLogin': FieldValue.serverTimestamp(),
+                });
+                print("✅ AuthWrapper: Starting setup flow for new user");
+                return const WhatScreen(); // Start the What, When, Where flow
+              }
+
+              // User document exists, check setup status
               final userData = snapshot.data!.data() as Map<String, dynamic>;
               final bool setupComplete = userData['setupComplete'] ?? false;
 
-              if (setupComplete) {
-                return const HomePage(); // 🏠 Go to HomePage after setup
-              } else {
-                return FutureBuilder<Widget>(
-                  future: _checkLocalOnboarding(),
-                  builder: (context, futureSnapshot) {
-                    if (futureSnapshot.connectionState ==
+              if (!setupComplete) {
+                // Check if user has preferences
+                return FutureBuilder<DocumentSnapshot>(
+                  future: FirebaseFirestore.instance
+                      .collection('user_preferences')
+                      .doc(user.uid)
+                      .get(),
+                  builder: (context, prefSnapshot) {
+                    if (prefSnapshot.connectionState ==
                         ConnectionState.waiting) {
-                      return const Scaffold(
-                        body: Center(child: CircularProgressIndicator()),
-                      );
+                      return const Center(child: CircularProgressIndicator());
                     }
-                    return futureSnapshot.data ?? const WelcomeScreen();
+
+                    if (!prefSnapshot.hasData || !prefSnapshot.data!.exists) {
+                      print(
+                          "🎯 AuthWrapper: Starting What screen for preferences setup");
+                      return const WhatScreen(); // Start the What, When, Where flow
+                    }
+
+                    print(
+                        "🎯 AuthWrapper: User has preferences, showing Welcome screen");
+                    return const WelcomeScreen(); // Show welcome screen for final setup step
                   },
                 );
               }
-            } else {
-              return FutureBuilder<Widget>(
-                future: _checkLocalOnboarding(),
-                builder: (context, futureSnapshot) {
-                  if (futureSnapshot.connectionState ==
-                      ConnectionState.waiting) {
-                    return const Scaffold(
-                      body: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-                  return futureSnapshot.data ?? const WelcomeScreen();
-                },
-              );
-            }
-          },
-        );
-      },
-    );
-  }
 
-  /// 🔹 Check if onboarding was completed locally
-  Future<Widget> _checkLocalOnboarding() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool onboardingComplete = prefs.getBool('onboardingComplete') ?? false;
-    return onboardingComplete ? const HomePage() : const WelcomeScreen();
+              // User is fully set up, go to home
+              print("🏠 AuthWrapper: Setup complete, navigating to HomePage");
+              return const HomePage();
+            },
+          );
+        },
+      ),
+    );
   }
 }

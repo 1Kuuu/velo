@@ -35,12 +35,30 @@ class _SignupPageState extends State<SignupPage> {
   /// 🔹 Email & Password Signup with Firestore Storage
   Future<void> _signup() async {
     if (_formKey.currentState!.validate()) {
+      // Add password validation
+      if (passwordController.text.trim() !=
+          confirmPasswordController.text.trim()) {
+        DelightToastBar(
+          builder: (context) {
+            return const ToastCard(
+              title: Text('Passwords do not match!'),
+              leading: Icon(Icons.error, color: Colors.red),
+            );
+          },
+          position: DelightSnackbarPosition.top,
+          autoDismiss: true,
+          snackbarDuration: const Duration(seconds: 2),
+          animationDuration: const Duration(milliseconds: 300),
+        ).show(context);
+        return;
+      }
+
       final result = await _authService.signUpWithEmail(
         context: context,
         username: usernameController.text.trim(),
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
-        confirmPassword: '',
+        confirmPassword: confirmPasswordController.text.trim(),
       );
 
       print("Signup result: $result"); // Debugging

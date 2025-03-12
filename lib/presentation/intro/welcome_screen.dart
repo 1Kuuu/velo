@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/presentation/screens/1Home/home.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -45,8 +46,6 @@ class WelcomeScreen extends StatelessWidget {
             }
 
             final rawData = snapshot.data!.data();
-
-            // Debugging: Print Firestore data
             print("Raw Firestore Data: $rawData");
 
             if (rawData is! Map<String, dynamic>) {
@@ -55,8 +54,7 @@ class WelcomeScreen extends StatelessWidget {
                   child: Text("Invalid Firestore data format."));
             }
 
-            final data = rawData; // Now safely casted
-
+            final data = rawData;
             final bikeType = data['bike_type'] as String? ?? 'Unknown';
             final timePrefs =
                 (data['time_preferences'] as Map<String, dynamic>?) ?? {};
@@ -66,63 +64,134 @@ class WelcomeScreen extends StatelessWidget {
                         .toList() ??
                     [];
 
-            return Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Image.asset(
-                    'assets/images/logo.png',
-                    height: 30,
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'WELCOME!',
-                    style: TextStyle(
-                      fontSize: 36,
-                      color: Color(0xFFB22222),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Text(
-                    'SEEMS LIKE YOU LOVE:',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildSummaryCard(bikeType),
-                  const SizedBox(height: 20),
-                  _buildPreferenceSection('To Ride During:', timePrefs),
-                  const SizedBox(height: 20),
-                  _buildPreferenceSection('In The:', locationPrefs),
-                  const Spacer(),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const HomePage()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4A1818),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+            return Container(
+              height: MediaQuery.of(context).size.height,
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Image.asset(
+                        'assets/images/logo.png',
+                        height: 30,
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'WELCOME!',
+                        style: TextStyle(
+                          fontSize: 36,
+                          color: Color(0xFFB22222),
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      child: const Text(
-                        'START',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      const Text(
+                        'SEEMS LIKE YOU LOVE:',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 20),
+                      _buildSummaryCard(bikeType),
+                      const SizedBox(height: 20),
+                      _buildPreferenceSection('To Ride During:', timePrefs),
+                      const SizedBox(height: 20),
+                      _buildPreferenceSection('In The:', locationPrefs),
+                      const SizedBox(height: 40),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            try {
+                              print("🔘 START button pressed");
+                              // Update setup completion status in Firestore
+                              final user = FirebaseAuth.instance.currentUser;
+                              if (user != null) {
+                                print(
+                                    "📝 Marking setup as complete for user: ${user.uid}");
+
+                                final userRef = FirebaseFirestore.instance
+                                    .collection('users')
+                                    .doc(user.uid);
+
+                                // First check if document exists
+                                final docSnapshot = await userRef.get();
+                                if (!docSnapshot.exists) {
+                                  print(
+                                      "📄 Document doesn't exist, creating new document");
+                                  // Create initial document
+                                  await userRef.set({
+                                    'uid': user.uid,
+                                    'userName': user.displayName ?? 'New User',
+                                    'email': user.email,
+                                    'createdAt': FieldValue.serverTimestamp(),
+                                    'setupComplete': true,
+                                    'lastUpdated': FieldValue.serverTimestamp(),
+                                  });
+                                  print(
+                                      "✅ Created new document with setup complete");
+                                } else {
+                                  print(
+                                      "📄 Document exists, updating setupComplete status");
+                                  // Update existing document
+                                  await userRef.update({
+                                    'setupComplete': true,
+                                    'lastUpdated': FieldValue.serverTimestamp(),
+                                  });
+                                  print("✅ Updated existing document");
+                                }
+
+                                // Also update shared preferences
+                                final prefs =
+                                    await SharedPreferences.getInstance();
+                                await prefs.setBool('onboardingComplete', true);
+                                print(
+                                    "✅ Onboarding marked as complete in SharedPreferences");
+
+                                if (context.mounted) {
+                                  print(
+                                      "🏠 Attempting to navigate to HomePage");
+                                  Navigator.of(context).pushAndRemoveUntil(
+                                    MaterialPageRoute(
+                                      builder: (context) => const HomePage(),
+                                    ),
+                                    (route) =>
+                                        false, // Remove all previous routes
+                                  );
+                                  print("✅ Navigation to HomePage complete");
+                                } else {
+                                  print("❌ Context is no longer mounted");
+                                }
+                              } else {
+                                print("❌ No authenticated user found");
+                                _showErrorToast(
+                                    context, 'Please sign in to continue');
+                              }
+                            } catch (e) {
+                              print("❌ Error during setup completion: $e");
+                              _showErrorToast(
+                                  context, 'Failed to complete setup: $e');
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4A1818),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'START',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 18, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             );
           },
