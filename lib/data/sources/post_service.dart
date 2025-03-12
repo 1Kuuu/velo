@@ -43,27 +43,268 @@ class PostService {
         return null;
       }
 
+      // Validate content length
+      if (content.length > 1000) {
+        throw Exception('Content exceeds 1000 character limit');
+      }
+
       String? mediaUrl;
       String mediaType = 'none';
 
       if (image != null) {
         print('Uploading image...');
-        final ref = _storage
-            .ref()
-            .child('post_images/${DateTime.now().millisecondsSinceEpoch}.jpg');
-        await ref.putFile(image);
-        mediaUrl = await ref.getDownloadURL();
-        mediaType = 'image';
-        print('Image uploaded successfully: $mediaUrl');
+        try {
+          // First verify the file exists and is readable
+          if (!await image.exists()) {
+            throw Exception('Image file does not exist');
+          }
+
+          // Validate file size (10MB limit)
+          final fileSize = await image.length();
+          if (fileSize > 10 * 1024 * 1024) {
+            throw Exception('Image size exceeds 10MB limit');
+          }
+
+          print('File path: ${image.path}');
+          print('User authenticated: ${_auth.currentUser != null}');
+          print('User ID: ${_auth.currentUser?.uid}');
+          print('Storage bucket: ${_storage.bucket}');
+
+          // Get user token for additional auth verification
+          final token = await user.getIdToken();
+          print('User token available: ${token != null}');
+
+          // Create a unique filename that matches storage rules pattern exactly
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          final fileName = '${user.uid}_$timestamp.jpg';
+
+          // Create storage reference
+          final ref = _storage.ref('images/$fileName');
+          print('Uploading to: ${ref.fullPath}');
+          print('Full storage path: ${ref.toString()}');
+          print('File exists: ${await image.exists()}');
+          print('File size: ${await image.length()} bytes');
+          print('Content type: image/jpeg');
+          final pattern = RegExp('^${user.uid}_[0-9]+\\.jpg\$');
+          print('Filename pattern check: ${pattern.hasMatch(fileName)}');
+
+          // Create metadata with exact content type required by rules
+          final metadata = SettableMetadata(
+            contentType: 'image/jpeg',
+            customMetadata: {
+              'userId': user.uid,
+              'timestamp': DateTime.now().toIso8601String(),
+              if (token != null) 'authToken': token,
+            },
+          );
+
+          try {
+            // Verify file type and size
+            final extension = image.path.split('.').last.toLowerCase();
+            print('File extension: $extension');
+            final fileSize = await image.length();
+            print('File size in MB: ${fileSize / (1024 * 1024)}');
+
+            if (extension != 'jpg' && extension != 'jpeg') {
+              throw Exception('Only JPG/JPEG images are allowed');
+            }
+
+            print('Starting upload...');
+            print('Reference path: ${ref.fullPath}');
+            print('Auth state before upload:');
+            print('- User signed in: ${_auth.currentUser != null}');
+            print('- User email verified: ${_auth.currentUser?.emailVerified}');
+            print('- User anonymous: ${_auth.currentUser?.isAnonymous}');
+
+            final task = ref.putFile(
+              image,
+              metadata,
+            );
+
+            // Monitor upload progress
+            task.snapshotEvents.listen(
+              (TaskSnapshot snapshot) {
+                final progress =
+                    snapshot.bytesTransferred / snapshot.totalBytes;
+                print(
+                    'Upload progress: ${(progress * 100).toStringAsFixed(2)}%');
+              },
+              onError: (error) {
+                print('Upload progress monitoring error: $error');
+              },
+            );
+
+            // Wait for upload to complete
+            final snapshot = await task;
+            print('Upload completed. Getting download URL...');
+
+            // Get download URL
+            mediaUrl = await snapshot.ref.getDownloadURL();
+            mediaType = 'image';
+            print('Image uploaded successfully: $mediaUrl');
+          } catch (e) {
+            print('Error uploading image: $e');
+            if (e is FirebaseException) {
+              print('Firebase error code: ${e.code}');
+              print('Firebase error message: ${e.message}');
+              throw Exception('Failed to upload image: ${e.message}');
+            }
+            rethrow;
+          }
+        } catch (e) {
+          print('Error uploading image: $e');
+          if (e is FirebaseException) {
+            print('Firebase error code: ${e.code}');
+            print('Firebase error message: ${e.message}');
+            throw Exception('Failed to upload image: ${e.message}');
+          }
+          rethrow;
+        }
       } else if (video != null) {
         print('Uploading video...');
-        final ref = _storage
-            .ref()
-            .child('post_videos/${DateTime.now().millisecondsSinceEpoch}.mp4');
-        await ref.putFile(video);
-        mediaUrl = await ref.getDownloadURL();
-        mediaType = 'video';
-        print('Video uploaded successfully: $mediaUrl');
+        try {
+          // First verify the file exists and is readable
+          if (!await video.exists()) {
+            throw Exception('Video file does not exist');
+          }
+
+          // Validate file size (100MB limit)
+          final fileSize = await video.length();
+          final fileSizeInMB = fileSize / (1024 * 1024);
+          print('Video file size: ${fileSizeInMB.toStringAsFixed(2)} MB');
+
+          if (fileSize > 100 * 1024 * 1024) {
+            throw Exception(
+                'Video size exceeds 100MB limit. Your video is ${fileSizeInMB.toStringAsFixed(2)} MB');
+          }
+
+          print('File path: ${video.path}');
+          print('User authenticated: ${_auth.currentUser != null}');
+          print('User ID: ${_auth.currentUser?.uid}');
+          print('Storage bucket: ${_storage.bucket}');
+
+          // Create a unique filename that matches storage rules pattern exactly
+          final timestamp = DateTime.now().millisecondsSinceEpoch;
+          final fileName = '${user.uid}_$timestamp.mp4';
+
+          // Create storage reference with a more specific path
+          final ref = _storage.ref('videos/$fileName');
+          print('Uploading to: ${ref.fullPath}');
+          print('Full storage path: ${ref.toString()}');
+          print('File exists: ${await video.exists()}');
+          print('File size: ${await video.length()} bytes');
+
+          // Enhanced metadata for better video playback compatibility
+          final metadata = SettableMetadata(
+            contentType: 'video/mp4',
+            customMetadata: {
+              'userId': user.uid,
+              'timestamp': DateTime.now().toIso8601String(),
+              'originalFileName': video.path.split('/').last,
+              'fileSize': fileSize.toString(),
+              'uploadType': 'video',
+              'duration': '0', // Will be updated by Firebase
+              'width': '0', // Will be updated by Firebase
+              'height': '0', // Will be updated by Firebase
+            },
+            cacheControl: 'public, max-age=31536000',
+            contentEncoding: 'identity',
+            contentLanguage: 'en',
+          );
+
+          try {
+            // Enhanced file type verification
+            final extension = video.path.split('.').last.toLowerCase();
+            print('File extension: $extension');
+            print('File size in MB: ${fileSize / (1024 * 1024)}');
+
+            if (!['mp4'].contains(extension)) {
+              throw Exception(
+                  'Only MP4 videos are supported for best compatibility');
+            }
+
+            print('Starting upload...');
+            print('Reference path: ${ref.fullPath}');
+            print('Content type: video/mp4');
+
+            final task = ref.putFile(
+              video,
+              metadata,
+            );
+
+            // Enhanced upload progress monitoring with state checks
+            task.snapshotEvents.listen(
+              (TaskSnapshot snapshot) {
+                final progress =
+                    snapshot.bytesTransferred / snapshot.totalBytes;
+                print(
+                    'Upload progress: ${(progress * 100).toStringAsFixed(2)}%');
+                print('Bytes transferred: ${snapshot.bytesTransferred}');
+                print('Total bytes: ${snapshot.totalBytes}');
+                print('Upload state: ${snapshot.state}');
+
+                // Check for paused or error states
+                if (snapshot.state == TaskState.paused) {
+                  print('Upload is paused. Resuming...');
+                  task.resume();
+                }
+              },
+              onError: (error) {
+                print('Upload progress monitoring error: $error');
+                if (error is FirebaseException) {
+                  print('Firebase error code: ${error.code}');
+                  print('Firebase error message: ${error.message}');
+                }
+              },
+            );
+
+            // Wait for upload to complete
+            final snapshot = await task;
+            print('Upload completed. Getting download URL...');
+            print('Final upload state: ${snapshot.state}');
+            print(
+                'Content type after upload: ${snapshot.metadata?.contentType}');
+
+            // Verify the upload was successful
+            if (snapshot.state != TaskState.success) {
+              throw Exception(
+                  'Upload did not complete successfully. State: ${snapshot.state}');
+            }
+
+            // Get download URL with additional verification
+            mediaUrl = await snapshot.ref.getDownloadURL();
+            if (mediaUrl == null || mediaUrl.isEmpty) {
+              throw Exception('Failed to get download URL');
+            }
+
+            // Verify the uploaded file exists and is accessible
+            final uploadedMetadata = await snapshot.ref.getMetadata();
+            print('Uploaded file size: ${uploadedMetadata.size} bytes');
+            print('Uploaded content type: ${uploadedMetadata.contentType}');
+            print('Upload time: ${uploadedMetadata.timeCreated}');
+
+            mediaType = 'video';
+            print('Video uploaded successfully');
+            print('Download URL: $mediaUrl');
+            print('Final metadata: ${uploadedMetadata.toString()}');
+          } catch (e) {
+            print('Error uploading video: $e');
+            if (e is FirebaseException) {
+              print('Firebase error code: ${e.code}');
+              print('Firebase error message: ${e.message}');
+              throw Exception('Failed to upload video: ${e.message}');
+            }
+            rethrow;
+          }
+        } catch (e) {
+          print('Error uploading video: $e');
+          if (e is FirebaseException) {
+            print('Firebase error code: ${e.code}');
+            print('Firebase error message: ${e.message}');
+            throw Exception('Failed to upload video: ${e.message}');
+          }
+          rethrow;
+        }
       }
 
       print('Fetching user data...');
@@ -79,12 +320,12 @@ class PostService {
         'createdAt': FieldValue.serverTimestamp(),
         'likesCount': 0,
         'commentsCount': 0,
-        // Optional fields with empty defaults
+        // Optional fields
         'mediaUrl': mediaUrl ?? '',
         'mediaType': mediaType,
-        'route': '',
-        'distance': 0,
-        'duration': '',
+        'route': rideData?['route'] ?? '',
+        'distance': rideData?['distance'] ?? 0,
+        'duration': rideData?['duration'] ?? '',
         'authorName': userData['userName'] ?? user.displayName ?? 'Anonymous',
         'authorAvatar': userData['profileUrl'] ?? user.photoURL ?? '',
         'authorEmail': userData['email'] ?? user.email ?? '',
@@ -102,9 +343,9 @@ class PostService {
       print('Post count updated successfully');
 
       return postRef.id;
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('Error creating post: $e');
-      print('Stack trace: ${StackTrace.current}');
+      print('Stack trace: $stackTrace');
       return null;
     }
   }

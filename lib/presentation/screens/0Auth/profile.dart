@@ -7,9 +7,12 @@ import 'package:delightful_toast/toast/components/toast_card.dart';
 import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'dart:io';
-import 'package:velora/data/sources/firebase_service.dart'; // Import FirebaseServices
-import 'package:velora/data/sources/post_service.dart'; // Import PostService
-import 'package:velora/presentation/widgets/reusable_wdgts.dart'; // Import reusable widgets
+import 'package:velora/data/sources/firebase_service.dart';
+import 'package:velora/data/sources/post_service.dart';
+import 'package:velora/presentation/widgets/reusable_wdgts.dart';
+import 'package:video_player/video_player.dart';
+import 'package:chewie/chewie.dart';
+import 'package:flutter/services.dart';
 
 class ProfilePage extends StatefulWidget {
   final String? userId;
@@ -863,7 +866,68 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             if (post['mediaUrl'] != null &&
                 post['mediaUrl'].toString().isNotEmpty)
-              _buildPostImage(post['mediaUrl']),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10.0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: post['mediaType'] == 'video'
+                      ? AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: VideoPlayerWidget(url: post['mediaUrl']),
+                        )
+                      : AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: Image.network(
+                            post['mediaUrl'],
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                color: Theme.of(context).colorScheme.surface,
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    value: loadingProgress.expectedTotalBytes !=
+                                            null
+                                        ? loadingProgress
+                                                .cumulativeBytesLoaded /
+                                            loadingProgress.expectedTotalBytes!
+                                        : null,
+                                    color:
+                                        Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                ),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Theme.of(context).colorScheme.surface,
+                                child: Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.broken_image,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface,
+                                          size: 32),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Failed to load image',
+                                        style: AppFonts.regular.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Row(
@@ -985,41 +1049,6 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildPostImage(String imageUrl) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.network(
-          imageUrl,
-          fit: BoxFit.cover,
-          width: double.infinity,
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return Container(
-              height: 200,
-              color: Colors.grey[200],
-              child: Center(
-                child: CircularProgressIndicator(
-                  value: loadingProgress.expectedTotalBytes != null
-                      ? loadingProgress.cumulativeBytesLoaded /
-                          loadingProgress.expectedTotalBytes!
-                      : null,
-                ),
-              ),
-            );
-          },
-          errorBuilder: (_, __, ___) => Container(
-            height: 200,
-            color: Colors.grey[200],
-            child: const Center(
-                child: Icon(Icons.broken_image, color: Colors.grey)),
-          ),
-        ),
       ),
     );
   }
@@ -1376,6 +1405,164 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPostImage(String imageUrl) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(15),
+      child: Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        loadingBuilder: (BuildContext context, Widget child,
+            ImageChunkEvent? loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            height: 200,
+            color: Colors.grey[200],
+            child: Center(
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
+                    : null,
+              ),
+            ),
+          );
+        },
+        errorBuilder:
+            (BuildContext context, Object error, StackTrace? stackTrace) =>
+                Container(
+          height: 200,
+          color: Colors.grey[200],
+          child:
+              const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
+        ),
+      ),
+    );
+  }
+}
+
+class VideoPlayerWidget extends StatefulWidget {
+  final String url;
+  const VideoPlayerWidget({required this.url, Key? key}) : super(key: key);
+
+  @override
+  _VideoPlayerWidgetState createState() => _VideoPlayerWidgetState();
+}
+
+class _VideoPlayerWidgetState extends State<VideoPlayerWidget>
+    with WidgetsBindingObserver {
+  late VideoPlayerController _videoController;
+  ChewieController? _chewieController;
+  bool _isInitialized = false;
+  bool _isDisposed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _initializePlayer();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _pauseVideo();
+    }
+  }
+
+  void _pauseVideo() {
+    if (!_isDisposed && _videoController.value.isPlaying) {
+      _videoController.pause();
+    }
+  }
+
+  Future<void> _initializePlayer() async {
+    try {
+      _videoController = VideoPlayerController.network(widget.url);
+      await _videoController.initialize();
+
+      if (_isDisposed) return;
+
+      _chewieController = ChewieController(
+        videoPlayerController: _videoController,
+        aspectRatio: _videoController.value.aspectRatio,
+        autoPlay: false,
+        looping: false,
+        showControls: true,
+        allowFullScreen: true,
+        deviceOrientationsOnEnterFullScreen: [
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ],
+        deviceOrientationsAfterFullScreen: [DeviceOrientation.portraitUp],
+        placeholder: Container(
+          color: Colors.black,
+          child: const Center(
+              child: CircularProgressIndicator(color: Colors.white)),
+        ),
+        errorBuilder: (context, errorMessage) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white, size: 42),
+                const SizedBox(height: 8),
+                Text(
+                  'Error playing video',
+                  style: const TextStyle(color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+                TextButton(
+                  onPressed: _initializePlayer,
+                  child: const Text('Retry',
+                      style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+
+      if (!_isDisposed && mounted) {
+        setState(() => _isInitialized = true);
+      }
+    } catch (error) {
+      print('Error initializing video player: $error');
+      if (!_isDisposed && mounted) {
+        setState(() => _isInitialized = false);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    WidgetsBinding.instance.removeObserver(this);
+    _videoController.dispose();
+    _chewieController?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isInitialized || _chewieController == null) {
+      return Container(
+        color: Colors.black,
+        child:
+            const Center(child: CircularProgressIndicator(color: Colors.white)),
+      );
+    }
+
+    return WillPopScope(
+      onWillPop: () async {
+        _pauseVideo();
+        return true;
+      },
+      child: Chewie(controller: _chewieController!),
     );
   }
 }

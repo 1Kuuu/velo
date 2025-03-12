@@ -9,7 +9,7 @@ import 'package:velora/core/configs/theme/theme_provider.dart';
 import 'package:velora/presentation/intro/onboarding.dart';
 import 'package:velora/presentation/intro/welcome_screen.dart';
 import 'package:velora/presentation/intro/what_screen.dart';
-import 'package:velora/presentation/screens/1Home/home.dart'; // Ensure this import is correct and the HomePage class is defined in this file
+import 'package:velora/presentation/screens/1Home/home.dart';
 import 'package:velora/presentation/screens/0Auth/signup.dart';
 import 'package:velora/presentation/screens/0Auth/login.dart';
 import 'package:velora/presentation/screens/3News/newsfeed.dart';

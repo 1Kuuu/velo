@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:video_player/video_player.dart';
+import 'package:chewie/chewie.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
@@ -14,6 +16,8 @@ import 'package:provider/provider.dart';
 import 'package:delightful_toast/delight_toast.dart';
 import 'package:delightful_toast/toast/components/toast_card.dart';
 import 'package:delightful_toast/toast/utils/enums.dart';
+import 'package:flutter/services.dart'; // Add this import for DeviceOrientation
+import 'package:visibility_detector/visibility_detector.dart';
 
 class NewsFeedPageContent extends StatefulWidget {
   const NewsFeedPageContent({super.key});
@@ -123,12 +127,12 @@ class _PostInputFieldState extends State<PostInputField> {
   File? _video;
   final picker = ImagePicker();
   final user = FirebaseAuth.instance.currentUser;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _controller.addListener(() {
-      print('Text changed: "${_controller.text}"');
       setState(() {}); // Rebuild widget when text changes
     });
   }
@@ -140,7 +144,10 @@ class _PostInputFieldState extends State<PostInputField> {
   }
 
   Future<void> _pickImage() async {
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
     if (pickedFile != null) {
       setState(() {
         _image = File(pickedFile.path);
@@ -152,8 +159,7 @@ class _PostInputFieldState extends State<PostInputField> {
   Future<void> _pickVideo() async {
     final pickedFile = await picker.pickVideo(
       source: ImageSource.gallery,
-      maxDuration:
-          const Duration(minutes: 5), // Limit video duration to 5 minutes
+      maxDuration: const Duration(minutes: 5),
     );
     if (pickedFile != null) {
       setState(() {
@@ -164,31 +170,65 @@ class _PostInputFieldState extends State<PostInputField> {
   }
 
   Future<void> _postRide() async {
-    print('Attempting to post with text: "${_controller.text}"');
-    if (user == null || _controller.text.trim().isEmpty) {
-      print(
-          'Post cancelled - user: ${user != null}, text empty: ${_controller.text.trim().isEmpty}');
+    if (user == null ||
+        (_controller.text.trim().isEmpty && _image == null && _video == null)) {
+      DelightToastBar(
+        builder: (context) => const ToastCard(
+          title: Text('Please add some content to your post'),
+          leading: Icon(Icons.warning, color: Colors.orange),
+        ),
+        autoDismiss: true,
+      ).show(context);
       return;
     }
 
-    final postId = await PostService.createPost(
-      content: _controller.text,
-      image: _image,
-      video: _video,
-      rideData: {
-        'route': 'Sample Route',
-        'distance': 10.5,
-        'duration': '1h 30m',
-      },
-    );
+    setState(() => _isLoading = true);
 
-    if (postId != null) {
-      print('Post created successfully with ID: $postId');
-      _controller.clear();
-      setState(() {
-        _image = null;
-        _video = null;
-      });
+    try {
+      final postId = await PostService.createPost(
+        content: _controller.text,
+        image: _image,
+        video: _video,
+        rideData: {
+          'route': 'Sample Route',
+          'distance': 10.5,
+          'duration': '1h 30m',
+        },
+      );
+
+      if (postId != null) {
+        _controller.clear();
+        setState(() {
+          _image = null;
+          _video = null;
+          _isLoading = false;
+        });
+
+        if (mounted) {
+          DelightToastBar(
+            builder: (context) => const ToastCard(
+              title: Text('Post created successfully'),
+              leading: Icon(Icons.check_circle, color: Colors.green),
+            ),
+            autoDismiss: true,
+          ).show(context);
+        }
+      }
+    } catch (e) {
+      print('Error creating post: $e');
+      if (mounted) {
+        DelightToastBar(
+          builder: (context) => ToastCard(
+            title: Text('Failed to create post: ${e.toString()}'),
+            leading: Icon(Icons.error, color: Colors.red),
+          ),
+          autoDismiss: true,
+        ).show(context);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -207,197 +247,230 @@ class _PostInputFieldState extends State<PostInputField> {
           ),
         ),
       ),
-      child: Column(
+      child: Stack(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          Column(
             children: [
-              CircleAvatar(
-                backgroundImage: NetworkImage(user?.photoURL ?? ''),
-                radius: 20,
-                backgroundColor:
-                    isDarkMode ? Colors.grey[800] : Colors.grey[300],
-                child: user?.photoURL == null
-                    ? Icon(Icons.person,
-                        color: isDarkMode ? Colors.white70 : Colors.grey[600])
-                    : null,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  maxLines: null,
-                  style: AppFonts.regular.copyWith(
-                    fontSize: 16,
-                    color: isDarkMode ? Colors.white : Colors.black,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    backgroundImage: NetworkImage(user?.photoURL ?? ''),
+                    radius: 20,
+                    backgroundColor:
+                        isDarkMode ? Colors.grey[800] : Colors.grey[300],
+                    child: user?.photoURL == null
+                        ? Icon(Icons.person,
+                            color:
+                                isDarkMode ? Colors.white70 : Colors.grey[600])
+                        : null,
                   ),
-                  decoration: InputDecoration(
-                    hintText: "What's on your mind?",
-                    hintStyle: AppFonts.regular.copyWith(
-                      color: isDarkMode ? Colors.white60 : Colors.grey[500],
-                      fontSize: 16,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      maxLines: null,
+                      style: AppFonts.regular.copyWith(
+                        fontSize: 16,
+                        color: isDarkMode ? Colors.white : Colors.black,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: "What's on your mind?",
+                        hintStyle: AppFonts.regular.copyWith(
+                          color: isDarkMode ? Colors.white60 : Colors.grey[500],
+                          fontSize: 16,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                      ),
                     ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
                   ),
+                ],
+              ),
+              if (_image != null) ...[
+                const SizedBox(height: 12),
+                Stack(
+                  children: [
+                    Container(
+                      height: 200,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        image: DecorationImage(
+                          image: FileImage(_image!),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: GestureDetector(
+                        onTap: () => setState(() => _image = null),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close,
+                              color: Colors.white, size: 20),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+              ],
+              if (_video != null) ...[
+                const SizedBox(height: 12),
+                Stack(
+                  children: [
+                    Container(
+                      height: 200,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.black87,
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.video_file,
+                            size: 64, color: Colors.white),
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: GestureDetector(
+                        onTap: () => setState(() => _video = null),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close,
+                              color: Colors.white, size: 20),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          TextButton.icon(
+                            onPressed: _isLoading ? null : _pickImage,
+                            icon: Icon(Icons.image,
+                                color: isDarkMode
+                                    ? Colors.white
+                                    : AppColors.primary),
+                            label: Text(
+                              'Photo',
+                              style: AppFonts.medium.copyWith(
+                                color: isDarkMode
+                                    ? Colors.white
+                                    : AppColors.primary,
+                                fontSize: 14,
+                              ),
+                            ),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              backgroundColor: isDarkMode
+                                  ? Colors.white.withOpacity(0.1)
+                                  : AppColors.primary.withOpacity(0.1),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton.icon(
+                            onPressed: _isLoading ? null : _pickVideo,
+                            icon: Icon(Icons.videocam,
+                                color: isDarkMode
+                                    ? Colors.white
+                                    : AppColors.primary),
+                            label: Text(
+                              'Video',
+                              style: AppFonts.medium.copyWith(
+                                color: isDarkMode
+                                    ? Colors.white
+                                    : AppColors.primary,
+                                fontSize: 14,
+                              ),
+                            ),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              backgroundColor: isDarkMode
+                                  ? Colors.white.withOpacity(0.1)
+                                  : AppColors.primary.withOpacity(0.1),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 1,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ||
+                              (_controller.text.trim().isEmpty &&
+                                  _image == null &&
+                                  _video == null)
+                          ? null
+                          : _postRide,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isDarkMode
+                            ? const Color(0xFF4A3B7C)
+                            : AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : Text(
+                              'Post',
+                              style: AppFonts.semibold.copyWith(fontSize: 14),
+                            ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          if (_image != null) ...[
-            const SizedBox(height: 12),
-            Stack(
-              children: [
-                Container(
-                  height: 200,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    image: DecorationImage(
-                      image: FileImage(_image!),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: GestureDetector(
-                    onTap: () => setState(() => _image = null),
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.close,
-                          color: Colors.white, size: 20),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-          if (_video != null) ...[
-            const SizedBox(height: 12),
-            Stack(
-              children: [
-                Container(
-                  height: 200,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: Colors.black87,
-                  ),
-                  child: const Center(
-                    child:
-                        Icon(Icons.video_file, size: 64, color: Colors.white),
-                  ),
-                ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: GestureDetector(
-                    onTap: () => setState(() => _video = null),
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.close,
-                          color: Colors.white, size: 20),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      TextButton.icon(
-                        onPressed: _pickImage,
-                        icon: Icon(Icons.image,
-                            color:
-                                isDarkMode ? Colors.white : AppColors.primary),
-                        label: Text(
-                          'Photo',
-                          style: AppFonts.medium.copyWith(
-                            color:
-                                isDarkMode ? Colors.white : AppColors.primary,
-                            fontSize: 14,
-                          ),
-                        ),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          backgroundColor: isDarkMode
-                              ? Colors.white.withOpacity(0.1)
-                              : AppColors.primary.withOpacity(0.1),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      TextButton.icon(
-                        onPressed: _pickVideo,
-                        icon: Icon(Icons.videocam,
-                            color:
-                                isDarkMode ? Colors.white : AppColors.primary),
-                        label: Text(
-                          'Video',
-                          style: AppFonts.medium.copyWith(
-                            color:
-                                isDarkMode ? Colors.white : AppColors.primary,
-                            fontSize: 14,
-                          ),
-                        ),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
-                          backgroundColor: isDarkMode
-                              ? Colors.white.withOpacity(0.1)
-                              : AppColors.primary.withOpacity(0.1),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+          if (_isLoading)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.3),
+                child: const Center(
+                  child: CircularProgressIndicator(),
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                flex: 1,
-                child: ElevatedButton(
-                  onPressed: _controller.text.trim().isEmpty ? null : _postRide,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isDarkMode
-                        ? const Color(0xFF4A3B7C)
-                        : AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  child: Text(
-                    'Post',
-                    style: AppFonts.semibold.copyWith(fontSize: 14),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
         ],
       ),
     );
@@ -663,48 +736,65 @@ class _RideFeedItemState extends State<RideFeedItem> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(15),
                   child: mediaType == 'video'
-                      ? Container(
-                          height: 300,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.black87,
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              const Icon(
-                                Icons.play_circle_outline,
-                                color: Colors.white,
-                                size: 64,
-                              ),
-                              Positioned(
-                                bottom: 8,
-                                left: 8,
-                                child: Text(
-                                  'Tap to play video',
-                                  style: AppFonts.medium.copyWith(
-                                    color: Colors.white,
-                                    fontSize: 14,
+                      ? AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: VideoPlayer(mediaUrl),
+                        )
+                      : AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: Image.network(
+                            mediaUrl,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                color: isDarkMode
+                                    ? Colors.grey[900]
+                                    : Colors.grey[200],
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    value: loadingProgress.expectedTotalBytes !=
+                                            null
+                                        ? loadingProgress
+                                                .cumulativeBytesLoaded /
+                                            loadingProgress.expectedTotalBytes!
+                                        : null,
+                                    color: isDarkMode
+                                        ? Colors.white70
+                                        : Colors.grey[600],
                                   ),
                                 ),
-                              ),
-                            ],
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: isDarkMode
+                                    ? Colors.grey[900]
+                                    : Colors.grey[200],
+                                child: Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.broken_image,
+                                          color: isDarkMode
+                                              ? Colors.white70
+                                              : Colors.grey[600],
+                                          size: 32),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Failed to load image',
+                                        style: AppFonts.regular.copyWith(
+                                          color: isDarkMode
+                                              ? Colors.white70
+                                              : Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                        )
-                      : Image.network(
-                          mediaUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              height: 200,
-                              color: Colors.grey[200],
-                              child: const Center(
-                                child: Icon(Icons.broken_image,
-                                    color: Colors.grey),
-                              ),
-                            );
-                          },
                         ),
                 ),
               ),
@@ -1178,5 +1268,255 @@ class _CommentsSectionState extends State<CommentsSection> {
     if (confirm == true) {
       await widget.onDeleteComment(commentId);
     }
+  }
+}
+
+class VideoControllerManager {
+  static VideoControllerManager? _instance;
+  VideoPlayerController? _currentController;
+  ChewieController? _currentChewieController;
+
+  static VideoControllerManager get instance {
+    _instance ??= VideoControllerManager();
+    return _instance!;
+  }
+
+  void setCurrentController(
+      VideoPlayerController controller, ChewieController chewieController) {
+    if (_currentController != null && _currentController != controller) {
+      _currentController!.pause();
+      _currentChewieController?.pause();
+    }
+    _currentController = controller;
+    _currentChewieController = chewieController;
+  }
+
+  void pauseCurrentVideo() {
+    if (_currentController != null) {
+      _currentController!.pause();
+      _currentChewieController?.pause();
+    }
+  }
+
+  void dispose() {
+    _currentController?.pause();
+    _currentController = null;
+    _currentChewieController = null;
+  }
+}
+
+class VideoPlayer extends StatefulWidget {
+  final String url;
+  const VideoPlayer(this.url, {Key? key}) : super(key: key);
+
+  @override
+  _VideoPlayerState createState() => _VideoPlayerState();
+}
+
+class _VideoPlayerState extends State<VideoPlayer> with WidgetsBindingObserver {
+  late VideoPlayerController _videoController;
+  ChewieController? _chewieController;
+  bool _isInitialized = false;
+  String? _errorMessage;
+  bool _isDisposed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _initializePlayer();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _pauseVideo();
+    }
+  }
+
+  void _pauseVideo() {
+    if (!_isDisposed && _videoController.value.isPlaying) {
+      _videoController.pause();
+    }
+  }
+
+  Future<void> _initializePlayer() async {
+    try {
+      _videoController = VideoPlayerController.network(
+        widget.url,
+        videoPlayerOptions: VideoPlayerOptions(mixWithOthers: false),
+      );
+
+      await _videoController.initialize();
+
+      if (_isDisposed) return;
+
+      _chewieController = ChewieController(
+        videoPlayerController: _videoController,
+        aspectRatio: _videoController.value.aspectRatio,
+        autoPlay: false,
+        looping: false,
+        showControls: true,
+        allowPlaybackSpeedChanging: false,
+        allowFullScreen: true,
+        deviceOrientationsOnEnterFullScreen: [
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ],
+        deviceOrientationsAfterFullScreen: [DeviceOrientation.portraitUp],
+        placeholder: Container(
+          color: Colors.black,
+          child: const Center(
+            child: CircularProgressIndicator(color: Colors.white),
+          ),
+        ),
+        materialProgressColors: ChewieProgressColors(
+          playedColor: AppColors.primary,
+          handleColor: AppColors.primary,
+          backgroundColor: Colors.grey,
+          bufferedColor: Colors.grey[400]!,
+        ),
+        errorBuilder: (context, errorMessage) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white, size: 42),
+                const SizedBox(height: 8),
+                Text(
+                  'Error playing video: $errorMessage',
+                  style: const TextStyle(color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+                TextButton(
+                  onPressed: _initializePlayer,
+                  child: const Text('Retry',
+                      style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+
+      VideoControllerManager.instance
+          .setCurrentController(_videoController, _chewieController!);
+
+      if (!_isDisposed) {
+        setState(() {
+          _isInitialized = true;
+          _errorMessage = null;
+        });
+      }
+    } catch (error) {
+      print('Error initializing video player: $error');
+      if (!_isDisposed) {
+        setState(() {
+          _isInitialized = false;
+          _errorMessage = error.toString();
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    WidgetsBinding.instance.removeObserver(this);
+    if (_videoController ==
+        VideoControllerManager.instance._currentController) {
+      VideoControllerManager.instance.dispose();
+    }
+    _videoController.dispose();
+    _chewieController?.dispose();
+    super.dispose();
+  }
+
+  @override
+  void deactivate() {
+    _pauseVideo();
+    super.deactivate();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_errorMessage != null) {
+      return Container(
+        color: Colors.black,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white, size: 42),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'Error playing video: $_errorMessage',
+                  style: const TextStyle(color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              TextButton(
+                onPressed: _initializePlayer,
+                child:
+                    const Text('Retry', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (!_isInitialized || _chewieController == null) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: CircularProgressIndicator(color: Colors.white),
+        ),
+      );
+    }
+
+    return VisibilityDetector(
+      key: Key('video-${widget.url}'),
+      onVisibilityChanged: (visibilityInfo) {
+        if (visibilityInfo.visibleFraction < 0.5) {
+          _pauseVideo();
+        }
+      },
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Chewie(
+            controller: _chewieController!,
+          ),
+          if (!_videoController.value.isPlaying)
+            GestureDetector(
+              onTap: () {
+                if (!_isDisposed) {
+                  _videoController.play();
+                }
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.2),
+                      Colors.black.withOpacity(0.6),
+                    ],
+                  ),
+                ),
+                child: const Icon(
+                  Icons.play_circle_outline,
+                  color: Colors.white,
+                  size: 64,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
