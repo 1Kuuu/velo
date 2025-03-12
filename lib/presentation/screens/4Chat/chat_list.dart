@@ -8,6 +8,7 @@ import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 import 'package:provider/provider.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
+import 'package:velora/core/configs/theme/app_fonts.dart';
 
 class ChatListPage extends StatefulWidget {
   const ChatListPage({super.key});
@@ -72,12 +73,12 @@ class _ChatListPageState extends State<ChatListPage> {
                     searchQuery = value.toLowerCase();
                   });
                 },
-                style: TextStyle(
+                style: AppFonts.regular.copyWith(
                   color: isDarkMode ? Colors.white : Colors.black,
                 ),
                 decoration: InputDecoration(
                   hintText: 'Search conversations',
-                  hintStyle: TextStyle(
+                  hintStyle: AppFonts.light.copyWith(
                     color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
                     fontSize: 14,
                   ),
@@ -123,8 +124,7 @@ class _ChatListPageState extends State<ChatListPage> {
                         const SizedBox(height: 12),
                         Text(
                           "No conversations yet",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
+                          style: AppFonts.semibold.copyWith(
                             color:
                                 isDarkMode ? Colors.white70 : Colors.grey[600],
                             fontSize: 16,
@@ -133,7 +133,7 @@ class _ChatListPageState extends State<ChatListPage> {
                         const SizedBox(height: 8),
                         Text(
                           "Start chatting with someone!",
-                          style: TextStyle(
+                          style: AppFonts.regular.copyWith(
                             color: isDarkMode
                                 ? Colors.grey[500]
                                 : Colors.grey[400],
@@ -170,8 +170,7 @@ class _ChatListPageState extends State<ChatListPage> {
                         const SizedBox(height: 12),
                         Text(
                           "No matching conversations",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
+                          style: AppFonts.semibold.copyWith(
                             color:
                                 isDarkMode ? Colors.white70 : Colors.grey[600],
                             fontSize: 16,
@@ -180,7 +179,7 @@ class _ChatListPageState extends State<ChatListPage> {
                         const SizedBox(height: 8),
                         Text(
                           "Try different search terms",
-                          style: TextStyle(
+                          style: AppFonts.regular.copyWith(
                             color: isDarkMode
                                 ? Colors.grey[500]
                                 : Colors.grey[400],
@@ -263,8 +262,7 @@ class _ChatListPageState extends State<ChatListPage> {
                                               profileUrl)
                                           ? Text(
                                               ChatUtils.getInitials(name),
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
+                                              style: AppFonts.bold.copyWith(
                                                 color: Colors.white,
                                                 fontSize: 16,
                                               ),
@@ -281,17 +279,17 @@ class _ChatListPageState extends State<ChatListPage> {
                                     children: [
                                       Text(
                                         name,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w600,
+                                        style: AppFonts.semibold.copyWith(
                                           color: isDarkMode
                                               ? Colors.white
                                               : Colors.black,
-                                        ).copyWith(fontSize: 16),
+                                          fontSize: 16,
+                                        ),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
                                         lastMessage,
-                                        style: TextStyle(
+                                        style: AppFonts.regular.copyWith(
                                           color: isDarkMode
                                               ? Colors.grey[400]
                                               : Colors.grey[600],

@@ -87,16 +87,24 @@ class _NewsFeedPageContentState extends State<NewsFeedPageContent>
                 ),
               ),
             ),
-            child: TabBar(
-              controller: _tabController,
-              tabs: const [
-                Tab(text: "Following"),
-                Tab(text: "Discover"),
-              ],
-              labelColor: isDarkMode ? Colors.white : AppColors.primary,
-              unselectedLabelColor: isDarkMode ? Colors.white60 : Colors.grey,
-              indicatorColor: isDarkMode ? Colors.white : AppColors.primary,
-              labelStyle: AppFonts.bold.copyWith(fontSize: 16),
+            child: Consumer<ThemeProvider>(
+              builder: (context, themeProvider, _) => TabBar(
+                controller: _tabController,
+                tabs: const [
+                  Tab(text: "Following"),
+                  Tab(text: "Discover"),
+                ],
+                labelColor: themeProvider.isDarkMode
+                    ? const Color(0xFF4A3B7C)
+                    : AppColors.primary,
+                unselectedLabelColor:
+                    themeProvider.isDarkMode ? Colors.white60 : Colors.grey,
+                indicatorColor: themeProvider.isDarkMode
+                    ? const Color(0xFF4A3B7C)
+                    : AppColors.primary,
+                labelStyle: AppFonts.semibold.copyWith(fontSize: 16),
+                unselectedLabelStyle: AppFonts.regular.copyWith(fontSize: 16),
+              ),
             ),
           ),
           // Tab content
@@ -509,9 +517,16 @@ class NewsFeedList extends StatelessWidget {
                 children: [
                   Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
-                  Text(
-                    "Follow people to see their posts here!",
-                    style: AppFonts.medium.copyWith(color: Colors.grey),
+                  Consumer<ThemeProvider>(
+                    builder: (context, themeProvider, _) => Text(
+                      "Follow people to see their posts here!",
+                      style: AppFonts.medium.copyWith(
+                        color: themeProvider.isDarkMode
+                            ? Colors.white70
+                            : Colors.grey[600],
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -524,9 +539,16 @@ class NewsFeedList extends StatelessWidget {
                 Icon(Icons.post_add_outlined,
                     size: 64, color: Colors.grey[400]),
                 const SizedBox(height: 16),
-                Text(
-                  "No posts yet. Be the first to post!",
-                  style: AppFonts.medium.copyWith(color: Colors.grey),
+                Consumer<ThemeProvider>(
+                  builder: (context, themeProvider, _) => Text(
+                    "No posts yet. Be the first to post!",
+                    style: AppFonts.medium.copyWith(
+                      color: themeProvider.isDarkMode
+                          ? Colors.white70
+                          : Colors.grey[600],
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -691,20 +713,26 @@ class _RideFeedItemState extends State<RideFeedItem> {
                       children: [
                         Text(
                           authorName,
-                          style: AppFonts.bold.copyWith(fontSize: 16),
+                          style: AppFonts.bold.copyWith(
+                            fontSize: 16,
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                          ),
                         ),
                         if (authorEmail.isNotEmpty)
                           Text(
                             authorEmail,
                             style: AppFonts.regular.copyWith(
-                              color: Colors.grey,
+                              color: isDarkMode
+                                  ? Colors.white60
+                                  : Colors.grey[600],
                               fontSize: 12,
                             ),
                           ),
                         Text(
                           _formatTimestamp(postData['createdAt'] as Timestamp?),
                           style: AppFonts.regular.copyWith(
-                            color: Colors.grey,
+                            color:
+                                isDarkMode ? Colors.white60 : Colors.grey[600],
                             fontSize: 12,
                           ),
                         ),
@@ -727,7 +755,8 @@ class _RideFeedItemState extends State<RideFeedItem> {
                   content,
                   style: AppFonts.medium.copyWith(
                     fontSize: 16,
-                    color: isDarkMode ? Colors.white : Colors.black,
+                    color: isDarkMode ? Colors.white : Colors.black87,
+                    height: 1.4,
                   ),
                 ),
               ),
@@ -803,23 +832,29 @@ class _RideFeedItemState extends State<RideFeedItem> {
               const SizedBox(height: 12),
               Text(
                 "Route: ${rideData['route']}",
-                style: AppFonts.regular.copyWith(
+                style: AppFonts.medium.copyWith(
                   fontSize: 14,
-                  color: isDarkMode ? Colors.white70 : Colors.black87,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white70
+                      : Colors.black87,
                 ),
               ),
               Text(
                 "Distance: ${rideData['distance']} km",
-                style: AppFonts.regular.copyWith(
+                style: AppFonts.medium.copyWith(
                   fontSize: 14,
-                  color: isDarkMode ? Colors.white70 : Colors.black87,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white70
+                      : Colors.black87,
                 ),
               ),
               Text(
                 "Duration: ${rideData['duration']}",
-                style: AppFonts.regular.copyWith(
+                style: AppFonts.medium.copyWith(
                   fontSize: 14,
-                  color: isDarkMode ? Colors.white70 : Colors.black87,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white70
+                      : Colors.black87,
                 ),
               ),
             ],
@@ -829,7 +864,10 @@ class _RideFeedItemState extends State<RideFeedItem> {
                 Text(
                   "$likesCount ${likesCount == 1 ? 'like' : 'likes'}",
                   style: AppFonts.regular.copyWith(
-                    color: isDarkMode ? Colors.white60 : Colors.grey[600],
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white60
+                        : Colors.grey[600],
+                    fontSize: 14,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -845,7 +883,10 @@ class _RideFeedItemState extends State<RideFeedItem> {
                     return Text(
                       "$count ${count == 1 ? 'comment' : 'comments'}",
                       style: AppFonts.regular.copyWith(
-                        color: isDarkMode ? Colors.white60 : Colors.grey[600],
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white60
+                            : Colors.grey[600],
+                        fontSize: 14,
                       ),
                     );
                   },
@@ -886,22 +927,37 @@ class _RideFeedItemState extends State<RideFeedItem> {
                         controller: _commentController,
                         decoration: InputDecoration(
                           hintText: 'Write a comment...',
-                          hintStyle:
-                              AppFonts.regular.copyWith(color: Colors.grey),
+                          hintStyle: AppFonts.regular.copyWith(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white60
+                                    : Colors.grey[600],
+                            fontSize: 14,
+                          ),
                           border: InputBorder.none,
+                        ),
+                        style: AppFonts.regular.copyWith(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87,
+                          fontSize: 14,
                         ),
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.send),
-                      onPressed: () async {
-                        if (_commentController.text.trim().isEmpty) return;
+                    Consumer<ThemeProvider>(
+                      builder: (context, themeProvider, _) => IconButton(
+                        icon: const Icon(Icons.send),
+                        onPressed: () async {
+                          if (_commentController.text.trim().isEmpty) return;
 
-                        final success = await PostService.addComment(
-                            postId, _commentController.text);
-                        _commentController.clear(); // Clear the text field
-                      },
-                      color: AppColors.primary,
+                          final success = await PostService.addComment(
+                              postId, _commentController.text);
+                          _commentController.clear();
+                        },
+                        color: themeProvider.isDarkMode
+                            ? const Color(0xFF4A3B7C)
+                            : AppColors.primary,
+                      ),
                     ),
                   ],
                 ),
@@ -928,8 +984,13 @@ class _RideFeedItemState extends State<RideFeedItem> {
           children: [
             Icon(icon, color: color, size: 20),
             const SizedBox(width: 4),
-            Text(label,
-                style: AppFonts.medium.copyWith(color: color, fontSize: 14)),
+            Text(
+              label,
+              style: AppFonts.medium.copyWith(
+                color: color,
+                fontSize: 14,
+              ),
+            ),
           ],
         ),
       ),
@@ -944,7 +1005,14 @@ class _RideFeedItemState extends State<RideFeedItem> {
         children: [
           ListTile(
             leading: const Icon(Icons.delete, color: Colors.red),
-            title: const Text('Delete Post'),
+            title: Text(
+              'Delete Post',
+              style: AppFonts.medium.copyWith(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : Colors.black87,
+              ),
+            ),
             onTap: () {
               Navigator.pop(context);
               _deletePost();
@@ -952,7 +1020,14 @@ class _RideFeedItemState extends State<RideFeedItem> {
           ),
           ListTile(
             leading: const Icon(Icons.edit),
-            title: const Text('Edit Post'),
+            title: Text(
+              'Edit Post',
+              style: AppFonts.medium.copyWith(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : Colors.black87,
+              ),
+            ),
             onTap: () async {
               Navigator.pop(context);
               final postData = widget.ride.data() as Map<String, dynamic>;
@@ -971,13 +1046,31 @@ class _RideFeedItemState extends State<RideFeedItem> {
                     maxLines: null,
                   ),
                   actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Cancel'),
+                    Consumer<ThemeProvider>(
+                      builder: (context, themeProvider, _) => TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: Text(
+                          'Cancel',
+                          style: AppFonts.medium.copyWith(
+                            color: themeProvider.isDarkMode
+                                ? Colors.white70
+                                : Colors.grey[600],
+                          ),
+                        ),
+                      ),
                     ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Save'),
+                    Consumer<ThemeProvider>(
+                      builder: (context, themeProvider, _) => TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: Text(
+                          'Save',
+                          style: AppFonts.medium.copyWith(
+                            color: themeProvider.isDarkMode
+                                ? const Color(0xFF4A3B7C)
+                                : AppColors.primary,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -990,7 +1083,12 @@ class _RideFeedItemState extends State<RideFeedItem> {
                   DelightToastBar(
                     builder: (context) {
                       return const ToastCard(
-                        title: Text('Post updated successfully'),
+                        title: Text(
+                          'Post updated successfully',
+                          style: TextStyle(
+                            color: Colors.white,
+                          ),
+                        ),
                         leading: Icon(Icons.check_circle, color: Colors.green),
                       );
                     },
@@ -1068,7 +1166,15 @@ class _CommentsSectionState extends State<CommentsSection> {
           print('Comments stream error: ${snapshot.error}');
           return Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Text('Error loading comments. Please try again later.'),
+            child: Text(
+              'Error loading comments. Please try again later.',
+              style: AppFonts.regular.copyWith(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white60
+                    : Colors.grey[600],
+                fontSize: 14,
+              ),
+            ),
           );
         }
 
@@ -1077,9 +1183,17 @@ class _CommentsSectionState extends State<CommentsSection> {
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.all(8.0),
-            child: Text('No comments yet. Be the first to comment!'),
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              'No comments yet. Be the first to comment!',
+              style: AppFonts.regular.copyWith(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white60
+                    : Colors.grey[600],
+                fontSize: 14,
+              ),
+            ),
           );
         }
 
@@ -1103,13 +1217,16 @@ class _CommentsSectionState extends State<CommentsSection> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 child: Text(
                   'Comments',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
+                  style: AppFonts.bold.copyWith(
                     fontSize: 16,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black87,
                   ),
                 ),
               ),
@@ -1156,7 +1273,13 @@ class _CommentsSectionState extends State<CommentsSection> {
                               ),
                               child: Text(
                                 data['userName'] ?? 'Anonymous',
-                                style: AppFonts.bold.copyWith(fontSize: 14),
+                                style: AppFonts.bold.copyWith(
+                                  fontSize: 14,
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black87,
+                                ),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -1165,7 +1288,10 @@ class _CommentsSectionState extends State<CommentsSection> {
                           Text(
                             _formatTimestamp(data['timestamp'] as Timestamp?),
                             style: AppFonts.regular.copyWith(
-                              color: Colors.grey,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white60
+                                  : Colors.grey[600],
                               fontSize: 12,
                             ),
                           ),
@@ -1173,7 +1299,12 @@ class _CommentsSectionState extends State<CommentsSection> {
                       ),
                       subtitle: Text(
                         data['text'] ?? '',
-                        style: AppFonts.regular.copyWith(fontSize: 14),
+                        style: AppFonts.regular.copyWith(
+                          fontSize: 14,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87,
+                        ),
                       ),
                       trailing: data['userId'] == currentUser?.uid
                           ? IconButton(
@@ -1239,18 +1370,26 @@ class _CommentsSectionState extends State<CommentsSection> {
             ],
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(
-                'Cancel',
-                style: AppFonts.medium.copyWith(color: Colors.grey),
+            Consumer<ThemeProvider>(
+              builder: (context, themeProvider, _) => TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(
+                  'Cancel',
+                  style: AppFonts.medium.copyWith(
+                    color: themeProvider.isDarkMode
+                        ? Colors.white70
+                        : Colors.grey[600],
+                  ),
+                ),
               ),
             ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: Text(
-                'Delete',
-                style: AppFonts.medium.copyWith(color: Colors.red),
+            Consumer<ThemeProvider>(
+              builder: (context, themeProvider, _) => TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text(
+                  'Delete',
+                  style: AppFonts.medium.copyWith(color: Colors.red),
+                ),
               ),
             ),
           ],

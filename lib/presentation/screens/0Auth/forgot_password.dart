@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/presentation/screens/0Auth/reset_pass.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
+import 'package:provider/provider.dart';
+import 'package:velora/core/configs/theme/theme_provider.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -52,8 +54,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.lightBackground,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -61,7 +67,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back, color: AppColors.primary),
+                icon: Icon(Icons.arrow_back,
+                    color: isDark ? Colors.white : AppColors.primary),
                 onPressed: () => Navigator.pop(context),
               ),
               const SizedBox(height: 20),
@@ -73,7 +80,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
+                    color: isDark ? Color(0xFF4A3B7C) : AppColors.primary,
                   ),
                 ),
               ),

@@ -70,7 +70,10 @@ class ToolboxPageContent extends StatelessWidget {
           if (snapshot.hasData) {
             return BikeScreens(bikeType: snapshot.data!);
           }
-          return Center(child: Text("No Bike Selected"));
+          return Center(
+              child: Text("No Bike Selected",
+                  style: AppFonts.regular.copyWith(
+                      color: isDarkMode ? Colors.white : Colors.black)));
         },
       ),
       floatingActionButton: TheFloatingActionButton(
@@ -353,9 +356,8 @@ class _BikeScreenState extends State<BikeScreens> {
                 children: [
                   Text(
                     selectedBike,
-                    style: TextStyle(
+                    style: AppFonts.bold.copyWith(
                       fontSize: 22,
-                      fontWeight: FontWeight.bold,
                       decoration: TextDecoration.underline,
                       color: isDarkMode ? Colors.white : Colors.black,
                     ),
@@ -397,7 +399,7 @@ class _BikeScreenState extends State<BikeScreens> {
                       child: DropdownButton<String>(
                         value: 'Most Recent',
                         underline: SizedBox(),
-                        style: TextStyle(
+                        style: AppFonts.regular.copyWith(
                           color: isDarkMode ? Colors.white : Colors.black,
                           fontSize: 13,
                         ),
@@ -440,7 +442,6 @@ class _BikeScreenState extends State<BikeScreens> {
                       color: isDarkMode
                           ? const Color(0xFF4A3B7C)
                           : AppColors.lightGrey,
-                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
@@ -482,8 +483,7 @@ class _BikeScreenState extends State<BikeScreens> {
                         SizedBox(height: 6),
                         Text(
                           titles[index],
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
+                          style: AppFonts.bold.copyWith(
                             fontSize: 14,
                             color: isDarkMode ? Colors.white : Colors.black,
                           ),

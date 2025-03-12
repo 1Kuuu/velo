@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:velora/presentation/intro/when_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:velora/core/configs/theme/theme_provider.dart';
 import 'dart:async';
 
 class WhatScreen extends StatefulWidget {
@@ -148,7 +150,11 @@ class _WhatScreenState extends State<WhatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return Scaffold(
+      backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.white,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -156,30 +162,35 @@ class _WhatScreenState extends State<WhatScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Image.asset(
-                'assets/images/logo.png',
+                isDarkMode
+                    ? 'assets/images/logo-w.png'
+                    : 'assets/images/logo.png',
                 height: 30,
               ),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'WHAT',
                 style: TextStyle(
                   fontSize: 36,
-                  color: Color(0xFFB22222),
+                  color: isDarkMode
+                      ? const Color(0xFF4A3B7C)
+                      : const Color(0xFFB22222),
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const Text(
+              Text(
                 'TYPE OF BIKE ARE YOU USING?',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
+                  color: isDarkMode ? Colors.white : Colors.black,
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'SELECT HERE:',
                 style: TextStyle(
-                  color: Colors.grey,
+                  color: isDarkMode ? Colors.grey[400] : Colors.grey,
                   fontSize: 16,
                 ),
               ),
@@ -204,33 +215,45 @@ class _WhatScreenState extends State<WhatScreen> {
   }
 
   Widget _buildBikeOption(String title, String imagePath) {
-    return GestureDetector(
-      onTap: () => _selectBike(title),
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: selectedBike == title ? Colors.red : Colors.grey,
-            width: 2,
-          ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        final isDarkMode = themeProvider.isDarkMode;
+
+        return GestureDetector(
+          onTap: () => _selectBike(title),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+              border: Border.all(
+                color: selectedBike == title
+                    ? (isDarkMode
+                        ? const Color(0xFF4A3B7C)
+                        : const Color(0xFFB22222))
+                    : (isDarkMode ? Colors.grey[800]! : Colors.grey),
+                width: 2,
               ),
+              borderRadius: BorderRadius.circular(8),
             ),
-            Image.asset(
-              imagePath,
-              height: 150,
-              fit: BoxFit.contain,
+            child: Column(
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.white : Colors.black,
+                  ),
+                ),
+                Image.asset(
+                  imagePath,
+                  height: 150,
+                  fit: BoxFit.contain,
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

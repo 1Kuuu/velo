@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 import 'package:provider/provider.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
+import 'package:velora/core/configs/theme/app_fonts.dart';
 
 // Event model to store event data
 class Event {
@@ -170,14 +171,14 @@ class EventModalHelper {
                       children: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text("Cancel",
-                              style: TextStyle(color: Colors.red)),
+                          child: Text("Cancel",
+                              style:
+                                  AppFonts.regular.copyWith(color: Colors.red)),
                         ),
                         Text(
                           existingEvent != null ? "Edit Task" : "New Task",
-                          style: TextStyle(
+                          style: AppFonts.bold.copyWith(
                             fontSize: 18,
-                            fontWeight: FontWeight.bold,
                             color: isDarkMode ? Colors.white : Colors.black87,
                           ),
                         ),
@@ -223,8 +224,9 @@ class EventModalHelper {
 
                             Navigator.pop(context);
                           },
-                          child: const Text("Save",
-                              style: TextStyle(color: Colors.green)),
+                          child: Text("Save",
+                              style: AppFonts.regular
+                                  .copyWith(color: Colors.green)),
                         ),
                       ],
                     ),
@@ -232,12 +234,12 @@ class EventModalHelper {
                     // Event Title Input
                     TextField(
                       controller: titleController,
-                      style: TextStyle(
+                      style: AppFonts.regular.copyWith(
                         color: isDarkMode ? Colors.white : Colors.black87,
                       ),
                       decoration: InputDecoration(
                         hintText: "Enter event title",
-                        hintStyle: TextStyle(
+                        hintStyle: AppFonts.regular.copyWith(
                           color: isDarkMode ? Colors.white38 : Colors.grey,
                         ),
                         border: OutlineInputBorder(
@@ -379,12 +381,12 @@ class EventModalHelper {
                       ),
                       child: TextField(
                         controller: descriptionController,
-                        style: TextStyle(
+                        style: AppFonts.regular.copyWith(
                           color: isDarkMode ? Colors.white : Colors.black87,
                         ),
                         decoration: InputDecoration(
                           hintText: "Description",
-                          hintStyle: TextStyle(
+                          hintStyle: AppFonts.regular.copyWith(
                             color: isDarkMode ? Colors.white38 : Colors.grey,
                           ),
                           border: InputBorder.none,
@@ -409,9 +411,8 @@ class EventModalHelper {
                         children: [
                           Text(
                             "Select Task Color",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                            style: AppFonts.bold.copyWith(
+                              fontSize: 15,
                               color: isDarkMode ? Colors.white : Colors.black87,
                             ),
                           ),
@@ -516,7 +517,7 @@ class EventModalHelper {
           const SizedBox(width: 5),
           Text(
             time,
-            style: TextStyle(
+            style: AppFonts.medium.copyWith(
               color: isDarkMode ? Colors.white : Colors.black,
             ),
           ),
@@ -538,7 +539,7 @@ class EventModalHelper {
       ),
       title: Text(
         text,
-        style: TextStyle(
+        style: AppFonts.medium.copyWith(
           color: isDarkMode ? Colors.white : Colors.black87,
         ),
       ),
@@ -560,7 +561,7 @@ class EventModalHelper {
     return SwitchListTile(
       title: Text(
         text,
-        style: TextStyle(
+        style: AppFonts.medium.copyWith(
           color: isDarkMode ? Colors.white : Colors.black87,
         ),
       ),
@@ -591,7 +592,8 @@ class EventModalHelper {
             value: value,
             child: Text(
               value,
-              style: TextStyle(
+              style: AppFonts.semibold.copyWith(
+                fontSize: 14,
                 color: isDarkMode ? Colors.white : Colors.black87,
               ),
             ),

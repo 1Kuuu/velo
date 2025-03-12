@@ -128,8 +128,12 @@ class _SignupPageState extends State<SignupPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: isDarkMode
+          ? const Color(0xFF121212) // Dark mode background
+          : AppColors.lightBackground,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),

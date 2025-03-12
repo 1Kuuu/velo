@@ -27,6 +27,8 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return SizedBox(
       width: 200,
       height: 51,
@@ -34,15 +36,19 @@ class CustomButton extends StatelessWidget {
           ? ElevatedButton(
               onPressed: onPressed,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor:
+                    isDarkMode ? const Color(0xFF4A3B7C) : AppColors.primary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
+                elevation: isDarkMode ? 0 : 2,
               ),
               child: Text(
                 text,
-                style:
-                    AppFonts.bold.copyWith(fontSize: 15, color: Colors.white),
+                style: AppFonts.bold.copyWith(
+                  fontSize: 15,
+                  color: Colors.white,
+                ),
               ),
             )
           : ElevatedButton.icon(
@@ -56,11 +62,12 @@ class CustomButton extends StatelessWidget {
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor:
+                    isDarkMode ? const Color(0xFF4A3B7C) : AppColors.primary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
-                elevation: 0,
+                elevation: isDarkMode ? 0 : 2,
               ),
             ),
     );
@@ -73,11 +80,13 @@ class AppLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Positioned(
       top: 52.5,
       left: 17,
       child: Image.asset(
-        'assets/images/logo.png',
+        isDarkMode ? 'assets/images/logo-w.png' : 'assets/images/logo.png',
         height: 35,
       ),
     );
@@ -96,7 +105,9 @@ class CustomTitleText extends StatelessWidget {
       text,
       style: AppFonts.bold.copyWith(
         fontSize: 48,
-        color: AppColors.titletxt,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Color(0xFF4A3B7C)
+            : AppColors.primary,
         letterSpacing: 4.8,
       ),
     );
@@ -127,17 +138,27 @@ class CustomDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: Container(height: 1, color: AppColors.blacktxt)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text('or',
-              style: AppFonts.semibold
-                  .copyWith(color: AppColors.blacktxt, fontSize: 16)),
-        ),
-        Expanded(child: Container(height: 1, color: AppColors.blacktxt)),
-      ],
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        final dividerColor = themeProvider.isDarkMode
+            ? const Color(0xFF4A3B7C)
+            : AppColors.blacktxt;
+
+        return Row(
+          children: [
+            Expanded(child: Container(height: 1, color: dividerColor)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'or',
+                style: AppFonts.semibold
+                    .copyWith(color: dividerColor, fontSize: 16),
+              ),
+            ),
+            Expanded(child: Container(height: 1, color: dividerColor)),
+          ],
+        );
+      },
     );
   }
 }
@@ -234,16 +255,23 @@ class AccountNavigationRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(questionText),
+        Text(
+          questionText,
+          style: TextStyle(
+            color: isDarkMode ? Colors.white70 : Colors.black87,
+          ),
+        ),
         TextButton(
           onPressed: onPressed,
           child: Text(
             actionText,
-            style: const TextStyle(
-              color: AppColors.linkText,
+            style: TextStyle(
+              color: isDarkMode ? const Color(0xFF4A3B7C) : AppColors.linkText,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -272,6 +300,7 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       backgroundColor: isDarkMode ? const Color(0xFF4A3B7C) : AppColors.primary,
       elevation: 0,
+      iconTheme: const IconThemeData(color: Colors.white),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           bottom: Radius.circular(30),
@@ -279,9 +308,9 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       title: Text(
         title,
-        style: const TextStyle(
+        style: AppFonts.bold.copyWith(
+          fontSize: 20,
           color: Colors.white,
-          fontWeight: FontWeight.bold,
         ),
       ),
       actions: actions,
@@ -488,14 +517,12 @@ class _CustomDatePickerState extends State<CustomDatePicker> {
                   selectionMode: DateRangePickerSelectionMode.single,
                   initialSelectedDate: widget.initialDate,
                   selectionColor: AppColors.primary,
-                  headerStyle: const DateRangePickerHeaderStyle(
+                  headerStyle: DateRangePickerHeaderStyle(
                     textAlign: TextAlign.center,
-                    textStyle:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    textStyle: AppFonts.bold.copyWith(fontSize: 18),
                   ),
-                  selectionTextStyle: const TextStyle(
+                  selectionTextStyle: AppFonts.bold.copyWith(
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
                   ),
                   selectionShape: DateRangePickerSelectionShape.rectangle,
 
@@ -509,9 +536,8 @@ class _CustomDatePickerState extends State<CustomDatePicker> {
                       color: Colors.red.withOpacity(0.3),
                       shape: BoxShape.circle,
                     ),
-                    specialDatesTextStyle: const TextStyle(
+                    specialDatesTextStyle: AppFonts.bold.copyWith(
                       color: Colors.red,
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   onSelectionChanged:
@@ -530,9 +556,8 @@ class _CustomDatePickerState extends State<CustomDatePicker> {
                     },
                     child: Text(
                       "Today",
-                      style: TextStyle(
+                      style: AppFonts.bold.copyWith(
                         color: isDarkMode ? Colors.white70 : Colors.black87,
-                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
@@ -617,7 +642,10 @@ class ChatAppBar extends StatelessWidget {
               child: !ChatUtils.hasProfilePicture(recipientProfileUrl)
                   ? Text(
                       ChatUtils.getInitials(recipientName),
-                      style: const TextStyle(fontSize: 20, color: Colors.white),
+                      style: AppFonts.regular.copyWith(
+                        fontSize: 20,
+                        color: Colors.white,
+                      ),
                     )
                   : null,
             ),
@@ -675,8 +703,10 @@ class MessageBubble extends StatelessWidget {
                 child: !ChatUtils.hasProfilePicture(data["senderProfileUrl"])
                     ? Text(
                         ChatUtils.getInitials(senderName),
-                        style:
-                            const TextStyle(fontSize: 14, color: Colors.white),
+                        style: AppFonts.regular.copyWith(
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
                       )
                     : null,
               ),
@@ -715,9 +745,10 @@ class MessageBubble extends StatelessWidget {
                         children: [
                           Text(
                             _formatTimestamp(timestamp!),
-                            style: AppFonts.light.copyWith(
+                            style: AppFonts.regular.copyWith(
                               fontSize: 10,
                               color: isMe ? Colors.white70 : Colors.grey[600],
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                           if (isMe)
@@ -777,8 +808,11 @@ class DateHeader extends StatelessWidget {
           ),
           child: Text(
             _formatDateHeader(dateKey),
-            style:
-                AppFonts.medium.copyWith(fontSize: 12, color: Colors.grey[700]),
+            style: AppFonts.regular.copyWith(
+              fontSize: 12,
+              color: Colors.grey[700],
+              fontWeight: FontWeight.w400,
+            ),
           ),
         ),
       ),
@@ -871,8 +905,11 @@ class BikeSelectionDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return AlertDialog(
-      backgroundColor: Colors.grey[800],
+      backgroundColor: isDarkMode ? const Color(0xFF2D2D2D) : Colors.grey[100],
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
       ),
@@ -900,36 +937,45 @@ class BikeSelectionDialog extends StatelessWidget {
 
   Widget _buildBikeOption(
       BuildContext context, String title, String imagePath, String bikeType) {
+    final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
+
     return GestureDetector(
       onTap: () {
         Navigator.of(context).pop();
         onBikeSelected(bikeType);
       },
       child: Container(
-        margin: EdgeInsets.only(bottom: 12),
+        margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
           borderRadius: BorderRadius.circular(15),
+          border: Border.all(
+            color: isDarkMode ? Colors.grey[800]! : Colors.grey[300]!,
+            width: 1,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: EdgeInsets.only(left: 20, top: 10),
+              padding: const EdgeInsets.only(left: 20, top: 10),
               child: Text(
                 title,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
+                style: AppFonts.bold.copyWith(
                   fontSize: 16,
+                  color: isDarkMode ? Colors.white : Colors.black87,
                 ),
               ),
             ),
-            SizedBox(height: 5),
+            const SizedBox(height: 5),
             ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: Image.asset(
-                imagePath,
-                fit: BoxFit.cover,
+              child: Container(
+                color: isDarkMode ? Colors.black : Colors.white,
+                child: Image.asset(
+                  imagePath,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
           ],

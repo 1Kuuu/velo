@@ -7,12 +7,18 @@ import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/presentation/screens/1Home/home.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:velora/presentation/widgets/reusable_wdgts.dart';
+import 'package:velora/core/configs/theme/theme_provider.dart';
+import 'package:provider/provider.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false, // Removes back button
@@ -22,7 +28,8 @@ class WelcomeScreen extends StatelessWidget {
             fontSize: 36,
             fontWeight: FontWeight.w600,
             color: Colors.white),
-        backgroundColor: AppColors.primary,
+        backgroundColor:
+            isDarkMode ? const Color(0xFF4A3B7C) : AppColors.primary,
       ),
       body: SafeArea(
         child: StreamBuilder<DocumentSnapshot>(
@@ -73,19 +80,11 @@ class WelcomeScreen extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Image.asset(
-                        'assets/images/logo.png',
-                        height: 30,
+                      const AppLogo(),
+                      CustomTitleText(
+                        text: 'WELCOME!',
                       ),
-                      const SizedBox(height: 20),
-                      const Text(
-                        'WELCOME!',
-                        style: TextStyle(
-                          fontSize: 36,
-                          color: Color(0xFFB22222),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      const SizedBox(height: 2),
                       const Text(
                         'SEEMS LIKE YOU LOVE:',
                         style: TextStyle(
@@ -102,7 +101,8 @@ class WelcomeScreen extends StatelessWidget {
                       const SizedBox(height: 40),
                       SizedBox(
                         width: double.infinity,
-                        child: ElevatedButton(
+                        child: CustomButton(
+                          text: 'START',
                           onPressed: () async {
                             try {
                               print("🔘 START button pressed");
@@ -175,18 +175,6 @@ class WelcomeScreen extends StatelessWidget {
                                   context, 'Failed to complete setup: $e');
                             }
                           },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4A1818),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'START',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 18, color: Colors.white),
-                          ),
                         ),
                       ),
                     ],
@@ -217,70 +205,91 @@ class WelcomeScreen extends StatelessWidget {
   }
 
   Widget _buildSummaryCard(String bikeType) {
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          Image.asset(
-            'assets/images/${bikeType.toLowerCase()}.png',
-            width: double.infinity,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return const Icon(Icons.directions_bike,
-                  size: 100, color: Colors.grey);
-            },
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        return Container(
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            color: themeProvider.isDarkMode
+                ? const Color(0xFF1E1E1E)
+                : Colors.grey[200],
+            borderRadius: BorderRadius.circular(8),
           ),
-          const SizedBox(height: 8),
-          Text(
-            bikeType,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          child: Column(
+            children: [
+              Image.asset(
+                'assets/images/${bikeType.toLowerCase()}.png',
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(Icons.directions_bike,
+                      size: 100, color: Colors.grey);
+                },
+              ),
+              const SizedBox(height: 8),
+              Text(
+                bikeType,
+                style:
+                    const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   Widget _buildPreferenceSection(String title, dynamic preferences) {
-    List<String> selectedPreferences = [];
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        final isDarkMode = themeProvider.isDarkMode;
+        List<String> selectedPreferences = [];
 
-    if (preferences is Map<String, dynamic>) {
-      // If it's a Map, extract keys where the value is 'true'
-      selectedPreferences = preferences.entries
-          .where((entry) => entry.value == true)
-          .map((entry) => entry.key)
-          .toList();
-    } else if (preferences is List<dynamic>) {
-      // If it's a List, safely cast it to List<String>
-      selectedPreferences = preferences.whereType<String>().toList();
-    }
+        if (preferences is Map<String, dynamic>) {
+          selectedPreferences = preferences.entries
+              .where((entry) => entry.value == true)
+              .map((entry) => entry.key)
+              .toList();
+        } else if (preferences is List<dynamic>) {
+          selectedPreferences = preferences.whereType<String>().toList();
+        }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: selectedPreferences.map((pref) {
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.grey[400],
-                borderRadius: BorderRadius.circular(20),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: isDarkMode ? Colors.white : Colors.black,
               ),
-              child: Text(pref),
-            );
-          }).toList(),
-        ),
-      ],
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: selectedPreferences.map((pref) {
+                return Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                  decoration: BoxDecoration(
+                    color:
+                        isDarkMode ? const Color(0xFF4A3B7C) : Colors.grey[400],
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    pref,
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white : Colors.black,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        );
+      },
     );
   }
 }

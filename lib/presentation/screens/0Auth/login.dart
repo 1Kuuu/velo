@@ -7,7 +7,8 @@ import 'package:velora/data/sources/auth_service.dart';
 import 'package:velora/presentation/screens/0Auth/auth_gate.dart';
 import 'package:velora/presentation/screens/0Auth/forgot_password.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
-// Import auth_gate.dart
+import 'package:provider/provider.dart';
+import 'package:velora/core/configs/theme/theme_provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -130,8 +131,11 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: themeProvider.isDarkMode
+          ? AppColors.darkBackground
+          : AppColors.lightBackground,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -141,7 +145,9 @@ class _LoginPageState extends State<LoginPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const AppLogo(),
-                CustomTitleText(text: 'LOGIN'),
+                CustomTitleText(
+                  text: 'LOGIN',
+                ),
                 const SizedBox(height: 2),
 
                 // Email Input
@@ -203,10 +209,12 @@ class _LoginPageState extends State<LoginPage> {
                             builder: (context) => const ForgotPasswordPage()),
                       );
                     },
-                    child: const Text(
+                    child: Text(
                       'Forgot Password?',
                       style: TextStyle(
-                        color: AppColors.linkText,
+                        color: themeProvider.isDarkMode
+                            ? Color(0xFF4A3B7C)
+                            : AppColors.linkText,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

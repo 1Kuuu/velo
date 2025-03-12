@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
+import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/screens/2ToolBox/toolbox.dart';
 import 'package:velora/presentation/screens/3News/newsfeed.dart';
@@ -297,8 +298,7 @@ class _HomePageContentState extends State<HomePageContent> {
                     children: [
                       Text(
                         "Your Weekly Progress",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
+                        style: AppFonts.bold.copyWith(
                           fontSize: 16,
                           color: isDarkMode ? Colors.white : Colors.black87,
                         ),
@@ -349,9 +349,8 @@ class _HomePageContentState extends State<HomePageContent> {
                       },
                       child: Text(
                         DateFormat.yMMMM().format(_selectedDate),
-                        style: TextStyle(
+                        style: AppFonts.bold.copyWith(
                           fontSize: 16,
-                          fontWeight: FontWeight.bold,
                           color: isDarkMode ? Colors.white : Colors.black87,
                         ),
                       ),
@@ -405,7 +404,7 @@ class _HomePageContentState extends State<HomePageContent> {
                                 children: [
                                   Text(
                                     DateFormat.E().format(currentDate),
-                                    style: TextStyle(
+                                    style: AppFonts.regular.copyWith(
                                       fontSize: 13,
                                       color: isDarkMode
                                           ? Colors.white70
@@ -438,9 +437,8 @@ class _HomePageContentState extends State<HomePageContent> {
                                         child: Center(
                                           child: Text(
                                             currentDate.day.toString(),
-                                            style: TextStyle(
+                                            style: AppFonts.semibold.copyWith(
                                               fontSize: 15,
-                                              fontWeight: FontWeight.w600,
                                               color: isSelected
                                                   ? (isDarkMode
                                                       ? Colors.white
@@ -495,7 +493,7 @@ class _HomePageContentState extends State<HomePageContent> {
                             const SizedBox(height: 16),
                             Text(
                               "No Plans for ${DateFormat('EEEE, MMMM d').format(_selectedDate)}",
-                              style: TextStyle(
+                              style: AppFonts.medium.copyWith(
                                 color:
                                     isDarkMode ? Colors.white70 : Colors.grey,
                               ),
@@ -503,7 +501,7 @@ class _HomePageContentState extends State<HomePageContent> {
                             const SizedBox(height: 8),
                             Text(
                               "Tap + to add a new Plan",
-                              style: TextStyle(
+                              style: AppFonts.regular.copyWith(
                                 color:
                                     isDarkMode ? Colors.white70 : Colors.grey,
                               ),
@@ -543,8 +541,7 @@ class _HomePageContentState extends State<HomePageContent> {
                                         Expanded(
                                           child: Text(
                                             event.title,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
+                                            style: AppFonts.bold.copyWith(
                                               fontSize: 16,
                                               color: isDarkMode
                                                   ? Colors.white
@@ -552,37 +549,51 @@ class _HomePageContentState extends State<HomePageContent> {
                                             ),
                                           ),
                                         ),
-                                        Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            GestureDetector(
-                                              onTap: () => _editEvent(event),
-                                              child: Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 2),
-                                                child: Icon(
-                                                  Icons.edit,
-                                                  size: 20,
-                                                  color: isDarkMode
-                                                      ? Colors.white70
-                                                      : Colors.black54,
-                                                ),
+                                        PopupMenuButton<String>(
+                                          icon: Icon(
+                                            Icons.more_vert,
+                                            color: isDarkMode
+                                                ? Colors.white70
+                                                : Colors.black54,
+                                          ),
+                                          onSelected: (String choice) {
+                                            if (choice == 'Edit') {
+                                              _editEvent(event);
+                                            } else if (choice == 'Delete') {
+                                              _showDeleteConfirmation(
+                                                  context, event);
+                                            }
+                                          },
+                                          itemBuilder: (BuildContext context) =>
+                                              [
+                                            PopupMenuItem<String>(
+                                              value: 'Edit',
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.edit,
+                                                    color: isDarkMode
+                                                        ? Colors.white70
+                                                        : Colors.black54,
+                                                    size: 20,
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Text('Edit'),
+                                                ],
                                               ),
                                             ),
-                                            GestureDetector(
-                                              onTap: () =>
-                                                  _showDeleteConfirmation(
-                                                      context, event),
-                                              child: Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 2),
-                                                child: Icon(
-                                                  Icons.delete,
-                                                  size: 20,
-                                                  color: Colors.red[700],
-                                                ),
+                                            PopupMenuItem<String>(
+                                              value: 'Delete',
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.delete,
+                                                    color: Colors.red[700],
+                                                    size: 20,
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  const Text('Delete'),
+                                                ],
                                               ),
                                             ),
                                           ],
@@ -592,7 +603,7 @@ class _HomePageContentState extends State<HomePageContent> {
                                     const SizedBox(height: 4),
                                     Text(
                                       "${DateFormat('EEEE, MMMM d').format(event.date)} | ${formatTimeOfDay(event.startTime)} - ${formatTimeOfDay(event.endTime)}",
-                                      style: TextStyle(
+                                      style: AppFonts.regular.copyWith(
                                         color: isDarkMode
                                             ? Colors.white70
                                             : Colors.black54,
@@ -601,7 +612,7 @@ class _HomePageContentState extends State<HomePageContent> {
                                     const SizedBox(height: 4),
                                     Text(
                                       event.description,
-                                      style: TextStyle(
+                                      style: AppFonts.regular.copyWith(
                                         color: isDarkMode
                                             ? Colors.white70
                                             : Colors.black87,
@@ -627,15 +638,14 @@ class _HomePageContentState extends State<HomePageContent> {
       children: [
         Text(
           title,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
+          style: AppFonts.bold.copyWith(
             color: isDarkMode ? Colors.white : Colors.black87,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           value,
-          style: TextStyle(
+          style: AppFonts.medium.copyWith(
             fontSize: 16,
             color: isDarkMode ? Colors.white70 : Colors.black87,
           ),
@@ -646,7 +656,7 @@ class _HomePageContentState extends State<HomePageContent> {
         ),
         Text(
           "0",
-          style: TextStyle(
+          style: AppFonts.regular.copyWith(
             color: isDarkMode ? Colors.white70 : Colors.black87,
           ),
         ),

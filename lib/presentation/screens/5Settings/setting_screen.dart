@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
+import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'package:velora/presentation/screens/0Auth/login.dart';
 import 'package:velora/presentation/screens/5Settings/editprofile.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -162,7 +163,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (isLoading) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text("Settings"),
+          title: Text("Settings",
+              style: AppFonts.bold.copyWith(color: Colors.white)),
           backgroundColor: themeProvider.isDarkMode
               ? const Color(0xFF4A3B7C)
               : AppColors.primary,
@@ -179,8 +181,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ? const Color(0xFF121212)
           : AppColors.primary,
       appBar: AppBar(
-        title: const Text("Settings",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text("Settings",
+            style: AppFonts.bold.copyWith(color: Colors.white)),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -320,10 +322,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 10),
           Text(
             userData['userName'] ?? "User Name",
-            style: const TextStyle(
+            style: AppFonts.bold.copyWith(
               color: Colors.white,
               fontSize: 18,
-              fontWeight: FontWeight.bold,
               shadows: [
                 Shadow(
                   offset: Offset(0, 1),
@@ -335,7 +336,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           Text(
             userData['email'] ?? "No email",
-            style: const TextStyle(
+            style: AppFonts.regular.copyWith(
               color: Colors.white70,
               fontSize: 14,
               shadows: [
@@ -350,7 +351,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 5),
           Text(
             userData['bio'] ?? "No bio available",
-            style: const TextStyle(
+            style: AppFonts.light.copyWith(
               color: Colors.white70,
               fontSize: 12,
               shadows: [
@@ -400,10 +401,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               elevation: 3,
             ),
-            child: const Text(
+            child: Text(
               "Edit Profile",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
+              style: AppFonts.bold.copyWith(
                 fontSize: 14,
               ),
             ),
@@ -425,28 +425,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text(
+          title: Text(
             "Confirm Logout",
-            style: TextStyle(
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.bold,
+            style: AppFonts.bold.copyWith(
               fontSize: 18,
             ),
           ),
-          content: const Text(
+          content: Text(
             "Are you sure you want to log out?",
-            style: TextStyle(fontFamily: 'Poppins', fontSize: 16),
+            style: AppFonts.regular.copyWith(fontSize: 16),
           ),
           actions: <Widget>[
             TextButton(
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.primary,
               ),
-              child: const Text(
+              child: Text(
                 "No",
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.bold,
+                style: AppFonts.bold.copyWith(
                   fontSize: 16,
                 ),
               ),
@@ -458,11 +454,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: TextButton.styleFrom(
                 foregroundColor: Colors.red,
               ),
-              child: const Text(
+              child: Text(
                 "Yes",
-                style: TextStyle(
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.bold,
+                style: AppFonts.bold.copyWith(
                   fontSize: 16,
                 ),
               ),
@@ -499,10 +493,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return ListTile(
       leading: Icon(icon, color: iconColor ?? defaultColor),
-      title: Text(title, style: TextStyle(color: textColor ?? defaultColor)),
+      title: Text(title,
+          style: AppFonts.regular.copyWith(color: textColor ?? defaultColor)),
       trailing: trailingText != null
           ? Text(trailingText,
-              style: TextStyle(
+              style: AppFonts.regular.copyWith(
                   color: themeProvider.isDarkMode
                       ? Colors.grey[400]
                       : Colors.grey))
@@ -524,7 +519,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return ListTile(
       leading: Icon(icon, color: defaultColor),
-      title: Text(title, style: TextStyle(color: defaultColor)),
+      title: Text(title, style: AppFonts.regular.copyWith(color: defaultColor)),
       trailing: Switch(
         value: value,
         onChanged: onChanged,
@@ -539,9 +534,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Text(
         title,
-        style: TextStyle(
+        style: AppFonts.bold.copyWith(
           fontSize: 16,
-          fontWeight: FontWeight.bold,
           color: themeProvider.isDarkMode ? Colors.white : Colors.black87,
         ),
       ),

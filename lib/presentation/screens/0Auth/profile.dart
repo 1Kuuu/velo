@@ -13,6 +13,9 @@ import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:flutter/services.dart';
+import 'package:velora/core/configs/theme/app_colors.dart'; // Import AppColors
+import 'package:provider/provider.dart';
+import 'package:velora/core/configs/theme/theme_provider.dart';
 
 class ProfilePage extends StatefulWidget {
   final String? userId;
@@ -526,11 +529,10 @@ class _ProfilePageState extends State<ProfilePage> {
         actions: isCurrentUser
             ? [
                 IconButton(
-                    icon: Icon(Icons.edit, color: theme.colorScheme.onSurface),
+                    icon: const Icon(Icons.edit, color: Colors.white),
                     onPressed: _navigateToEditProfile),
                 IconButton(
-                    icon: Icon(Icons.settings,
-                        color: theme.colorScheme.onSurface),
+                    icon: const Icon(Icons.settings, color: Colors.white),
                     onPressed: () => Navigator.pushNamed(context, '/settings')),
               ]
             : [],
@@ -591,6 +593,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildProfileStats() {
     final theme = Theme.of(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
     final followingCount = (userData['following'] as List?)?.length ?? 0;
     final followersCount = (userData['followers'] as List?)?.length ?? 0;
 
@@ -598,7 +602,7 @@ class _ProfilePageState extends State<ProfilePage> {
       padding: const EdgeInsets.symmetric(vertical: 10),
       margin: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary,
+        color: isDarkMode ? const Color(0xFF4A3B7C) : AppColors.primary,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -634,6 +638,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildInteractionButtons() {
     final theme = Theme.of(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -644,10 +650,14 @@ class _ProfilePageState extends State<ProfilePage> {
           style: ElevatedButton.styleFrom(
             backgroundColor: isFollowing
                 ? theme.colorScheme.surface
-                : theme.colorScheme.primary,
+                : isDarkMode
+                    ? const Color(0xFF4A3B7C)
+                    : AppColors.primary,
             foregroundColor: isFollowing
-                ? theme.colorScheme.onSurface
-                : theme.colorScheme.onPrimary,
+                ? isDarkMode
+                    ? Colors.white70
+                    : theme.colorScheme.onSurface
+                : Colors.white,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           ),
@@ -658,6 +668,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildPostCreation() {
     final theme = Theme.of(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -670,7 +682,7 @@ class _ProfilePageState extends State<ProfilePage> {
           Card(
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            color: theme.cardColor,
+            color: isDarkMode ? const Color(0xFF1E1E1E) : theme.cardColor,
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -718,13 +730,14 @@ class _ProfilePageState extends State<ProfilePage> {
                                   },
                                   child: Container(
                                     decoration: BoxDecoration(
-                                      color: theme.colorScheme.error,
+                                      color: isDarkMode
+                                          ? const Color(0xFF4A3B7C)
+                                          : theme.colorScheme.error,
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     padding: const EdgeInsets.all(2),
                                     child: Icon(Icons.close,
-                                        size: 16,
-                                        color: theme.colorScheme.onError),
+                                        size: 16, color: Colors.white),
                                   ),
                                 ),
                               ),
@@ -741,7 +754,9 @@ class _ProfilePageState extends State<ProfilePage> {
                         children: [
                           IconButton(
                             icon: Icon(Icons.image,
-                                color: theme.colorScheme.primary),
+                                color: isDarkMode
+                                    ? const Color(0xFF4A3B7C)
+                                    : AppColors.primary),
                             onPressed: () => _pickMedia(true),
                           ),
                           IconButton(
@@ -754,8 +769,10 @@ class _ProfilePageState extends State<ProfilePage> {
                       ElevatedButton(
                         onPressed: _createPost,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.colorScheme.primary,
-                          foregroundColor: theme.colorScheme.onPrimary,
+                          backgroundColor: isDarkMode
+                              ? const Color(0xFF4A3B7C)
+                              : AppColors.primary,
+                          foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20)),
                         ),

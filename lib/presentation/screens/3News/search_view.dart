@@ -74,7 +74,7 @@ class _SearchViewState extends State<SearchView> {
         var filteredUsers = snapshot.data!.docs.where((doc) {
           var data = doc.data() as Map<String, dynamic>;
           String name = (data['userName'] ?? "").toLowerCase();
-          return name.contains(searchName) && data['uid'] != currentUserId;
+          return name.contains(searchName) && doc.id != currentUserId;
         }).toList();
 
         if (filteredUsers.isEmpty) {
@@ -87,7 +87,7 @@ class _SearchViewState extends State<SearchView> {
         return ListView(
           children: filteredUsers.map((doc) {
             var data = doc.data() as Map<String, dynamic>;
-            return _buildUserTile(data);
+            return _buildUserTile(data, doc.id);
           }).toList(),
         );
       },
@@ -95,7 +95,7 @@ class _SearchViewState extends State<SearchView> {
   }
 
   /// 🔹 Extracted method for rendering each user tile
-  Widget _buildUserTile(Map<String, dynamic> data) {
+  Widget _buildUserTile(Map<String, dynamic> data, String userId) {
     final theme = Theme.of(context);
     return ListTile(
       leading: CircleAvatar(
@@ -119,7 +119,7 @@ class _SearchViewState extends State<SearchView> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ProfilePage(userId: data['uid']),
+            builder: (context) => ProfilePage(userId: userId),
           ),
         );
       },
@@ -139,6 +139,7 @@ class _SearchViewState extends State<SearchView> {
 
   /// ✅ **Generates a random color based on username**
   Color _generateRandomColor(String? text) {
-    return Colors.primaries[text!.hashCode.abs() % Colors.primaries.length];
+    final String safeText = text ?? "default";
+    return Colors.primaries[safeText.hashCode.abs() % Colors.primaries.length];
   }
 }

@@ -90,6 +90,7 @@ flutter:
     - assets/images/fx-Crank.png
     - assets/images/maps-location.png
     - assets/images/weather-background.png
+    - assets/images/logo-w.png
 
   fonts:
     - family: Poppins

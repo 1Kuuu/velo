@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:velora/presentation/intro/where_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:velora/core/configs/theme/theme_provider.dart';
 
 class WhenScreen extends StatefulWidget {
   const WhenScreen({super.key});
@@ -81,35 +83,40 @@ class _WhenScreenState extends State<WhenScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return Scaffold(
+      backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.white,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Positioned(
-                top: 52.5,
-                left: 15,
-                child: Image.asset(
-                  'assets/images/logo.png',
-                  height: 30,
-                ),
+              Image.asset(
+                isDarkMode
+                    ? 'assets/images/logo-w.png'
+                    : 'assets/images/logo.png',
+                height: 30,
               ),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'WHEN',
                 style: TextStyle(
                   fontSize: 36,
-                  color: Color(0xFFB22222),
+                  color: isDarkMode
+                      ? const Color(0xFF4A3B7C)
+                      : const Color(0xFFB22222),
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const Text(
+              Text(
                 'DO YOU USUALLY RIDE?',
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
+                  color: isDarkMode ? Colors.white : Colors.black,
                 ),
               ),
               const SizedBox(height: 30),
@@ -120,13 +127,18 @@ class _WhenScreenState extends State<WhenScreen> {
                       padding: const EdgeInsets.only(bottom: 15.0),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.grey[200],
+                          color: isDarkMode
+                              ? const Color(0xFF1E1E1E)
+                              : Colors.grey[200],
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: CheckboxListTile(
                           title: Text(
                             key,
-                            style: const TextStyle(fontSize: 22),
+                            style: TextStyle(
+                              fontSize: 22,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
                           ),
                           value: timePreferences[key],
                           onChanged: (bool? value) {
@@ -134,6 +146,10 @@ class _WhenScreenState extends State<WhenScreen> {
                               timePreferences[key] = value!;
                             });
                           },
+                          checkColor: Colors.white,
+                          activeColor: isDarkMode
+                              ? const Color(0xFF4A3B7C)
+                              : const Color(0xFFB22222),
                         ),
                       ),
                     );
@@ -145,7 +161,9 @@ class _WhenScreenState extends State<WhenScreen> {
                 child: ElevatedButton(
                   onPressed: _saveAndNavigate,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A1818),
+                    backgroundColor: isDarkMode
+                        ? const Color(0xFF4A3B7C)
+                        : const Color(0xFF4A1818),
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),

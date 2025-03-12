@@ -3,6 +3,8 @@ import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/screens/Weather/weather.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
+import 'package:provider/provider.dart';
+import 'package:velora/core/configs/theme/theme_provider.dart';
 
 class MountainbikeInfo extends StatelessWidget {
   final Widget part;
@@ -12,8 +14,12 @@ class MountainbikeInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: MyAppBar(
         title: "Toolbox",
         actions: [
@@ -45,7 +51,7 @@ class MountainbikeInfo extends StatelessWidget {
       floatingActionButton: TheFloatingActionButton(
         svgAsset: 'assets/svg/white-m.svg',
         onPressed: () => print("FAB Pressed"),
-        backgroundColor: Colors.black,
+        backgroundColor: isDark ? Colors.black : Color(0xFF4A3B7C),
         heroTag: 'openai_fab',
       ),
     );
@@ -57,6 +63,9 @@ class MountainbikeHandlePart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
@@ -71,6 +80,7 @@ class MountainbikeHandlePart extends StatelessWidget {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : Colors.black,
           ),
         ),
         SizedBox(height: 10),
@@ -78,13 +88,16 @@ class MountainbikeHandlePart extends StatelessWidget {
           width: MediaQuery.of(context).size.width * 0.85,
           padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.grey[200],
+            color: isDark ? Color(0xFF1E1E1E) : Colors.grey[200],
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             'The MTB (mountain bike) handlebar is designed for off-road cycling and provides control, stability, and comfort on rough terrain.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14),
+            style: TextStyle(
+              fontSize: 14,
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
           ),
         ),
       ],
@@ -97,6 +110,9 @@ class MountainbikeWheelPart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
@@ -111,6 +127,7 @@ class MountainbikeWheelPart extends StatelessWidget {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : Colors.black,
           ),
         ),
         SizedBox(height: 10),
@@ -118,13 +135,16 @@ class MountainbikeWheelPart extends StatelessWidget {
           width: MediaQuery.of(context).size.width * 0.85,
           padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.grey[200],
+            color: isDark ? Color(0xFF1E1E1E) : Colors.grey[200],
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             'The MTB (mountain bike) wheel is designed to handle the challenges of off-road terrain, providing strength, durability, and traction.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14),
+            style: TextStyle(
+              fontSize: 14,
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
           ),
         ),
       ],
@@ -137,6 +157,9 @@ class MountainbikeFramePart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
@@ -151,6 +174,7 @@ class MountainbikeFramePart extends StatelessWidget {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : Colors.black,
           ),
         ),
         SizedBox(height: 10),
@@ -158,13 +182,16 @@ class MountainbikeFramePart extends StatelessWidget {
           width: MediaQuery.of(context).size.width * 0.85,
           padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.grey[200],
+            color: isDark ? Color(0xFF1E1E1E) : Colors.grey[200],
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             'The "Frame" of a mountainbike refers to its frame and key structural components like the fork, seatpost, handlebars, bottom bracket, and wheel stays. These parts provide support, stability, and allow the bike to function.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14),
+            style: TextStyle(
+              fontSize: 14,
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
           ),
         ),
       ],
@@ -177,6 +204,9 @@ class MountainbikeSaddlePart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
@@ -191,6 +221,7 @@ class MountainbikeSaddlePart extends StatelessWidget {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : Colors.black,
           ),
         ),
         SizedBox(height: 10),
@@ -198,13 +229,16 @@ class MountainbikeSaddlePart extends StatelessWidget {
           width: MediaQuery.of(context).size.width * 0.85,
           padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.grey[200],
+            color: isDark ? Color(0xFF1E1E1E) : Colors.grey[200],
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             'A good saddle is crucial for a comfortable and efficient riding experience, as it supports the riders weight and helps maintain proper riding posture.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14),
+            style: TextStyle(
+              fontSize: 14,
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
           ),
         ),
       ],
@@ -217,6 +251,9 @@ class MountainbikeCrankPart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
@@ -231,6 +268,7 @@ class MountainbikeCrankPart extends StatelessWidget {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : Colors.black,
           ),
         ),
         SizedBox(height: 10),
@@ -238,13 +276,16 @@ class MountainbikeCrankPart extends StatelessWidget {
           width: MediaQuery.of(context).size.width * 0.85,
           padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.grey[200],
+            color: isDark ? Color(0xFF1E1E1E) : Colors.grey[200],
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             'The crank is part of the bike drivetrain that connects the pedals to the bikes bottom bracket, allowing the rider to transfer power to the wheels.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14),
+            style: TextStyle(
+              fontSize: 14,
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
           ),
         ),
       ],
@@ -257,6 +298,9 @@ class MountainbikeShifterPart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
@@ -271,6 +315,7 @@ class MountainbikeShifterPart extends StatelessWidget {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : Colors.black,
           ),
         ),
         SizedBox(height: 10),
@@ -278,13 +323,16 @@ class MountainbikeShifterPart extends StatelessWidget {
           width: MediaQuery.of(context).size.width * 0.85,
           padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.grey[200],
+            color: isDark ? Color(0xFF1E1E1E) : Colors.grey[200],
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             'The shifter is a component on a road bike that allows the rider to change gears, controlling the bike speed and cadence. It is typically integrated into the handlebars and works in conjunction with the derailleur and chainrings.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14),
+            style: TextStyle(
+              fontSize: 14,
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
           ),
         ),
       ],
