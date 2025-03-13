@@ -139,114 +139,118 @@ class _LoginPageState extends State<LoginPage> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const AppLogo(),
-                CustomTitleText(
-                  text: 'LOGIN',
-                ),
-                const SizedBox(height: 2),
+          child: Stack(
+            children: [
+              Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const AppLogo(),
+                    const SizedBox(height: 40), // Space for logo
+                    CustomTitleText(text: 'LOGIN'),
+                    const SizedBox(height: 2),
 
-                // Email Input
-                CustomInputField(
-                  label: 'EMAIL',
-                  controller: emailController,
-                  hintText: 'Enter your email',
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Email is required';
-                    }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                        .hasMatch(value)) {
-                      return 'Enter a valid email';
-                    }
-                    return null;
-                  },
-                ),
+                    // Email Input
+                    CustomInputField(
+                      label: 'EMAIL',
+                      controller: emailController,
+                      hintText: 'Enter your email',
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Email is required';
+                        }
+                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                            .hasMatch(value)) {
+                          return 'Enter a valid email';
+                        }
+                        return null;
+                      },
+                    ),
 
-                const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-                // Password Input
-                CustomInputField(
-                  label: 'PASSWORD',
-                  controller: passwordController,
-                  hintText: 'Enter your password',
-                  obscureText: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Password is required';
-                    }
-                    if (value.length < 8) {
-                      return 'Password must be at least 8 characters';
-                    }
-                    return null;
-                  },
-                ),
+                    // Password Input
+                    CustomInputField(
+                      label: 'PASSWORD',
+                      controller: passwordController,
+                      hintText: 'Enter your password',
+                      obscureText: true,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Password is required';
+                        }
+                        if (value.length < 8) {
+                          return 'Password must be at least 8 characters';
+                        }
+                        return null;
+                      },
+                    ),
 
-                const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                // Login Button
-                Center(
-                  child: CustomButton(
-                    text: 'LOGIN',
-                    onPressed: _login,
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Forgot Password
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const ForgotPasswordPage()),
-                      );
-                    },
-                    child: Text(
-                      'Forgot Password?',
-                      style: TextStyle(
-                        color: themeProvider.isDarkMode
-                            ? Color(0xFF4A3B7C)
-                            : AppColors.linkText,
-                        fontWeight: FontWeight.bold,
+                    // Login Button
+                    Center(
+                      child: CustomButton(
+                        text: 'LOGIN',
+                        onPressed: _login,
                       ),
                     ),
-                  ),
+
+                    const SizedBox(height: 16),
+
+                    // Forgot Password
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    const ForgotPasswordPage()),
+                          );
+                        },
+                        child: Text(
+                          'Forgot Password?',
+                          style: TextStyle(
+                            color: themeProvider.isDarkMode
+                                ? Color(0xFF4A3B7C)
+                                : AppColors.linkText,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    Center(child: CustomDivider()),
+                    const SizedBox(height: 24),
+
+                    // Google Sign-In Button
+                    Center(
+                      child: CustomButton(
+                        text: 'With Google',
+                        onPressed: _signInWithGoogle,
+                        iconPath: 'assets/images/Google.png',
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Sign Up Navigation
+                    AccountNavigationRow(
+                      questionText: "Don't have an account?",
+                      actionText: "Sign Up",
+                      onPressed: () {
+                        Navigator.pushReplacementNamed(context, '/signup');
+                      },
+                    ),
+                  ],
                 ),
-
-                const SizedBox(height: 24),
-
-                Center(child: CustomDivider()),
-                const SizedBox(height: 24),
-
-                // Google Sign-In Button
-                Center(
-                  child: CustomButton(
-                    text: 'With Google',
-                    onPressed: _signInWithGoogle,
-                    iconPath: 'assets/images/Google.png',
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Sign Up Navigation
-                AccountNavigationRow(
-                  questionText: "Don't have an account?",
-                  actionText: "Sign Up",
-                  onPressed: () {
-                    Navigator.pushReplacementNamed(context, '/signup');
-                  },
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

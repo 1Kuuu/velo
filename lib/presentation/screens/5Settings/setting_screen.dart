@@ -8,6 +8,11 @@ import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'package:velora/presentation/screens/0Auth/login.dart';
 import 'package:velora/presentation/screens/5Settings/editprofile.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:velora/presentation/screens/5Settings/language_screen.dart';
+import 'package:velora/presentation/screens/5Settings/about_screen.dart';
+import 'package:velora/presentation/screens/5Settings/terms_condition.dart';
+import 'package:velora/presentation/screens/5Settings/help_support_screen.dart';
+import 'package:velora/data/sources/auth_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -240,28 +245,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: "Language",
                     trailingText: "English",
                     onTap: () {
-                      Navigator.pushNamed(context, '/language');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => LanguageScreen()),
+                      );
                     },
                   ),
                   buildListTile(
                     icon: Icons.help_outline,
                     title: "Help & Support",
                     onTap: () {
-                      Navigator.pushNamed(context, '/help_support');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const HelpSupportScreen()),
+                      );
                     },
                   ),
                   buildListTile(
-                    icon: Icons.description_outlined,
-                    title: "Terms & Conditions",
+                    icon: Icons.info_outline,
+                    title: "Terms & Condition",
                     onTap: () {
-                      Navigator.pushNamed(context, '/terms_conditions');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const TermsConditionScreen()),
+                      );
                     },
                   ),
                   buildListTile(
                     icon: Icons.info_outline,
                     title: "About",
                     onTap: () {
-                      Navigator.pushNamed(context, '/about');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const AboutScreen()),
+                      );
                     },
                   ),
                   buildListTile(
@@ -425,7 +446,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showLogoutConfirmationDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: Text(
             "Confirm Logout",
@@ -449,7 +470,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(dialogContext).pop();
               },
             ),
             TextButton(
@@ -463,16 +484,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               onPressed: () async {
-                Navigator.of(context).pop();
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.remove('hasCompletedOnboarding');
-                await FirebaseAuth.instance.signOut();
-                await Future.delayed(const Duration(milliseconds: 500));
-                if (mounted) {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoginPage()),
-                  );
+                // Close the dialog first
+                Navigator.of(dialogContext).pop();
+
+                try {
+                  if (context.mounted) {
+                    final success = await AuthService().signOut(context);
+
+                    if (success && context.mounted) {
+                      // Navigate to login page and clear navigation stack
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                            builder: (context) => const LoginPage()),
+                        (Route<dynamic> route) => false,
+                      );
+                    }
+                  }
+                } catch (e) {
+                  print("Error during logout process: $e");
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Failed to log out. Please try again."),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
                 }
               },
             ),

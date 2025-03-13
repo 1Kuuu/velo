@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
+import 'package:velora/core/configs/language/app_localizations.dart';
+import 'package:velora/firebase_options.dart';
 import 'package:velora/presentation/intro/onboarding.dart';
 import 'package:velora/presentation/intro/welcome_screen.dart';
 import 'package:velora/presentation/intro/what_screen.dart';
@@ -15,17 +19,22 @@ import 'package:velora/presentation/screens/0Auth/login.dart';
 import 'package:velora/presentation/screens/3News/newsfeed.dart';
 import 'package:velora/presentation/screens/5Settings/editprofile.dart';
 import 'package:velora/presentation/screens/5Settings/setting_screen.dart';
+import 'package:velora/providers/language_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Enable Firebase debug mode
   print("🔥 Initializing Firebase with debug mode...");
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    await FirebaseAppCheck.instance.activate(
+      androidProvider: AndroidProvider.debug,
+      appleProvider: AppleProvider.debug,
+    );
     print("✅ Firebase initialized successfully");
   } catch (e) {
-    print("❌ Firebase initialization error: $e");
+    print("❌ Firebase initialization failed: $e");
   }
 
   SystemChrome.setSystemUIOverlayStyle(
@@ -36,8 +45,12 @@ void main() async {
   );
 
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => ThemeProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(
+            create: (_) => LanguageProvider()..loadLanguage()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -59,20 +72,32 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final languageProvider = Provider.of<LanguageProvider>(context);
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: themeProvider.themeData,
-      home: const SplashScreen(), // Use the new splash screen
+      locale: languageProvider.locale,
+      supportedLocales: const [
+        Locale('en'), // English
+        Locale('en', 'UK'), // English UK
+        Locale('fil'), // Filipino
+      ],
+      localizationsDelegates: [
+        const AppLocalizationsDelegate(),
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      home: const SplashScreen(),
       routes: {
         '/getstarted': (context) => const GetStarted(),
         '/home': (context) => const HomePage(),
         '/signup': (context) => const SignupPage(),
         '/login': (context) => const LoginPage(),
-        '/settings': (context) => const SettingsScreen(), // ✅ Add this
-        '/edit-profile': (context) => const EditProfileScreen(), // ✅ Add this
-        '/newsfeed': (context) =>
-            const NewsFeedPageContent(), // Add newsfeed route
+        '/settings': (context) => const SettingsScreen(),
+        '/edit-profile': (context) => const EditProfileScreen(),
+        '/newsfeed': (context) => const NewsFeedPageContent(),
       },
     );
   }

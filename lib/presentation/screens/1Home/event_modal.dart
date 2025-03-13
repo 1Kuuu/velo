@@ -120,6 +120,58 @@ String formatTimeOfDay(TimeOfDay timeOfDay) {
 
 // Event Modal functionality
 class EventModalHelper {
+  // Check if the time slot is available
+  static Future<bool> isTimeSlotAvailable({
+    required DateTime date,
+    required TimeOfDay startTime,
+    required TimeOfDay endTime,
+    required String userId,
+  }) async {
+    // Convert TimeOfDay to DateTime for comparison
+    DateTime startDateTime = DateTime(
+        date.year, date.month, date.day, startTime.hour, startTime.minute);
+    DateTime endDateTime =
+        DateTime(date.year, date.month, date.day, endTime.hour, endTime.minute);
+
+    // Query Firestore for events on the same date
+    QuerySnapshot<Map<String, dynamic>> snapshot = await FirebaseFirestore
+        .instance
+        .collection('events')
+        .where('userId', isEqualTo: userId)
+        .where('date', isEqualTo: Timestamp.fromDate(date))
+        .get();
+
+    // Check for overlapping events
+    for (var doc in snapshot.docs) {
+      Event existingEvent = Event.fromFirestore(doc);
+
+      DateTime existingStartDateTime = DateTime(
+        existingEvent.date.year,
+        existingEvent.date.month,
+        existingEvent.date.day,
+        existingEvent.startTime.hour,
+        existingEvent.startTime.minute,
+      );
+
+      DateTime existingEndDateTime = DateTime(
+        existingEvent.date.year,
+        existingEvent.date.month,
+        existingEvent.date.day,
+        existingEvent.endTime.hour,
+        existingEvent.endTime.minute,
+      );
+
+      if (startDateTime.isBefore(existingEndDateTime) &&
+          endDateTime.isAfter(existingStartDateTime)) {
+        // Overlapping event found
+        return false;
+      }
+    }
+
+    // No overlapping events found
+    return true;
+  }
+
   // Show new event modal
   static void showNewEventModal(
     BuildContext context, {
@@ -127,7 +179,7 @@ class EventModalHelper {
     DateTime? selectedDate,
     required Function(Event) onEventCreated,
     required Function(Event) onEventUpdated,
-  }) {
+  }) async {
     final titleController =
         TextEditingController(text: existingEvent?.title ?? "");
     final descriptionController =
@@ -142,6 +194,25 @@ class EventModalHelper {
     Color selectedColor = existingEvent?.color ?? Colors.blue;
     final isDarkMode =
         Provider.of<ThemeProvider>(context, listen: false).isDarkMode;
+
+    // Fetch the latest end time of existing events on the same day
+    TimeOfDay? latestEndTime;
+    QuerySnapshot<Map<String, dynamic>> snapshot = await FirebaseFirestore
+        .instance
+        .collection('events')
+        .where('userId', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+        .where('date', isEqualTo: Timestamp.fromDate(eventDate))
+        .get();
+
+    for (var doc in snapshot.docs) {
+      Event existingEvent = Event.fromFirestore(doc);
+      if (latestEndTime == null ||
+          (existingEvent.endTime.hour > latestEndTime.hour ||
+              (existingEvent.endTime.hour == latestEndTime.hour &&
+                  existingEvent.endTime.minute > latestEndTime.minute))) {
+        latestEndTime = existingEvent.endTime;
+      }
+    }
 
     showModalBottomSheet(
       context: context,
@@ -183,7 +254,29 @@ class EventModalHelper {
                           ),
                         ),
                         TextButton(
-                          onPressed: () {
+                          onPressed: () async {
+                            // Check if the time slot is available
+                            bool isAvailable = await isTimeSlotAvailable(
+                              date: eventDate!,
+                              startTime: startTime,
+                              endTime: endTime,
+                              userId: FirebaseAuth.instance.currentUser!.uid,
+                            );
+
+                            if (!isAvailable) {
+                              // Show an error message if the time slot is not available
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    "The selected time slot is already booked.",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+
                             if (existingEvent != null) {
                               // Update existing event
                               final updatedEvent = existingEvent.copyWith(
@@ -291,6 +384,26 @@ class EventModalHelper {
                                     initialTime: startTime,
                                   );
                                   if (pickedTime != null) {
+                                    // Ensure the new start time is after the latest end time
+                                    if (latestEndTime != null &&
+                                        (pickedTime.hour < latestEndTime.hour ||
+                                            (pickedTime.hour ==
+                                                    latestEndTime.hour &&
+                                                pickedTime.minute <=
+                                                    latestEndTime.minute))) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            "Start time must be after ${formatTimeOfDay(latestEndTime)}.",
+                                            style:
+                                                TextStyle(color: Colors.white),
+                                          ),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                      return;
+                                    }
                                     setModalState(() {
                                       startTime = pickedTime;
                                     });

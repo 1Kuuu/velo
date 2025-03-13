@@ -42,6 +42,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final TextEditingController _postController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
   final List<File> _mediaFiles = [];
+  bool _disposed = false;
 
   @override
   void initState() {
@@ -52,12 +53,21 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   void dispose() {
+    _disposed = true;
     _postController.dispose();
     super.dispose();
   }
 
+  void _safeSetState(VoidCallback fn) {
+    if (!_disposed && mounted) {
+      setState(fn);
+    }
+  }
+
   Future<void> _loadData() async {
-    setState(() => isLoading = true);
+    if (_disposed) return;
+    _safeSetState(() => isLoading = true);
+
     try {
       // Check if user is logged in
       if (FirebaseServices.currentUserId == null) {
@@ -68,15 +78,44 @@ class _ProfilePageState extends State<ProfilePage> {
       String targetUserId = widget.userId ?? FirebaseServices.currentUserId!;
       isCurrentUser = targetUserId == FirebaseServices.currentUserId;
 
+      // Get followers count
+      final followers = await FirebaseFirestore.instance
+          .collection('follows')
+          .where('followingId', isEqualTo: targetUserId)
+          .get();
+
+      // Get following count
+      final following = await FirebaseFirestore.instance
+          .collection('follows')
+          .where('followerId', isEqualTo: targetUserId)
+          .get();
+
+      // Check if current user is following this profile
+      if (!isCurrentUser && FirebaseServices.currentUserId != null) {
+        final followCheck = await FirebaseFirestore.instance
+            .collection('follows')
+            .where('followerId', isEqualTo: FirebaseServices.currentUserId)
+            .where('followingId', isEqualTo: targetUserId)
+            .get();
+
+        if (mounted) {
+          _safeSetState(() {
+            isFollowing = followCheck.docs.isNotEmpty;
+          });
+        }
+      }
+
       // Fetch user data from the correct collection
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
-          .collection('users') // Using the correct collection name
+          .collection('users')
           .doc(targetUserId)
           .get();
 
+      if (!mounted || _disposed) return;
+
       if (userDoc.exists) {
         Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
-        setState(() {
+        _safeSetState(() {
           userData = {
             'userId': targetUserId,
             'userName': data['userName'] ??
@@ -86,23 +125,13 @@ class _ProfilePageState extends State<ProfilePage> {
             'email': data['email'] ?? '',
             'bio': data['bio'] ?? 'No bio available',
             'profileUrl': data['profileUrl'] ?? '',
-            'followers': data['followers'] ?? [],
-            'following': data['following'] ?? [],
-            'followerCount': (data['followers'] as List?)?.length ?? 0,
-            'followingCount': (data['following'] as List?)?.length ?? 0,
+            'followerCount': followers.docs.length,
+            'followingCount': following.docs.length,
             'postsCount': data['postsCount'] ?? 0,
             'activitiesCount': data['activitiesCount'] ?? 0,
             'createdAt': data['createdAt'],
           };
         });
-
-        // Check if current user is following this profile
-        if (!isCurrentUser && FirebaseServices.currentUserId != null) {
-          List<dynamic> followers = data['followers'] ?? [];
-          setState(() {
-            isFollowing = followers.contains(FirebaseServices.currentUserId);
-          });
-        }
 
         // Fetch posts for the profile
         QuerySnapshot postsSnapshot = await FirebaseFirestore.instance
@@ -111,13 +140,17 @@ class _ProfilePageState extends State<ProfilePage> {
             .orderBy('createdAt', descending: true)
             .get();
 
+        if (!mounted || _disposed) return;
+
         List<Map<String, dynamic>> userPosts = [];
         for (var doc in postsSnapshot.docs) {
+          if (_disposed) return;
           Map<String, dynamic> postData = doc.data() as Map<String, dynamic>;
 
           // Get comments count
           QuerySnapshot commentsSnapshot =
               await doc.reference.collection('comments').get();
+          if (_disposed) return;
           int commentsCount = commentsSnapshot.docs.length;
 
           // Check if current user has liked this post
@@ -127,6 +160,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 .collection('likes')
                 .doc(FirebaseServices.currentUserId)
                 .get();
+            if (_disposed) return;
             isLiked = likeDoc.exists;
           }
 
@@ -138,97 +172,71 @@ class _ProfilePageState extends State<ProfilePage> {
           });
         }
 
-        setState(() {
+        if (!mounted || _disposed) return;
+        _safeSetState(() {
           posts = userPosts;
         });
       } else {
-        _showToast('User profile not found', isError: true);
+        if (!_disposed) _showToast('User profile not found', isError: true);
       }
     } catch (e) {
       print('Error loading profile data: $e');
-      _showToast('Error loading profile: $e', isError: true);
+      if (!_disposed) _showToast('Error loading profile: $e', isError: true);
     } finally {
-      setState(() => isLoading = false);
+      if (!_disposed) _safeSetState(() => isLoading = false);
     }
   }
 
   Future<void> _toggleFollow() async {
-    if (widget.userId == null) return;
-    setState(() => isLoading = true);
+    if (widget.userId == null || _disposed) return;
+    _safeSetState(() => isLoading = true);
+
     try {
       if (FirebaseServices.currentUserId == null) return;
 
-      // Get target user's document
-      DocumentSnapshot targetUserDoc = await FirebaseFirestore.instance
-          .collection('users') // Changed to 'users' collection
-          .doc(widget.userId)
+      // Check if the follow relationship exists
+      final followQuery = await FirebaseFirestore.instance
+          .collection('follows')
+          .where('followerId', isEqualTo: FirebaseServices.currentUserId)
+          .where('followingId', isEqualTo: widget.userId)
           .get();
 
-      if (!targetUserDoc.exists) {
-        throw Exception('User profile not found');
-      }
-
-      // Get current user's document
-      DocumentSnapshot currentUserDoc = await FirebaseFirestore.instance
-          .collection('users') // Changed to 'users' collection
-          .doc(FirebaseServices.currentUserId)
-          .get();
-
-      if (!currentUserDoc.exists) {
-        throw Exception('Current user profile not found');
-      }
-
-      Map<String, dynamic> targetUserData =
-          targetUserDoc.data() as Map<String, dynamic>;
-      Map<String, dynamic> currentUserData =
-          currentUserDoc.data() as Map<String, dynamic>;
-
-      List<dynamic> targetUserFollowers =
-          List.from(targetUserData['followers'] ?? []);
-      List<dynamic> currentUserFollowing =
-          List.from(currentUserData['following'] ?? []);
-
-      // Update followers and following lists
       if (isFollowing) {
-        targetUserFollowers.remove(FirebaseServices.currentUserId);
-        currentUserFollowing.remove(widget.userId);
+        // Remove from follows collection
+        for (var doc in followQuery.docs) {
+          await doc.reference.delete();
+        }
       } else {
-        targetUserFollowers.add(FirebaseServices.currentUserId);
-        currentUserFollowing.add(widget.userId);
+        // Add to follows collection
+        await FirebaseFirestore.instance.collection('follows').add({
+          'followerId': FirebaseServices.currentUserId,
+          'followingId': widget.userId,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
       }
 
-      // Update target user's followers
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.userId)
-          .update({
-        'followers': targetUserFollowers,
-      });
-
-      // Update current user's following
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(FirebaseServices.currentUserId)
-          .update({
-        'following': currentUserFollowing,
-      });
-
-      setState(() {
-        isFollowing = !isFollowing;
-        userData['followers'] = targetUserFollowers;
-        userData['followerCount'] = targetUserFollowers.length;
-      });
+      if (!_disposed) {
+        _safeSetState(() {
+          isFollowing = !isFollowing;
+        });
+      }
 
       // Call the onFollowChanged callback if provided
       widget.onFollowChanged?.call(isFollowing);
 
-      _showToast(isFollowing ? 'Started following' : 'Unfollowed');
+      if (!_disposed) {
+        _showToast(isFollowing ? 'Started following' : 'Unfollowed');
+      }
     } catch (e) {
       print('Error toggling follow: $e');
-      _showToast('Failed to update follow status', isError: true);
+      if (!_disposed) {
+        _showToast('Failed to update follow status', isError: true);
+      }
     } finally {
-      setState(() => isLoading = false);
-      await _loadData(); // Reload data to refresh the UI
+      if (!_disposed) {
+        _safeSetState(() => isLoading = false);
+        await _loadData();
+      }
     }
   }
 
@@ -996,8 +1004,8 @@ class _ProfilePageState extends State<ProfilePage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      backgroundColor: theme.colorScheme.surface,
-      builder: (context) => Padding(
+      builder: (context) => Container(
+        color: theme.colorScheme.surface,
         padding: const EdgeInsets.symmetric(vertical: 16.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1122,30 +1130,6 @@ class _ProfilePageState extends State<ProfilePage> {
   void _showFollowList(
       BuildContext context, String title, List<dynamic> userIds) {
     final theme = Theme.of(context);
-    if (userIds.isEmpty) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: theme.colorScheme.surface,
-          title: Text(title,
-              style: AppFonts.bold
-                  .copyWith(fontSize: 20, color: theme.colorScheme.onSurface)),
-          content: Text('No $title yet',
-              style:
-                  AppFonts.medium.copyWith(color: theme.colorScheme.onSurface)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Close',
-                  style: AppFonts.medium
-                      .copyWith(color: theme.colorScheme.primary)),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
-
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -1168,84 +1152,123 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   child: StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
-                        .collection(FirebaseServices.userCollection)
-                        .where(FieldPath.documentId, whereIn: userIds)
+                        .collection('follows')
+                        .where(
+                          title == 'Following' ? 'followerId' : 'followingId',
+                          isEqualTo:
+                              widget.userId ?? FirebaseServices.currentUserId,
+                        )
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
                       }
+
                       if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                         return Center(
-                          child: Text('No $title found',
+                          child: Text('No $title yet',
                               style: AppFonts.medium.copyWith(
                                   color: theme.colorScheme.onSurface)),
                         );
                       }
 
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: snapshot.data!.docs.length,
-                        itemBuilder: (context, index) {
-                          var userData = snapshot.data!.docs[index].data()
-                              as Map<String, dynamic>;
-                          var userId = snapshot.data!.docs[index].id;
-                          return ListTile(
-                            leading: GestureDetector(
-                              onTap: () {
-                                Navigator.pop(context);
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        ProfilePage(userId: userId),
-                                  ),
-                                );
-                              },
-                              child: CircleAvatar(
-                                backgroundImage:
-                                    userData['profileUrl'] != null &&
+                      // Extract user IDs from follows documents
+                      List<String> userIds = snapshot.data!.docs.map((doc) {
+                        Map<String, dynamic> data =
+                            doc.data() as Map<String, dynamic>;
+                        return title == 'Following'
+                            ? data['followingId'] as String
+                            : data['followerId'] as String;
+                      }).toList();
+
+                      return StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('users')
+                            .where(FieldPath.documentId, whereIn: userIds)
+                            .snapshots(),
+                        builder: (context, userSnapshot) {
+                          if (userSnapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          }
+
+                          if (!userSnapshot.hasData ||
+                              userSnapshot.data!.docs.isEmpty) {
+                            return Center(
+                              child: Text('No user data found',
+                                  style: AppFonts.medium.copyWith(
+                                      color: theme.colorScheme.onSurface)),
+                            );
+                          }
+
+                          return ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: userSnapshot.data!.docs.length,
+                            itemBuilder: (context, index) {
+                              var userData = userSnapshot.data!.docs[index]
+                                  .data() as Map<String, dynamic>;
+                              var userId = userSnapshot.data!.docs[index].id;
+
+                              return ListTile(
+                                leading: GestureDetector(
+                                  onTap: () {
+                                    Navigator.pop(context);
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            ProfilePage(userId: userId),
+                                      ),
+                                    );
+                                  },
+                                  child: CircleAvatar(
+                                    backgroundImage: userData['profileUrl'] !=
+                                                null &&
                                             userData['profileUrl']
                                                 .toString()
                                                 .isNotEmpty
                                         ? NetworkImage(userData['profileUrl'])
                                         : null,
-                                child: userData['profileUrl'] == null ||
-                                        userData['profileUrl']
-                                            .toString()
-                                            .isEmpty
-                                    ? Text(
-                                        (userData['userName'] ?? 'U')[0]
-                                            .toUpperCase(),
-                                        style: TextStyle(
-                                            color: theme.colorScheme.onSurface),
-                                      )
-                                    : null,
-                              ),
-                            ),
-                            title: Text(
-                              userData['userName'] ?? 'Unknown User',
-                              style: AppFonts.medium
-                                  .copyWith(color: theme.colorScheme.onSurface),
-                            ),
-                            subtitle: Text(
-                              userData['bio'] ?? 'No bio',
-                              style: AppFonts.medium.copyWith(
-                                color: theme.colorScheme.onSurface
-                                    .withOpacity(0.7),
-                                fontSize: 12,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            onTap: () {
-                              Navigator.pop(context);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      ProfilePage(userId: userId),
+                                    child: userData['profileUrl'] == null ||
+                                            userData['profileUrl']
+                                                .toString()
+                                                .isEmpty
+                                        ? Text(
+                                            (userData['userName'] ?? 'U')[0]
+                                                .toUpperCase(),
+                                            style: TextStyle(
+                                                color: theme
+                                                    .colorScheme.onSurface),
+                                          )
+                                        : null,
+                                  ),
                                 ),
+                                title: Text(
+                                  userData['userName'] ?? 'Unknown User',
+                                  style: AppFonts.medium.copyWith(
+                                      color: theme.colorScheme.onSurface),
+                                ),
+                                subtitle: Text(
+                                  userData['bio'] ?? 'No bio',
+                                  style: AppFonts.medium.copyWith(
+                                    color: theme.colorScheme.onSurface
+                                        .withOpacity(0.7),
+                                    fontSize: 12,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          ProfilePage(userId: userId),
+                                    ),
+                                  );
+                                },
                               );
                             },
                           );

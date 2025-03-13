@@ -35,6 +35,11 @@ class _NewsFeedPageContentState extends State<NewsFeedPageContent>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      setState(() {
+        // Update your state here
+      });
+    });
   }
 
   @override
@@ -143,6 +148,11 @@ class _PostInputFieldState extends State<PostInputField> {
     super.initState();
     _controller.addListener(() {
       setState(() {}); // Rebuild widget when text changes
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      setState(() {
+        // Update your state here
+      });
     });
   }
 

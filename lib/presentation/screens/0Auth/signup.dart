@@ -137,116 +137,121 @@ class _SignupPageState extends State<SignupPage> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const AppLogo(),
-                CustomTitleText(text: 'SIGN UP'),
-                const SizedBox(height: 2),
+          child: Stack(
+            children: [
+              const AppLogo(), // ✅ Move the logo here
+              const SizedBox(height: 24),
+              Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CustomTitleText(text: 'SIGN UP'),
+                    const SizedBox(height: 2),
 
-                // Username Input with Validation
-                CustomInputField(
-                  label: 'USERNAME',
-                  controller: usernameController,
-                  hintText: 'Enter your username',
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Username is required'
-                      : null,
+                    // Username Input with Validation
+                    CustomInputField(
+                      label: 'USERNAME',
+                      controller: usernameController,
+                      hintText: 'Enter your username',
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Username is required'
+                          : null,
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Email Input with Validation
+                    CustomInputField(
+                      label: 'EMAIL',
+                      controller: emailController,
+                      hintText: 'Enter your email',
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Email is required';
+                        }
+                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                            .hasMatch(value)) {
+                          return 'Enter a valid email';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Password Input with Validation
+                    CustomInputField(
+                      label: 'PASSWORD',
+                      controller: passwordController,
+                      hintText: 'Enter your password',
+                      obscureText: true,
+                      validator: (value) => (value == null || value.length < 8)
+                          ? 'Password must be at least 8 characters'
+                          : null,
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Confirm Password Input with Validation
+                    CustomInputField(
+                      label: 'CONFIRM PASSWORD',
+                      controller: confirmPasswordController,
+                      hintText: 'Re-enter your password',
+                      obscureText: true,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please confirm your password';
+                        }
+                        if (value != passwordController.text) {
+                          return 'Passwords do not match';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Signup Button
+                    Center(
+                      child: CustomButton(
+                        text: 'SIGN UP',
+                        onPressed: _signup,
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    Center(child: CustomDivider()),
+                    const SizedBox(height: 24),
+
+                    // Google Sign-Up Button
+                    Center(
+                      child: CustomButton(
+                        text: 'With Google',
+                        onPressed: _signInWithGoogle,
+                        iconPath: 'assets/images/Google.png',
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Login Navigation
+                    AccountNavigationRow(
+                      questionText: "Already have an account?",
+                      actionText: "Log In",
+                      onPressed: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const LoginPage()),
+                        );
+                      },
+                    ),
+                  ],
                 ),
-
-                const SizedBox(height: 16),
-
-                // Email Input with Validation
-                CustomInputField(
-                  label: 'EMAIL',
-                  controller: emailController,
-                  hintText: 'Enter your email',
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Email is required';
-                    }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                        .hasMatch(value)) {
-                      return 'Enter a valid email';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 16),
-
-                // Password Input with Validation
-                CustomInputField(
-                  label: 'PASSWORD',
-                  controller: passwordController,
-                  hintText: 'Enter your password',
-                  obscureText: true,
-                  validator: (value) => (value == null || value.length < 8)
-                      ? 'Password must be at least 8 characters'
-                      : null,
-                ),
-
-                const SizedBox(height: 16),
-
-                // Confirm Password Input with Validation
-                CustomInputField(
-                  label: 'CONFIRM PASSWORD',
-                  controller: confirmPasswordController,
-                  hintText: 'Re-enter your password',
-                  obscureText: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please confirm your password';
-                    }
-                    if (value != passwordController.text) {
-                      return 'Passwords do not match';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: 24),
-
-                // Signup Button
-                Center(
-                  child: CustomButton(
-                    text: 'SIGN UP',
-                    onPressed: _signup,
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                Center(child: CustomDivider()),
-                const SizedBox(height: 24),
-
-                // Google Sign-Up Button
-                Center(
-                  child: CustomButton(
-                    text: 'With Google',
-                    onPressed: _signInWithGoogle,
-                    iconPath: 'assets/images/Google.png',
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Login Navigation
-                AccountNavigationRow(
-                  questionText: "Already have an account?",
-                  actionText: "Log In",
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const LoginPage()),
-                    );
-                  },
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

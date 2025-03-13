@@ -54,60 +54,62 @@ class ResetPasswordPageState extends State<ResetPasswordPage> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                Align(
-                  alignment: Alignment.topLeft,
-                  child: IconButton(
-                    icon:
-                        const Icon(Icons.arrow_back, color: AppColors.primary),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const AppLogo(),
-                const SizedBox(height: 10),
-                Center(
-                  child: Text(
-                    'Enter Your New Password',
-                    style: AppFonts.bold.copyWith(
-                      fontSize: 20,
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700,
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back,
+                          color: AppColors.primary),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ),
-                ),
-                const SizedBox(height: 32),
-                // New Password Field
-                CustomInputField(
-                  label: 'NEW PASSWORD',
-                  controller: passwordController,
-                  hintText: 'Enter your new password',
-                  obscureText: true,
-                  validator: FormValidators.validatePassword,
-                ),
-                const SizedBox(height: 16),
-                // Confirm Password Field
-                CustomInputField(
-                  label: 'CONFIRM PASSWORD',
-                  controller: confirmPasswordController,
-                  hintText: 'Re-enter your new password',
-                  obscureText: true,
-                  validator: (value) => FormValidators.validatePasswordMatch(
-                    value,
-                    passwordController.text,
+                  const SizedBox(height: 10),
+                  const SizedBox(height: 40), // Space for logo
+                  const SizedBox(height: 10),
+                  Center(
+                    child: Text(
+                      'Enter Your New Password',
+                      style: AppFonts.bold.copyWith(
+                        fontSize: 20,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 32),
-                // Submit Button
-                CustomButton(
-                  text: 'SUBMIT',
-                  onPressed: submitForm,
-                ),
-              ],
-            ),
+                  const SizedBox(height: 32),
+                  // New Password Field
+                  CustomInputField(
+                    label: 'NEW PASSWORD',
+                    controller: passwordController,
+                    hintText: 'Enter your new password',
+                    obscureText: true,
+                    validator: FormValidators.validatePassword,
+                  ),
+                  const SizedBox(height: 16),
+                  // Confirm Password Field
+                  CustomInputField(
+                    label: 'CONFIRM PASSWORD',
+                    controller: confirmPasswordController,
+                    hintText: 'Re-enter your new password',
+                    obscureText: true,
+                    validator: (value) => FormValidators.validatePasswordMatch(
+                      value,
+                      passwordController.text,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  // Submit Button
+                  CustomButton(
+                    text: 'SUBMIT',
+                    onPressed: submitForm,
+                  ),
+                ],
+              ),
+              const AppLogo(),
+            ],
           ),
         ),
       ),

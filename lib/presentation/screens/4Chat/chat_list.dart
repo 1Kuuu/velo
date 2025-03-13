@@ -4,30 +4,18 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/screens/4Chat/chat.dart';
 import 'package:velora/presentation/screens/Weather/weather.dart';
-import 'package:velora/presentation/widgets/reusable_wdgts.dart';
-import 'package:provider/provider.dart';
-import 'package:velora/core/configs/theme/theme_provider.dart';
-import 'package:velora/core/configs/theme/app_colors.dart';
-import 'package:velora/core/configs/theme/app_fonts.dart';
+import 'package:velora/presentation/widgets/reusable_wdgts.dart'; // Import reusable widgets
 
-class ChatListPage extends StatefulWidget {
+class ChatListPage extends StatelessWidget {
   const ChatListPage({super.key});
-
-  @override
-  State<ChatListPage> createState() => _ChatListPageState();
-}
-
-class _ChatListPageState extends State<ChatListPage> {
-  String searchQuery = "";
 
   @override
   Widget build(BuildContext context) {
     String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? "";
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final isDarkMode = themeProvider.isDarkMode;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
+      backgroundColor: isDarkMode ? Colors.black : Colors.white,
       appBar: MyAppBar(
         title: "Messages",
         actions: [
@@ -61,24 +49,16 @@ class _ChatListPageState extends State<ChatListPage> {
             child: Container(
               height: 45,
               decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF2D2D2D) : Colors.grey[100],
+                color: isDarkMode ? Colors.grey[900] : Colors.grey[100],
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isDarkMode ? Colors.grey[800]! : Colors.grey[300]!,
-                ),
               ),
               child: TextField(
-                onChanged: (value) {
-                  setState(() {
-                    searchQuery = value.toLowerCase();
-                  });
-                },
-                style: AppFonts.regular.copyWith(
+                style: TextStyle(
                   color: isDarkMode ? Colors.white : Colors.black,
                 ),
                 decoration: InputDecoration(
                   hintText: 'Search conversations',
-                  hintStyle: AppFonts.light.copyWith(
+                  hintStyle: TextStyle(
                     color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
                     fontSize: 14,
                   ),
@@ -104,38 +84,35 @@ class _ChatListPageState extends State<ChatListPage> {
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(
-                    child: CircularProgressIndicator(
-                      color: isDarkMode ? Colors.white70 : AppColors.primary,
-                    ),
-                  );
+                  return const Center(child: CircularProgressIndicator());
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 48,
-                          color:
-                              isDarkMode ? Colors.grey[600] : Colors.grey[400],
-                        ),
+                        Icon(Icons.chat_bubble_outline,
+                            size: 48,
+                            color: isDarkMode
+                                ? Colors.grey[600]
+                                : Colors.grey[400]),
                         const SizedBox(height: 12),
                         Text(
                           "No conversations yet",
-                          style: AppFonts.semibold.copyWith(
-                            color:
-                                isDarkMode ? Colors.white70 : Colors.grey[600],
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: isDarkMode
+                                ? Colors.grey[400]
+                                : Colors.grey[600],
                             fontSize: 16,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           "Start chatting with someone!",
-                          style: AppFonts.regular.copyWith(
+                          style: TextStyle(
                             color: isDarkMode
-                                ? Colors.grey[500]
+                                ? Colors.grey[600]
                                 : Colors.grey[400],
                             fontSize: 14,
                           ),
@@ -147,49 +124,7 @@ class _ChatListPageState extends State<ChatListPage> {
 
                 var users = snapshot.data!.docs
                     .where((doc) => doc.id != currentUserId)
-                    .where((doc) {
-                  if (searchQuery.isEmpty) return true;
-                  var data = doc.data() as Map<String, dynamic>;
-                  String name = (data["userName"] ?? "").toLowerCase();
-                  String email = (data["email"] ?? "").toLowerCase();
-                  return name.contains(searchQuery) ||
-                      email.contains(searchQuery);
-                }).toList();
-
-                if (users.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.search_off,
-                          size: 48,
-                          color:
-                              isDarkMode ? Colors.grey[600] : Colors.grey[400],
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          "No matching conversations",
-                          style: AppFonts.semibold.copyWith(
-                            color:
-                                isDarkMode ? Colors.white70 : Colors.grey[600],
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          "Try different search terms",
-                          style: AppFonts.regular.copyWith(
-                            color: isDarkMode
-                                ? Colors.grey[500]
-                                : Colors.grey[400],
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
+                    .toList();
 
                 return ListView.builder(
                   itemCount: users.length,
@@ -206,8 +141,7 @@ class _ChatListPageState extends State<ChatListPage> {
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
-                        color:
-                            isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
+                        color: isDarkMode ? Colors.grey[900] : Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isDarkMode
@@ -262,7 +196,8 @@ class _ChatListPageState extends State<ChatListPage> {
                                               profileUrl)
                                           ? Text(
                                               ChatUtils.getInitials(name),
-                                              style: AppFonts.bold.copyWith(
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
                                                 color: Colors.white,
                                                 fontSize: 16,
                                               ),
@@ -279,20 +214,22 @@ class _ChatListPageState extends State<ChatListPage> {
                                     children: [
                                       Text(
                                         name,
-                                        style: AppFonts.semibold.copyWith(
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16,
                                           color: isDarkMode
                                               ? Colors.white
                                               : Colors.black,
-                                          fontSize: 16,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
                                         lastMessage,
-                                        style: AppFonts.regular.copyWith(
+                                        style: TextStyle(
                                           color: isDarkMode
                                               ? Colors.grey[400]
-                                              : Colors.grey[600],
+                                              : const Color.fromRGBO(
+                                                  158, 158, 158, 1),
                                           fontSize: 14,
                                         ),
                                         maxLines: 1,
@@ -305,8 +242,8 @@ class _ChatListPageState extends State<ChatListPage> {
                                   Icons.arrow_forward_ios,
                                   size: 16,
                                   color: isDarkMode
-                                      ? Colors.grey[400]
-                                      : Colors.grey[600],
+                                      ? Colors.grey[600]
+                                      : Colors.grey[400],
                                 ),
                               ],
                             ),

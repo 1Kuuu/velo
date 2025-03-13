@@ -63,40 +63,45 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
             children: [
-              IconButton(
-                icon: Icon(Icons.arrow_back,
-                    color: isDark ? Colors.white : AppColors.primary),
-                onPressed: () => Navigator.pop(context),
-              ),
-              const SizedBox(height: 20),
-              const Center(child: AppLogo()),
-              const SizedBox(height: 40),
-              Center(
-                child: Text(
-                  'FORGOT PASSWORD?',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Color(0xFF4A3B7C) : AppColors.primary,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  IconButton(
+                    icon:
+                        const Icon(Icons.arrow_back, color: AppColors.primary),
+                    onPressed: () => Navigator.pop(context),
                   ),
-                ),
+                  const SizedBox(height: 20),
+                  const SizedBox(height: 40), // Space for logo
+                  const SizedBox(height: 40),
+                  Center(
+                    child: Text(
+                      'FORGOT PASSWORD?',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  CustomInputField(
+                    label: 'EMAIL',
+                    controller: emailController,
+                    hintText: 'Enter your email',
+                  ),
+                  const SizedBox(height: 32),
+                  Center(
+                    child: CustomButton(
+                      text: 'RESET PASSWORD',
+                      onPressed: _resetPassword,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 20),
-              CustomInputField(
-                label: 'EMAIL',
-                controller: emailController,
-                hintText: 'Enter your email',
-              ),
-              const SizedBox(height: 32),
-              Center(
-                child: CustomButton(
-                  text: 'RESET PASSWORD',
-                  onPressed: _resetPassword,
-                ),
-              ),
+              const AppLogo(),
             ],
           ),
         ),

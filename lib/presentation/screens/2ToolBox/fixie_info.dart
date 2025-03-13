@@ -306,12 +306,12 @@ class FixieBreakPart extends StatelessWidget {
       children: [
         SizedBox(height: 20),
         Image.asset(
-          'assets/images/rd-Shifter.png', // Replace with your actual image path
+          'assets/images/fx-Break.png', // Replace with your actual image path
           height: 120,
         ),
         SizedBox(height: 10),
         Text(
-          'shifter',
+          'Break',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,

@@ -5,8 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:delightful_toast/delight_toast.dart';
 import 'package:delightful_toast/toast/components/toast_card.dart';
 import 'package:delightful_toast/toast/utils/enums.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:velora/presentation/screens/0Auth/login.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 class AuthService {
@@ -119,118 +117,203 @@ class AuthService {
 
   /// 🔹 Google Sign-In
   Future<UserCredential?> signInWithGoogle(BuildContext context) async {
+    UserCredential? result;
+    // Create a new Google Sign In instance with specific configuration
+    final GoogleSignIn googleSignIn = GoogleSignIn(
+      signInOption: SignInOption.standard,
+      scopes: ['email', 'profile'],
+    );
+
     try {
       print("🔐 Starting Google Sign-In process...");
-      await ensureInitialized();
-      await _googleSignIn.signOut();
+
+      // Ensure we're signed out before attempting to sign in
+      await googleSignIn.signOut();
+      await _auth.signOut();
 
       print("🔐 Requesting Google account...");
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      // Get Google Sign-In authentication directly
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
       if (googleUser == null) {
-        print("❌ Google Sign-In cancelled by user");
+        print("❌ Google Sign-In cancelled or failed");
         return null;
       }
 
-      print("🔐 Getting Google auth details...");
+      // Get authentication tokens directly
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
-      print(
-          "✅ Got Google auth tokens - Access Token: ${googleAuth.accessToken != null}, ID Token: ${googleAuth.idToken != null}");
 
-      final AuthCredential credential = GoogleAuthProvider.credential(
+      // Create Firebase credential
+      final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
       print("🔐 Signing in to Firebase...");
-      UserCredential userCredential =
-          await _auth.signInWithCredential(credential);
-      User? user = userCredential.user;
 
-      if (user != null) {
-        print("✅ Firebase Auth successful - UID: ${user.uid}");
-        print("📧 Email: ${user.email}");
-        print("🔒 Email Verified: ${user.emailVerified}");
-        print("👤 Display Name: ${user.displayName}");
-        print(
-            "🔑 Provider ID: ${user.providerData.map((e) => e.providerId).join(', ')}");
+      try {
+        // Direct Firebase Auth attempt
+        result = await _auth.signInWithCredential(credential);
+        final User? user = result.user;
 
-        if (!user.isAnonymous && user.uid.isNotEmpty) {
-          print("🔐 Checking Firestore user document...");
-          DocumentSnapshot userDoc =
-              await _firestore.collection('users').doc(user.uid).get();
+        if (user != null) {
+          print("✅ Firebase Auth successful - UID: ${user.uid}");
 
-          if (!userDoc.exists) {
-            print("📝 Creating new user document in Firestore...");
-            try {
-              await _firestore.collection('users').doc(user.uid).set({
-                'uid': user.uid,
-                'userName': user.displayName ?? "Google User",
-                'email': user.email,
-                'createdAt': FieldValue.serverTimestamp(),
-                'setupComplete': false,
-                'isAuthenticated': true,
-                'authProvider': 'google',
-                'lastLogin': FieldValue.serverTimestamp(),
-              });
-              print("✅ User document created successfully");
-            } catch (e) {
-              print("❌ Error creating user document: $e");
-              rethrow;
-            }
-          } else {
-            print("📝 Updating existing user document...");
-            try {
-              await _firestore.collection('users').doc(user.uid).update({
-                'lastLogin': FieldValue.serverTimestamp(),
-                'isAuthenticated': true,
-              });
-              print("✅ User document updated successfully");
-            } catch (e) {
-              print("❌ Error updating user document: $e");
-              rethrow;
-            }
+          // Update Firestore
+          await _handleFirestoreUser(user);
+
+          if (context.mounted) {
+            _showToast(context, "Successfully signed in!", Icons.check_circle,
+                Colors.green);
           }
-
-          _showToast(context, "Successfully signed in!", Icons.check_circle,
-              Colors.green);
-          return userCredential;
         } else {
-          print("❌ User is anonymous or has empty UID");
+          throw Exception("Failed to get user after Firebase sign in");
         }
-      } else {
-        print("❌ No user returned from Firebase Auth");
+      } catch (firebaseError) {
+        print("❌ Firebase Auth Error: $firebaseError");
+
+        if (firebaseError.toString().contains('PigeonUserDetails')) {
+          // If we have a valid Firebase user despite the error, consider it a success
+          final currentUser = _auth.currentUser;
+          if (currentUser != null) {
+            await _handleFirestoreUser(currentUser);
+            if (context.mounted) {
+              _showToast(context, "Successfully signed in!", Icons.check_circle,
+                  Colors.green);
+            }
+            // Return the existing result or create a new credential
+            return result ?? await _auth.signInWithCredential(credential);
+          }
+        }
+
+        rethrow;
       }
 
-      _showToast(context, "Authentication failed", Icons.error, Colors.red);
-      return null;
+      return result;
     } catch (e) {
-      print("❌ Google Sign-In error: $e");
-      if (e is FirebaseAuthException) {
-        print("🔥 Firebase Auth Error Code: ${e.code}");
-        print("🔥 Firebase Auth Error Message: ${e.message}");
+      print("❌ Google Sign-In error caught: $e");
+
+      // Check if we still have a valid result despite the PigeonUserDetails error
+      if (e.toString().contains('PigeonUserDetails') && result != null) {
+        return result;
       }
-      _showToast(context, "Google Sign-In failed: $e", Icons.error, Colors.red);
+
+      if (context.mounted) {
+        _showToast(context, "Failed to sign in with Google. Please try again.",
+            Icons.error, Colors.red);
+      }
       return null;
+    } finally {
+      // Clean up resources without throwing additional errors
+      try {
+        await Future.wait([
+          googleSignIn.signOut().catchError((e) {
+            print("📝 Cleanup signOut error ignored: $e");
+            return null;
+          }),
+          googleSignIn.disconnect().catchError((e) {
+            print("📝 Cleanup disconnect error ignored: $e");
+            return null;
+          })
+        ], eagerError: false);
+      } catch (e) {
+        print("📝 Cleanup errors ignored: $e");
+      }
     }
   }
 
-  /// 🔹 Logout function (Now handles onboarding reset)
-  Future<void> signOut(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('hasCompletedOnboarding'); // ✅ Clear onboarding flag
+  /// 🔹 Logout function with proper cleanup
+  Future<bool> signOut(BuildContext context) async {
+    try {
+      print("🔐 Starting sign out process...");
 
-    await _auth.signOut();
-    await _googleSignIn.signOut();
+      final user = _auth.currentUser;
+      if (user != null) {
+        // Update user's last logout time in Firestore
+        try {
+          await _firestore.collection('users').doc(user.uid).update({
+            'lastLogout': FieldValue.serverTimestamp(),
+            'isAuthenticated': false
+          });
+          print("✅ Updated user logout status in Firestore");
+        } catch (e) {
+          print("❌ Error updating logout status: $e");
+        }
+      }
 
-    // ✅ Ensure auth state change is processed
-    await Future.delayed(const Duration(milliseconds: 500));
+      // Sign out from authentication providers
+      await Future.wait([
+        _googleSignIn.signOut().catchError((e) {
+          print("📝 Google SignOut error ignored: $e");
+          return null;
+        }),
+        _auth.signOut().catchError((e) {
+          print("📝 Firebase SignOut error ignored: $e");
+          return null;
+        })
+      ], eagerError: false);
 
-    if (context.mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-      );
+      print("✅ Signed out from authentication providers");
+      return true;
+    } catch (e) {
+      print("❌ Error during sign out: $e");
+      if (context.mounted) {
+        _showToast(context, "Error signing out", Icons.error, Colors.red);
+      }
+      return false;
+    }
+  }
+
+  Future<void> _handleFirestoreUser(User user) async {
+    if (user.isAnonymous || user.uid.isEmpty) {
+      throw Exception("Invalid user state: Anonymous or empty UID");
+    }
+
+    print("🔐 Checking Firestore user document...");
+    final DocumentSnapshot userDoc =
+        await _firestore.collection('users').doc(user.uid).get();
+
+    try {
+      if (!userDoc.exists) {
+        print("📝 Creating new user document in Firestore...");
+        await _firestore.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'userName': user.displayName ?? "Google User",
+          'email': user.email,
+          'createdAt': FieldValue.serverTimestamp(),
+          'setupComplete': false,
+          'isAuthenticated': true,
+          'authProvider': 'google',
+          'lastLogin': FieldValue.serverTimestamp(),
+          'profileUrl': user.photoURL,
+        });
+        print("✅ User document created successfully");
+      } else {
+        print("📝 Updating existing user document...");
+        // Preserve existing setupComplete status and other important fields
+        final existingData = userDoc.data() as Map<String, dynamic>;
+
+        await _firestore.collection('users').doc(user.uid).update({
+          'lastLogin': FieldValue.serverTimestamp(),
+          'isAuthenticated': true,
+          'userName': user.displayName ?? existingData['userName'],
+          'email': user.email ?? existingData['email'],
+          'profileUrl': user.photoURL ?? existingData['profileUrl'],
+          // Preserve existing setupComplete status
+          'setupComplete': existingData['setupComplete'] ?? false,
+          // Preserve any other important user data
+          'preferences': existingData['preferences'],
+          'bikeType': existingData['bikeType'],
+          'experience': existingData['experience'],
+          'goals': existingData['goals'],
+        });
+        print("✅ User document updated successfully with preserved data");
+      }
+    } catch (e) {
+      print("❌ Error handling Firestore user: $e");
+      throw Exception("Failed to handle Firestore user data: $e");
     }
   }
 

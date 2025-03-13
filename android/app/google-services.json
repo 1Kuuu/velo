@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "144243140512",
+    "firebase_url": "https://velo-5ae83-default-rtdb.asia-southeast1.firebasedatabase.app",
     "project_id": "velo-5ae83",
     "storage_bucket": "velo-5ae83.firebasestorage.app"
   },
@@ -22,6 +23,54 @@
           }
         },
         {
+          "client_id": "144243140512-3irfpnss9m7828kg6aphbanef22nq3em.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.velo",
+            "certificate_hash": "3aa952dcf9bab63a1f604f6e96b3b0cc3303819b"
+          }
+        },
+        {
+          "client_id": "144243140512-4pcnri5ul8lcnk33q7k2tslui2n5oduj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.velo",
+            "certificate_hash": "7c8f72ad17e91765f20df2fa68284adda8450e2e"
+          }
+        },
+        {
+          "client_id": "144243140512-4u765onefsnl891hmkv8c4r8tr5hbr54.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.velo",
+            "certificate_hash": "7885a391b70d0b7144c8b178d1e138d483284543"
+          }
+        },
+        {
+          "client_id": "144243140512-b3ftvn4u4ig2ad576g9cf0k734vv2s54.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.velo",
+            "certificate_hash": "8fd68157f30d8595f4f390481e4653d4b9ecfa12"
+          }
+        },
+        {
+          "client_id": "144243140512-bsstu81a0g630busln4rtnb7a4t6rfbd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.velo",
+            "certificate_hash": "b448958c2b0a1a717d976f97c1be35a725dcbd38"
+          }
+        },
+        {
+          "client_id": "144243140512-ejnn7o2gppqq35dllo78qtbrbqlpu45q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.velo",
+            "certificate_hash": "bc47b32d14aba8efc6f19ff01ce398b440b58338"
+          }
+        },
+        {
           "client_id": "144243140512-gdhu9ckalf8om00bipfm1ukpbacd47jd.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -37,6 +86,13 @@
             {
               "client_id": "144243140512-gdhu9ckalf8om00bipfm1ukpbacd47jd.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "144243140512-d5675v0bu3jcd3u1km5jc2md06cjvo61.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.velo"
+              }
             }
           ]
         }

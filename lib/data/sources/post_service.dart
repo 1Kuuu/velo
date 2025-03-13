@@ -597,10 +597,15 @@ class PostService {
       final user = _auth.currentUser;
       if (user == null) return [];
 
+      // Calculate timestamp from 2 hours ago
+      final twoHoursAgo = DateTime.now().subtract(const Duration(hours: 2));
+      final timestamp = Timestamp.fromDate(twoHoursAgo);
+
       final snapshot = await _firestore
           .collection(usersCollection)
           .doc(user.uid)
           .collection(viewedPostsCollection)
+          .where('timestamp', isGreaterThan: timestamp)
           .orderBy('timestamp', descending: true)
           .limit(1000)
           .get();
@@ -652,30 +657,56 @@ class PostService {
           final userDoc =
               await _firestore.collection(usersCollection).doc(user.uid).get();
 
+          print('Fetching Following tab posts for user: ${user.uid}');
+
           if (!userDoc.exists) {
+            print('User document does not exist');
             return await _firestore
                 .collection(postsCollection)
-                .where('userId', isEqualTo: user.uid)
-                .orderBy('createdAt', descending: true)
+                .where('userId', isEqualTo: 'no_posts')
                 .get();
           }
 
-          List<String> following =
-              List<String>.from(userDoc.data()?['following'] ?? []);
-          following.add(user.uid);
+          // Get list of users being followed
+          final userData = userDoc.data() ?? {};
+          print('User data: $userData');
 
-          return await _firestore
+          List<String> following =
+              List<String>.from(userData['following'] ?? []);
+          print('Following list: $following');
+
+          // If not following anyone, return empty result
+          if (following.isEmpty) {
+            print('Following list is empty');
+            return await _firestore
+                .collection(postsCollection)
+                .where('userId', isEqualTo: 'no_posts')
+                .get();
+          }
+
+          print('Fetching posts for followed users: $following');
+
+          // Get posts from followed users only
+          final querySnapshot = await _firestore
               .collection(postsCollection)
               .where('userId', whereIn: following)
               .orderBy('createdAt', descending: true)
               .get();
+
+          print('Found ${querySnapshot.docs.length} posts from followed users');
+          querySnapshot.docs.forEach((doc) {
+            final data = doc.data();
+            print(
+                'Post: ID=${doc.id}, UserID=${data['userId']}, Content=${data['content']}');
+          });
+
+          return querySnapshot;
         } catch (e) {
           print('Error getting following posts: $e');
-          // Return empty snapshot on error
+          print('Stack trace: ${StackTrace.current}');
           return await _firestore
               .collection(postsCollection)
-              .where('userId', isEqualTo: user.uid)
-              .limit(1)
+              .where('userId', isEqualTo: 'no_posts')
               .get();
         }
       });
