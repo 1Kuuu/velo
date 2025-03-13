@@ -1,2 +1,7 @@
-// ignore: constant_identifier_names
 const OPENWEATHER_API_KEY = "febe97a7956586916174fe077174c959";
+const GOOGLE_API_KEY = "AIzaSyCr8zGQrS2vixQewM_TTqVKq4caiA13dmo";
+const GOOGLE_WEB_CLIENT_ID =
+    "1000000000000-0000000000000000000000000000000.apps.googleusercontent.com";
+const GOOGLE_IOS_CLIENT_ID =
+    "1000000000000-0000000000000000000000000000000.apps.googleusercontent.com";
+const GOOGLE_MAPS_API_KEY = "AIzaSyCr8zGQrS2vixQewM_TTqVKq4caiA13dmo";

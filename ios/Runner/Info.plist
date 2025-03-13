@@ -45,5 +45,14 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs access to location when open to show weather for your location.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>This app needs access to location when in the background for weather updates.</string>
+	<key>io.flutter.embedded_views_preview</key>
+	<true/>
+		<key>GMSApiKey</key>
+		<string>AIzaSyCr8zGQrS2vixQewM_TTqVKq4caiA13dmo</string>
+
 </dict>
 </plist>

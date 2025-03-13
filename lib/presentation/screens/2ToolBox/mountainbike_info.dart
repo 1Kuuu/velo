@@ -3,6 +3,7 @@ import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/screens/Weather/weather.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
+import 'package:velora/presentation/screens/2ToolBox/AIpreference/ai_preference.dart';
 
 class MountainbikeInfo extends StatelessWidget {
   final Widget part;
@@ -42,7 +43,10 @@ class MountainbikeInfo extends StatelessWidget {
       body: Center(child: part), // Using the new widget here
       floatingActionButton: TheFloatingActionButton(
         svgAsset: 'assets/svg/white-m.svg',
-        onPressed: () => print("FAB Pressed"),
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => AIPreference()),
+        ),
         backgroundColor: Colors.black,
         heroTag: 'openai_fab',
       ),

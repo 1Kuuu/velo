@@ -3,6 +3,11 @@ import 'package:intl/intl.dart';
 import 'package:velora/presentation/screens/Weather/const.dart';
 import 'package:weather/weather.dart';
 import 'dart:async';
+import 'package:velora/presentation/screens/Weather/location_tracking.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:velora/presentation/screens/1Home/home.dart';
 
 extension StringExtension on String {
   String capitalize() {
@@ -28,6 +33,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
   DateTime _currentTime = DateTime.now();
   Weather? _weather;
   List<Weather>? _forecast;
+  String _locationName = '';
 
   @override
   void initState() {
@@ -47,30 +53,129 @@ class _WeatherScreenState extends State<WeatherScreen> {
     super.dispose();
   }
 
-  void _fetchWeatherData() async {
+  void _fetchWeatherData([double? latitude, double? longitude]) async {
     try {
-      final weather = await wf.currentWeatherByCityName("Caloocan");
-      final forecast = await wf.fiveDayForecastByCityName("Caloocan");
+      Weather weather;
+      List<Weather> forecast;
+      String locationName = '';
+
+      if (latitude != null && longitude != null) {
+        // Get accurate location name
+        final response = await http.get(
+          Uri.parse('https://maps.googleapis.com/maps/api/geocode/json'
+              '?latlng=$latitude,$longitude'
+              '&key=AIzaSyCr8zGQrS2vixQewM_TTqVKq4caiA13dmo'),
+        );
+
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          if (data['status'] == 'OK' && data['results'].isNotEmpty) {
+            final components = data['results'][0]['address_components'];
+            for (var component in components) {
+              final types = component['types'] as List;
+              if (types.contains('sublocality_level_1')) {
+                locationName = component['long_name'];
+                break;
+              } else if (types.contains('locality')) {
+                locationName = component['long_name'];
+                break;
+              }
+            }
+          }
+        }
+
+        weather = await wf.currentWeatherByLocation(latitude, longitude);
+        forecast = await wf.fiveDayForecastByLocation(latitude, longitude);
+      } else {
+        // Check location permission
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
+
+        if (permission == LocationPermission.denied ||
+            permission == LocationPermission.deniedForever) {
+          // Fallback to default location (Manila)
+          weather = await wf.currentWeatherByLocation(14.5995, 120.9842);
+          forecast = await wf.fiveDayForecastByLocation(14.5995, 120.9842);
+          locationName = 'Manila';
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text(
+                    'Using default location. Please enable location services for local weather.')),
+          );
+        } else {
+          // Get current location if permission granted
+          Position position = await Geolocator.getCurrentPosition(
+              desiredAccuracy: LocationAccuracy.high);
+
+          // Get accurate location name for current position
+          final response = await http.get(
+            Uri.parse('https://maps.googleapis.com/maps/api/geocode/json'
+                '?latlng=${position.latitude},${position.longitude}'
+                '&key=AIzaSyCr8zGQrS2vixQewM_TTqVKq4caiA13dmo'),
+          );
+
+          if (response.statusCode == 200) {
+            final data = json.decode(response.body);
+            if (data['status'] == 'OK' && data['results'].isNotEmpty) {
+              final components = data['results'][0]['address_components'];
+              for (var component in components) {
+                final types = component['types'] as List;
+                if (types.contains('sublocality_level_1')) {
+                  locationName = component['long_name'];
+                  break;
+                } else if (types.contains('locality')) {
+                  locationName = component['long_name'];
+                  break;
+                }
+              }
+            }
+          }
+
+          weather = await wf.currentWeatherByLocation(
+              position.latitude, position.longitude);
+          forecast = await wf.fiveDayForecastByLocation(
+              position.latitude, position.longitude);
+        }
+      }
+
       setState(() {
         _weather = weather;
         _forecast = forecast;
+        _locationName = locationName;
       });
+
       // Refresh weather data every 30 minutes
       Timer.periodic(const Duration(minutes: 30), (timer) async {
         try {
-          final updatedWeather = await wf.currentWeatherByCityName("Caloocan");
-          final updatedForecast =
-              await wf.fiveDayForecastByCityName("Caloocan");
+          final currentPermission = await Geolocator.checkPermission();
+          if (currentPermission == LocationPermission.denied ||
+              currentPermission == LocationPermission.deniedForever) {
+            return;
+          }
+
+          Position position = await Geolocator.getCurrentPosition(
+              desiredAccuracy: LocationAccuracy.high);
+
+          final updatedWeather = await wf.currentWeatherByLocation(
+              position.latitude, position.longitude);
+          final updatedForecast = await wf.fiveDayForecastByLocation(
+              position.latitude, position.longitude);
+
           setState(() {
             _weather = updatedWeather;
             _forecast = updatedForecast;
           });
         } catch (e) {
-          print('Error updating weather data: $e');
+          debugPrint('Error updating weather data: $e');
         }
       });
     } catch (e) {
-      print('Error fetching weather data: $e');
+      debugPrint('Error fetching weather data: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching weather data: ${e.toString()}')),
+      );
     }
   }
 
@@ -136,10 +241,12 @@ class _WeatherScreenState extends State<WeatherScreen> {
             ),
             const SizedBox(width: 4),
             Text(
-              _weather?.areaName ?? "",
+              _locationName.isNotEmpty
+                  ? _locationName
+                  : _weather?.areaName ?? "",
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 30,
+                fontSize: 20,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -147,16 +254,19 @@ class _WeatherScreenState extends State<WeatherScreen> {
         ),
         Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Image.asset(
-                "assets/images/maps-location.png",
-                width: 25,
-                height: 25,
+            GestureDetector(
+              onTap: _openMap,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Image.asset(
+                  "assets/images/maps-location.png",
+                  width: 25,
+                  height: 25,
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -168,7 +278,12 @@ class _WeatherScreenState extends State<WeatherScreen> {
               ),
               child: GestureDetector(
                 onTap: () {
-                  Navigator.of(context).pop();
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const HomePage(),
+                    ),
+                  );
                 },
                 child: const Icon(
                   Icons.arrow_forward_ios,
@@ -612,5 +727,18 @@ class _WeatherScreenState extends State<WeatherScreen> {
         ),
       ],
     );
+  }
+
+  void _openMap() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const LocationTracking(),
+      ),
+    );
+
+    if (result != null && result is Map<String, double>) {
+      _fetchWeatherData(result['latitude'], result['longitude']);
+    }
   }
 }

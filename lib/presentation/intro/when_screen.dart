@@ -27,7 +27,6 @@ class _WhenScreenState extends State<WhenScreen> {
 
   void _saveAndNavigate() async {
     try {
-      // Store preferences in Firebase
       await _firestore
           .collection('user_preferences')
           .doc(FirebaseAuth.instance.currentUser?.uid)
@@ -35,7 +34,6 @@ class _WhenScreenState extends State<WhenScreen> {
         'time_preferences': timePreferences,
       }, SetOptions(merge: true));
 
-      // 🎉 Show success toast
       if (mounted) {
         DelightToastBar(
           builder: (context) {
@@ -60,7 +58,6 @@ class _WhenScreenState extends State<WhenScreen> {
         );
       }
     } catch (e) {
-      // ❌ Show error toast
       if (mounted) {
         DelightToastBar(
           builder: (context) {

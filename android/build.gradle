@@ -1,26 +1,35 @@
+buildscript {
+    ext.kotlin_version = '1.7.10'
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.google.gms:google-services:4.4.0'
+        classpath 'com.android.tools.build:gradle:7.3.0'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
 allprojects {
     repositories {
         google()
         mavenCentral()
     }
-
-buildscript {
-  dependencies {
-      classpath 'com.google.gms:google-services:4.4.0' // Update if necessary
-      classpath 'com.android.tools.build:gradle:7.3.0'
-    
-  }
-}
-
 }
 
 rootProject.buildDir = "../build"
 
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
-}
-subprojects {
-    project.evaluationDependsOn(":app")
+    project.evaluationDependsOn(':app')
+    
+    if (project.name.contains('flutter_keyboard_visibility')) {
+        apply plugin: 'com.android.library'
+        android {
+            namespace "com.jrai.flutter_keyboard_visibility"
+        }
+    }
 }
 
 tasks.register("clean", Delete) {

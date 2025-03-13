@@ -9,6 +9,7 @@ import 'package:velora/presentation/screens/2ToolBox/mountainbike_info.dart';
 import 'package:velora/presentation/screens/2ToolBox/roadbike_info.dart';
 import 'package:velora/presentation/screens/Weather/weather.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
+import 'package:velora/presentation/screens/2ToolBox/AIpreference/ai_preference.dart';
 
 class ToolboxPageContent extends StatelessWidget {
   const ToolboxPageContent({super.key});
@@ -69,7 +70,10 @@ class ToolboxPageContent extends StatelessWidget {
       ),
       floatingActionButton: TheFloatingActionButton(
         svgAsset: 'assets/svg/white-m.svg',
-        onPressed: () => print("FAB Pressed"),
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => AIPreference()),
+        ),
         backgroundColor: Colors.black,
         heroTag: 'openai_fab',
       ),
