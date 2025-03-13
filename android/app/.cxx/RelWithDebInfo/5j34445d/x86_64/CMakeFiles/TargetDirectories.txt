@@ -1,0 +1,2 @@
+C:/Users/khenh/Documents/firebase_velora/velo/android/app/.cxx/RelWithDebInfo/5j34445d/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/khenh/Documents/firebase_velora/velo/android/app/.cxx/RelWithDebInfo/5j34445d/x86_64/CMakeFiles/rebuild_cache.dir
