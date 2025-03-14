@@ -21,6 +21,7 @@ dependencies:
   firebase_auth: ^4.15.3
   firebase_storage: ^11.5.6
   firebase_app_check: ^0.2.1+8
+  firebase_database: ^10.1.1
   flutter_svg: ^2.0.17
   cloud_firestore: ^4.13.6
   delightful_toast: ^1.1.0

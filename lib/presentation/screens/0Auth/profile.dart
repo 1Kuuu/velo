@@ -368,32 +368,40 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void _navigateToEditProfile() async {
     try {
-      var freshUserDoc =
-          await FirebaseServices.getUserData(FirebaseServices.currentUserId!);
+      var freshUserDoc = await FirebaseServices.getUserData(FirebaseServices.currentUserId!);
       if (freshUserDoc != null && freshUserDoc.exists) {
-        setState(() {
-          userData = freshUserDoc.data() as Map<String, dynamic>;
-        });
+        Map<String, dynamic> currentData = freshUserDoc.data() as Map<String, dynamic>;
+
+        Map<String, dynamic> profileData = {
+          'name': currentData['userName'] ?? '',
+          'bio': currentData['bio'] ?? '',
+          'profileUrl': currentData['profileUrl'] ?? '',
+          'email': currentData['email'] ?? '',
+        };
+
+        final result = await Navigator.pushNamed(
+          context,
+          '/edit-profile',
+          arguments: profileData,
+        ) as Map<String, dynamic>?;
+
+        if (result != null && result['updated'] == true) {
+          setState(() {
+            userData = {
+              ...userData, // Preserve existing data
+              'userName': result['userName'] ?? result['name'] ?? userData['userName'],
+              'email': result['email'] ?? userData['email'],
+              'bio': result['bio'] ?? userData['bio'],
+              'profileUrl': result['profileUrl'] ?? userData['profileUrl'],
+            };
+          });
+          await _loadData(); // Refresh all data
+          _showToast('Profile updated successfully');
+        }
       }
     } catch (e) {
-      _showToast('Error refreshing user data: $e', isError: true);
-    }
-
-    Map<String, dynamic> profileData = {
-      'name': userData['userName'] ?? userData['name'] ?? '',
-      'bio': userData['bio'] ?? '',
-      'profileUrl': userData['profileUrl'] ?? '',
-    };
-
-    final result = await Navigator.pushNamed(
-      context,
-      '/edit-profile',
-      arguments: profileData,
-    );
-
-    if (result != null) {
-      await _loadData();
-      _showToast('Profile updated successfully');
+      print('Error in profile navigation: $e');
+      _showToast('Error updating profile', isError: true);
     }
   }
 
@@ -765,29 +773,28 @@ class _ProfilePageState extends State<ProfilePage> {
                                 color: isDarkMode
                                     ? const Color(0xFF4A3B7C)
                                     : AppColors.primary),
-                            onPressed: () => _pickMedia(true),
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.videocam,
-                                color: theme.colorScheme.error),
-                            onPressed: () => _pickMedia(false),
-                          ),
-                        ],
-                      ),
-                      ElevatedButton(
-                        onPressed: _createPost,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isDarkMode
-                              ? const Color(0xFF4A3B7C)
-                              : AppColors.primary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20)),
+                          onPressed: () => _pickMedia(true),
                         ),
-                        child: Text('Post', style: AppFonts.medium),
+                        IconButton(
+                          icon: Icon(Icons.videocam,
+                              color: theme.colorScheme.error),
+                          onPressed: () => _pickMedia(false),
+                        ),
+                      ],
+                    ),
+                    ElevatedButton(
+                      onPressed: _createPost,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isDarkMode
+                            ? const Color(0xFF4A3B7C)
+                            : AppColors.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20)),
                       ),
-                    ],
-                  ),
+                      child: Text('Post', style: AppFonts.medium),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1508,7 +1515,6 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget>
           color: Colors.black,
           child: const Center(
               child: CircularProgressIndicator(color: Colors.white)),
-        ),
         errorBuilder: (context, errorMessage) {
           return Center(
             child: Column(

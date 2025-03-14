@@ -212,9 +212,8 @@ class _HomePageContentState extends State<HomePageContent> {
               );
             },
           ),
-          AppBarIcon(
-            icon: Icons.notifications_outlined,
-            onTap: () => print("Notifications Tapped"),
+          NotificationIcon(
+            onTap: () => Navigator.pushNamed(context, '/notifications'),
           ),
           AppBarIcon(
             icon: Icons.person_outline,

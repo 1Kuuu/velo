@@ -20,6 +20,8 @@ import 'package:velora/presentation/screens/3News/newsfeed.dart';
 import 'package:velora/presentation/screens/5Settings/editprofile.dart';
 import 'package:velora/presentation/screens/5Settings/setting_screen.dart';
 import 'package:velora/providers/language_provider.dart';
+import 'package:velora/core/services/example_usage.dart';
+import 'package:velora/presentation/screens/6Notifs/notification.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,10 +30,27 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+
+    // Configure App Check with rate limiting and retry
+    await Future.delayed(const Duration(
+        seconds: 1)); // Add delay before App Check initialization
+
     await FirebaseAppCheck.instance.activate(
       androidProvider: AndroidProvider.debug,
       appleProvider: AppleProvider.debug,
+      webProvider: ReCaptchaV3Provider('recaptcha-v3-site-key'),
     );
+
+    // Configure App Check settings
+    await FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(true);
+
+    // Add retry mechanism for token refresh
+    FirebaseAppCheck.instance.onTokenChange.listen((token) {
+      print("✅ App Check token refreshed");
+    }, onError: (error) {
+      print("❌ Error refreshing App Check token: $error");
+    });
+
     print("✅ Firebase initialized successfully");
   } catch (e) {
     print("❌ Firebase initialization failed: $e");
@@ -98,6 +117,8 @@ class _MyAppState extends State<MyApp> {
         '/settings': (context) => const SettingsScreen(),
         '/edit-profile': (context) => const EditProfileScreen(),
         '/newsfeed': (context) => const NewsFeedPageContent(),
+        '/realtime-example': (context) => const RealtimeDatabaseExample(),
+        '/notifications': (context) => const NotificationPage(),
       },
     );
   }

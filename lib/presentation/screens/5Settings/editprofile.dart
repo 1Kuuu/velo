@@ -359,67 +359,83 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
 
-    if (newName == _originalName && newBio == _originalBio && !_imageChanged) {
-      _showToast("Nothing changed", Icons.info, Colors.blue);
-      return;
-    }
-
     setState(() => _isLoading = true);
 
     try {
       User? user = _auth.currentUser;
-      if (user == null) throw Exception("User not found");
-
-      String? updatedPhotoUrl = _profileImageUrl;
-
-      if (_imageChanged && _imageFile != null) {
-        final storageRef =
-            FirebaseStorage.instance.ref().child('user_images/${user.uid}');
-        final uploadTask = storageRef.putFile(_imageFile!);
-        final snapshot = await uploadTask;
-        updatedPhotoUrl = await snapshot.ref.getDownloadURL();
-        await user.updatePhotoURL(updatedPhotoUrl);
+      if (user == null) {
+        throw Exception("User not found");
       }
 
-      // Update Firestore with all user data
-      final userData = {
+      // Step 1: Handle image upload if needed
+      String? finalPhotoUrl = _profileImageUrl;
+      if (_imageChanged && _imageFile != null) {
+        try {
+          final storageRef =
+              FirebaseStorage.instance.ref().child('user_images/${user.uid}');
+          final uploadTask = await storageRef.putFile(_imageFile!);
+          finalPhotoUrl = await uploadTask.ref.getDownloadURL();
+        } catch (e) {
+          print("Error uploading image: $e");
+        }
+      }
+
+      // Step 2: Update Firestore first
+      Map<String, dynamic> userData = {
         'userName': newName,
         'email': user.email,
         'bio': newBio,
-        'profileUrl': updatedPhotoUrl,
+        'profileUrl': finalPhotoUrl,
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      await _firestore.collection('users').doc(user.uid).update(userData);
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .set(userData, SetOptions(merge: true));
 
-      // Update Firebase Auth display name
-      await user.updateDisplayName(newName);
+      // Step 3: Update Auth profile
+      try {
+        if (finalPhotoUrl != null && finalPhotoUrl != user.photoURL) {
+          await user.updatePhotoURL(finalPhotoUrl);
+        }
+        await user.updateDisplayName(newName);
+      } catch (e) {
+        print("Error updating Auth profile: $e");
+      }
 
+      // Step 4: Update local state
       setState(() {
         _originalName = newName;
         _originalBio = newBio;
-        _profileImageUrl = updatedPhotoUrl;
+        _profileImageUrl = finalPhotoUrl;
         _imageChanged = false;
       });
 
+      // Step 5: Show success message
       _showToast(
           "Profile updated successfully!", Icons.check_circle, Colors.green);
 
-      // Pass back complete user data
-      Navigator.pop(context, {
-        'updated': true,
-        'name': newName,
-        'email': user.email,
-        'bio': newBio,
-        'profileUrl': updatedPhotoUrl,
-        'uid': user.uid
-      });
+      // Step 6: Return updated data
+      if (mounted) {
+        Navigator.of(context).pop({
+          'updated': true,
+          'userName': newName,
+          'name': newName,
+          'email': user.email,
+          'bio': newBio,
+          'profileUrl': finalPhotoUrl,
+          'uid': user.uid,
+        });
+      }
     } catch (e) {
-      print("Error updating profile: $e"); // Debug print
-      _showToast("Error updating profile: $e", Icons.error, Colors.red);
+      print("Error in profile update: $e");
+      _showToast("Failed to update profile", Icons.error, Colors.red);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
-
-    setState(() => _isLoading = false);
   }
 
   Future<void> _pickImage() async {

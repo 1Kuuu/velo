@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:provider/provider.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
+import 'package:velora/core/services/notification_service.dart';
 
 // ---------------------- BUTTON ----------------------
 class CustomButton extends StatelessWidget {
@@ -1095,5 +1096,60 @@ extension StringExtension on String {
   String capitalize() {
     if (this.isEmpty) return this;
     return "${this[0].toUpperCase()}${this.substring(1).toLowerCase()}";
+  }
+}
+
+class NotificationIcon extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const NotificationIcon({
+    super.key,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final notificationService = NotificationService();
+
+    return Stack(
+      children: [
+        IconButton(
+          icon: const Icon(Icons.notifications_outlined),
+          onPressed: onTap,
+        ),
+        StreamBuilder<int>(
+          stream: notificationService.getUnreadCount(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData || snapshot.data == 0) {
+              return const SizedBox.shrink();
+            }
+
+            return Positioned(
+              right: 8,
+              top: 8,
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                constraints: const BoxConstraints(
+                  minWidth: 14,
+                  minHeight: 14,
+                ),
+                child: Text(
+                  '${snapshot.data}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 8,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
   }
 }
