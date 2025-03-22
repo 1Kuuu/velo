@@ -10,6 +10,7 @@ import 'package:velora/presentation/screens/3News/newsfeed.dart';
 import 'package:velora/presentation/screens/4Chat/chat_list.dart';
 import 'package:velora/presentation/screens/5Settings/setting_screen.dart';
 import 'package:velora/presentation/screens/Weather/weather.dart';
+import 'package:velora/presentation/screens/Weather/const.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 import 'package:provider/provider.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
@@ -17,6 +18,8 @@ import 'event_modal.dart';
 import 'package:delightful_toast/delight_toast.dart';
 import 'package:delightful_toast/toast/components/toast_card.dart';
 import 'package:delightful_toast/toast/utils/enums.dart';
+import 'package:weather/weather.dart';
+import 'dart:async';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -67,10 +70,56 @@ class _HomePageContentState extends State<HomePageContent> {
   Stream<List<Event>>? _eventsStream;
   List<Event> _events = [];
 
+  // Weather data
+  final WeatherFactory wf = WeatherFactory(OPENWEATHER_API_KEY);
+  Weather? _currentWeather;
+  Timer? _weatherTimer;
+  DateTime _currentTime = DateTime.now();
+  Timer? _timeTimer;
+
   @override
   void initState() {
     super.initState();
     _updateEventsStream();
+    _fetchWeatherData();
+
+    // Update time every minute
+    _timeTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      setState(() {
+        _currentTime = DateTime.now();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _weatherTimer?.cancel();
+    _timeTimer?.cancel();
+    super.dispose();
+  }
+
+  void _fetchWeatherData() async {
+    try {
+      final weather = await wf.currentWeatherByCityName("Caloocan");
+      setState(() {
+        _currentWeather = weather;
+      });
+
+      // Refresh weather data every 30 minutes
+      _weatherTimer =
+          Timer.periodic(const Duration(minutes: 30), (timer) async {
+        try {
+          final updatedWeather = await wf.currentWeatherByCityName("Caloocan");
+          setState(() {
+            _currentWeather = updatedWeather;
+          });
+        } catch (e) {
+          print('Error updating weather data: $e');
+        }
+      });
+    } catch (e) {
+      print('Error fetching weather data: $e');
+    }
   }
 
   void _updateEventsStream() {
@@ -192,10 +241,34 @@ class _HomePageContentState extends State<HomePageContent> {
     ).show(context);
   }
 
+  IconData _getWeatherIcon(String? condition) {
+    if (condition == null) return Icons.cloud_outlined;
+
+    final weatherMain = condition.toLowerCase();
+    if (weatherMain.contains('clear')) {
+      return Icons.wb_sunny_outlined;
+    } else if (weatherMain.contains('cloud')) {
+      return Icons.cloud_outlined;
+    } else if (weatherMain.contains('rain')) {
+      return Icons.water_drop_outlined;
+    } else if (weatherMain.contains('snow')) {
+      return Icons.ac_unit_outlined;
+    } else if (weatherMain.contains('thunderstorm')) {
+      return Icons.flash_on_outlined;
+    }
+    return Icons.cloud_outlined;
+  }
+
+  String _capitalizeWeatherDescription(String? description) {
+    if (description == null || description.isEmpty) return "";
+    return "${description[0].toUpperCase()}${description.substring(1)}";
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       backgroundColor:
@@ -277,33 +350,38 @@ class _HomePageContentState extends State<HomePageContent> {
 
           return Column(
             children: [
-              // Weekly Progress Section
+              // Weekly Progress Section - Adjusted to match image
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.all(12.0),
                   decoration: BoxDecoration(
-                    color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+                    color:
+                        isDarkMode ? const Color(0xFF1E1E1E) : Colors.grey[100],
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.1),
-                        blurRadius: 6,
-                        spreadRadius: 2,
+                        color:
+                            Colors.black.withOpacity(isDarkMode ? 0.3 : 0.05),
+                        blurRadius: 4,
+                        spreadRadius: 1,
                       ),
                     ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        "Your Weekly Progress",
-                        style: AppFonts.bold.copyWith(
-                          fontSize: 16,
-                          color: isDarkMode ? Colors.white : Colors.black87,
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
+                        child: Text(
+                          "Your Weekly Progress",
+                          style: AppFonts.bold.copyWith(
+                            fontSize: 18,
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 10),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
@@ -317,6 +395,177 @@ class _HomePageContentState extends State<HomePageContent> {
                   ),
                 ),
               ),
+
+              // Weather and Other Widgets Row
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  children: [
+                    // Weather Widget - Completely redesigned for better layout
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => WeatherScreen()),
+                          );
+                        },
+                        child: Container(
+                          height: 120, // Increased height to ensure no overflow
+                          decoration: BoxDecoration(
+                            image: DecorationImage(
+                              image: AssetImage(
+                                  "assets/images/weather-background.png"), // Correctly use DecorationImage
+                              fit: BoxFit.cover, // Adjust the fit as needed
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: _currentWeather == null
+                              ? const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Stack(
+                                  children: [
+                                    // Main content
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          // Location row
+                                          Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.location_on,
+                                                color: Colors.white,
+                                                size: 12,
+                                              ),
+                                              const SizedBox(width: 2),
+                                              Flexible(
+                                                child: Text(
+                                                  _currentWeather?.areaName ??
+                                                      "Location",
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+
+                                          // Date and time row
+                                          Text(
+                                            "Today, ${DateFormat('MMM d h:mm a').format(_currentTime)}",
+                                            style: const TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 10,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+
+                                          const SizedBox(height: 8),
+
+                                          // Temperature and weather condition
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              // Temperature
+                                              Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    "${_currentWeather?.temperature?.celsius?.toStringAsFixed(0)}",
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize:
+                                                          40, // Slightly reduced
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                  const Text(
+                                                    "°C",
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 16,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+
+                                              // Weather condition
+                                              Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.end,
+                                                children: [
+                                                  Icon(
+                                                    _getWeatherIcon(
+                                                        _currentWeather
+                                                            ?.weatherMain),
+                                                    color: Colors.white,
+                                                    size: 16,
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  SizedBox(
+                                                    width: 80, // Fixed width
+                                                    child: Text(
+                                                      _capitalizeWeatherDescription(
+                                                          _currentWeather
+                                                              ?.weatherDescription),
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 11,
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      textAlign:
+                                                          TextAlign.right,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Empty Container (placeholder for another widget)
+                    Expanded(
+                      child: Container(
+                        height: 120, // Match the height of the weather widget
+                        decoration: BoxDecoration(
+                          color: isDarkMode
+                              ? const Color(0xFF1E1E1E)
+                              : Colors.grey[100],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
 
               // Calendar Header with Menu Icon & Clickable Date
               Padding(
@@ -547,6 +796,7 @@ class _HomePageContentState extends State<HomePageContent> {
                                                   ? Colors.white
                                                   : Colors.black87,
                                             ),
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
                                         PopupMenuButton<String>(
@@ -608,6 +858,7 @@ class _HomePageContentState extends State<HomePageContent> {
                                             ? Colors.white70
                                             : Colors.black54,
                                       ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
@@ -617,6 +868,8 @@ class _HomePageContentState extends State<HomePageContent> {
                                             ? Colors.white70
                                             : Colors.black87,
                                       ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ],
                                 ),
@@ -638,7 +891,7 @@ class _HomePageContentState extends State<HomePageContent> {
       children: [
         Text(
           title,
-          style: AppFonts.bold.copyWith(
+          style: AppFonts.medium.copyWith(
             color: isDarkMode ? Colors.white : Colors.black87,
           ),
         ),
@@ -647,16 +900,6 @@ class _HomePageContentState extends State<HomePageContent> {
           value,
           style: AppFonts.medium.copyWith(
             fontSize: 16,
-            color: isDarkMode ? Colors.white70 : Colors.black87,
-          ),
-        ),
-        Icon(
-          Icons.arrow_drop_up,
-          color: isDarkMode ? Colors.white54 : Colors.black54,
-        ),
-        Text(
-          "0",
-          style: AppFonts.regular.copyWith(
             color: isDarkMode ? Colors.white70 : Colors.black87,
           ),
         ),
