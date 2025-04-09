@@ -16,6 +16,7 @@ import 'package:flutter/services.dart';
 import 'package:velora/core/configs/theme/app_colors.dart'; // Import AppColors
 import 'package:provider/provider.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
+import 'package:velora/presentation/screens/5Settings/editprofile.dart'; // Import EditProfileScreen
 
 class ProfilePage extends StatefulWidget {
   final String? userId;
@@ -131,7 +132,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 data['email']?.split('@')[0] ??
                 'Unknown User',
             'email': data['email'] ?? '',
-            'bio': data['bio'] ?? 'No bio available',
+            'bio': data['bio'] ?? '',
             'profileUrl': data['profileUrl'] ?? '',
             'followerCount': followers.docs.length,
             'followingCount': following.docs.length,
@@ -379,8 +380,24 @@ class _ProfilePageState extends State<ProfilePage> {
       var freshUserDoc =
           await FirebaseServices.getUserData(FirebaseServices.currentUserId!);
       if (freshUserDoc != null && freshUserDoc.exists) {
+        // Get followers count
+        final followers = await FirebaseFirestore.instance
+            .collection('follows')
+            .where('followingId', isEqualTo: FirebaseServices.currentUserId)
+            .get();
+
+        // Get following count
+        final following = await FirebaseFirestore.instance
+            .collection('follows')
+            .where('followerId', isEqualTo: FirebaseServices.currentUserId)
+            .get();
+
         setState(() {
-          userData = freshUserDoc.data() as Map<String, dynamic>;
+          userData = {
+            ...freshUserDoc.data() as Map<String, dynamic>,
+            'followerCount': followers.docs.length,
+            'followingCount': following.docs.length,
+          };
         });
       }
     } catch (e) {
@@ -393,13 +410,19 @@ class _ProfilePageState extends State<ProfilePage> {
       'profileUrl': userData['profileUrl'] ?? '',
     };
 
-    final result = await Navigator.pushNamed(
+    final result = await Navigator.push(
       context,
-      '/edit-profile',
-      arguments: profileData,
+      MaterialPageRoute(
+        builder: (context) => const EditProfileScreen(),
+        settings: RouteSettings(
+          arguments: profileData,
+        ),
+      ),
     );
 
-    if (result != null) {
+    if (result != null &&
+        result is Map<String, dynamic> &&
+        result['updated'] == true) {
       await _loadData();
       _showToast('Profile updated successfully');
     }
@@ -595,7 +618,7 @@ class _ProfilePageState extends State<ProfilePage> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
             child: Text(
-              userData['bio'] ?? 'No bio available',
+              userData['bio'] ?? '',
               style: AppFonts.medium.copyWith(
                   color: theme.colorScheme.onSurface.withOpacity(0.7)),
               textAlign: TextAlign.center,
@@ -611,8 +634,8 @@ class _ProfilePageState extends State<ProfilePage> {
     final theme = Theme.of(context);
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
-    final followingCount = (userData['following'] as List?)?.length ?? 0;
-    final followersCount = (userData['followers'] as List?)?.length ?? 0;
+    final followingCount = userData['followingCount'] ?? 0;
+    final followersCount = userData['followerCount'] ?? 0;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),

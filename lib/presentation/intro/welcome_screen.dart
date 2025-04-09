@@ -21,7 +21,7 @@ class WelcomeScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false, // Removes back button
+        automaticallyImplyLeading: false,
         title: const Text('Welcome'),
         titleTextStyle: const TextStyle(
             fontFamily: 'Poppins',
@@ -53,7 +53,6 @@ class WelcomeScreen extends StatelessWidget {
             }
 
             final rawData = snapshot.data!.data();
-            print("Raw Firestore Data: $rawData");
 
             if (rawData is! Map<String, dynamic>) {
               _showErrorToast(context, "Unexpected data format.");
@@ -105,23 +104,14 @@ class WelcomeScreen extends StatelessWidget {
                           text: 'START',
                           onPressed: () async {
                             try {
-                              print("🔘 START button pressed");
-                              // Update setup completion status in Firestore
                               final user = FirebaseAuth.instance.currentUser;
                               if (user != null) {
-                                print(
-                                    "📝 Marking setup as complete for user: ${user.uid}");
-
                                 final userRef = FirebaseFirestore.instance
                                     .collection('users')
                                     .doc(user.uid);
 
-                                // First check if document exists
                                 final docSnapshot = await userRef.get();
                                 if (!docSnapshot.exists) {
-                                  print(
-                                      "📄 Document doesn't exist, creating new document");
-                                  // Create initial document
                                   await userRef.set({
                                     'uid': user.uid,
                                     'userName': user.displayName ?? 'New User',
@@ -130,47 +120,30 @@ class WelcomeScreen extends StatelessWidget {
                                     'setupComplete': true,
                                     'lastUpdated': FieldValue.serverTimestamp(),
                                   });
-                                  print(
-                                      "✅ Created new document with setup complete");
                                 } else {
-                                  print(
-                                      "📄 Document exists, updating setupComplete status");
-                                  // Update existing document
                                   await userRef.update({
                                     'setupComplete': true,
                                     'lastUpdated': FieldValue.serverTimestamp(),
                                   });
-                                  print("✅ Updated existing document");
                                 }
 
-                                // Also update shared preferences
                                 final prefs =
                                     await SharedPreferences.getInstance();
                                 await prefs.setBool('onboardingComplete', true);
-                                print(
-                                    "✅ Onboarding marked as complete in SharedPreferences");
 
                                 if (context.mounted) {
-                                  print(
-                                      "🏠 Attempting to navigate to HomePage");
                                   Navigator.of(context).pushAndRemoveUntil(
                                     MaterialPageRoute(
                                       builder: (context) => const HomePage(),
                                     ),
-                                    (route) =>
-                                        false, // Remove all previous routes
+                                    (route) => false,
                                   );
-                                  print("✅ Navigation to HomePage complete");
-                                } else {
-                                  print("❌ Context is no longer mounted");
                                 }
                               } else {
-                                print("❌ No authenticated user found");
                                 _showErrorToast(
                                     context, 'Please sign in to continue');
                               }
                             } catch (e) {
-                              print("❌ Error during setup completion: $e");
                               _showErrorToast(
                                   context, 'Failed to complete setup: $e');
                             }

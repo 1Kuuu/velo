@@ -86,8 +86,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
           isLoading = true;
         });
 
-        DocumentSnapshot userDoc =
-            await _firestore.collection('users').doc(currentUser.uid).get();
+        // Try to get data from user_profile collection first
+        DocumentSnapshot userDoc = await _firestore
+            .collection('user_profile')
+            .doc(currentUser.uid)
+            .get();
+
+        // If not found in user_profile, try users collection
+        if (!userDoc.exists) {
+          userDoc =
+              await _firestore.collection('users').doc(currentUser.uid).get();
+        }
 
         if (userDoc.exists && mounted) {
           Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
@@ -96,7 +105,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               'userName':
                   data['userName'] ?? currentUser.displayName ?? 'No Name',
               'email': data['email'] ?? currentUser.email ?? 'No Email',
-              'bio': data['bio'] ?? 'No bio available',
+              'bio': data['bio'] ?? '',
               'profileUrl': data['profileUrl'] ?? currentUser.photoURL ?? '',
               'preferences': data['preferences'] ?? {},
             };
@@ -116,7 +125,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           await _firestore.collection('users').doc(currentUser.uid).set({
             'userName': currentUser.displayName ?? 'No Name',
             'email': currentUser.email ?? 'No Email',
-            'bio': 'No bio available',
+            'bio': '',
             'profileUrl': currentUser.photoURL ?? '',
             'preferences': {
               'isDarkMode': isDarkMode,
@@ -131,7 +140,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               userData = {
                 'userName': currentUser.displayName ?? 'No Name',
                 'email': currentUser.email ?? 'No Email',
-                'bio': 'No bio available',
+                'bio': '',
                 'profileUrl': currentUser.photoURL ?? '',
               };
               isLoading = false;
@@ -371,7 +380,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 5),
           Text(
-            userData['bio'] ?? "No bio available",
+            userData['bio'] ?? "",
             style: AppFonts.light.copyWith(
               color: Colors.white70,
               fontSize: 12,
@@ -388,32 +397,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 10),
           ElevatedButton(
             onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const EditProfileScreen(),
-                  settings: RouteSettings(
-                    arguments: {
-                      'name': userData['userName'],
-                      'email': userData['email'],
-                      'bio': userData['bio'],
-                      'profileUrl': userData['profileUrl'],
-                    },
-                  ),
-                ),
-              );
+              try {
+                // Get fresh user data before editing
+                DocumentSnapshot freshUserDoc = await _firestore
+                    .collection('user_profile')
+                    .doc(user?.uid)
+                    .get();
 
-              if (result != null && result['updated'] == true && mounted) {
-                setState(() {
-                  userData = {
-                    'userName': result['name'] ?? userData['userName'],
-                    'email': result['email'] ?? userData['email'],
-                    'bio': result['bio'] ?? userData['bio'],
-                    'profileUrl':
-                        result['profileUrl'] ?? userData['profileUrl'],
-                    'preferences': userData['preferences'],
+                if (!freshUserDoc.exists) {
+                  freshUserDoc =
+                      await _firestore.collection('users').doc(user?.uid).get();
+                }
+
+                if (freshUserDoc.exists) {
+                  Map<String, dynamic> data =
+                      freshUserDoc.data() as Map<String, dynamic>;
+                  Map<String, dynamic> profileData = {
+                    'name': data['userName'] ?? userData['userName'] ?? '',
+                    'bio': data['bio'] ?? '',
+                    'profileUrl': data['profileUrl'] ?? '',
                   };
-                });
+
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const EditProfileScreen(),
+                      settings: RouteSettings(
+                        arguments: profileData,
+                      ),
+                    ),
+                  );
+
+                  if (result != null &&
+                      result is Map<String, dynamic> &&
+                      result['updated'] == true &&
+                      mounted) {
+                    setState(() {
+                      userData = {
+                        'userName': result['name'] ?? userData['userName'],
+                        'email': userData['email'],
+                        'bio': result['bio'] ?? '',
+                        'profileUrl':
+                            result['profileUrl'] ?? userData['profileUrl'],
+                        'preferences': userData['preferences'] ?? {},
+                      };
+                    });
+                    await _loadUserData(); // Refresh the data
+                  }
+                }
+              } catch (e) {
+                print("Error updating profile: $e");
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("Error updating profile: $e"),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             },
             style: ElevatedButton.styleFrom(

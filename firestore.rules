@@ -46,6 +46,13 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == userId;
     }
 
+    // 🔒 Secure follows collection
+    match /follows/{followId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.followerId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.followerId == request.auth.uid;
+    }
+
     // 🔒 Secure user profiles
     match /user_profile/{userId} {
       allow read: if isAuthenticated();

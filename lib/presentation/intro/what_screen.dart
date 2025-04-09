@@ -19,22 +19,16 @@ class WhatScreen extends StatefulWidget {
 class _WhatScreenState extends State<WhatScreen> {
   String? selectedBike;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final int maxRetries = 3;
 
   void _selectBike(String bikeType) async {
-    print("🚲 Step 1: Starting bike selection for type: $bikeType");
     setState(() {
       selectedBike = bikeType;
     });
-    print("🚲 Step 2: Updated UI state with selected bike");
 
     try {
       final user = FirebaseAuth.instance.currentUser;
-      print(
-          "🔐 Step 3: Checking user auth status. User: ${user?.uid ?? 'null'}");
 
       if (user == null) {
-        print("❌ Step 4a: No authenticated user found");
         if (mounted) {
           DelightToastBar(
             builder: (context) => const ToastCard(
@@ -51,53 +45,27 @@ class _WhatScreenState extends State<WhatScreen> {
         return;
       }
 
-      print("📝 Step 4b: User authenticated, preparing Firestore update");
-
       final dataToSave = {
         'bike_type': bikeType,
         'lastUpdated': FieldValue.serverTimestamp(),
-        'setupComplete': false, // Add this to ensure it's set
+        'setupComplete': false,
       };
-      print("📝 Step 5: Data to save: $dataToSave");
 
-      print("💾 Step 6: Starting Firestore write operation");
       final docRef = _firestore.collection('users').doc(user.uid);
-      print("📂 Step 6a: Document reference created: ${docRef.path}");
-
-      // First check if document exists
-      print("🔍 Step 6b: Checking if document exists");
       final docSnapshot = await docRef.get();
+
       if (!docSnapshot.exists) {
-        print("📄 Step 6c: Document doesn't exist, creating new document");
         await docRef.set({
           'setupComplete': false,
           'createdAt': FieldValue.serverTimestamp(),
           'bike_type': bikeType,
           'lastUpdated': FieldValue.serverTimestamp(),
         });
-        print("✅ Step 6d: Created initial document");
       } else {
-        print("📄 Step 6c: Document exists, updating");
         await docRef.update(dataToSave);
-        print("✅ Step 6d: Updated existing document");
       }
-
-      print("✅ Step 7: Firestore write completed successfully");
-
-      // Verify the data was saved
-      print("🔍 Step 8: Verifying saved data");
-      final verifySnapshot = await docRef.get();
-      print("📄 Step 9: Retrieved document data: ${verifySnapshot.data()}");
-
-      if (!verifySnapshot.exists) {
-        print("❌ Step 10a: Document does not exist after save!");
-        throw Exception("Failed to verify saved data");
-      }
-
-      print("✅ Step 10b: Document exists and contains data");
 
       if (mounted) {
-        print("🎉 Step 11: Showing success toast");
         DelightToastBar(
           builder: (context) => ToastCard(
             title: const Text('Saved!'),
@@ -110,20 +78,14 @@ class _WhatScreenState extends State<WhatScreen> {
           animationDuration: const Duration(milliseconds: 300),
         ).show(context);
 
-        print("⏳ Step 12: Starting navigation delay");
         await Future.delayed(const Duration(milliseconds: 500));
 
-        print("🔄 Step 13: Navigating to WhenScreen");
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const WhenScreen()),
         );
-        print("✅ Step 14: Navigation complete");
       }
-    } catch (e, stackTrace) {
-      print("❌ Error in _selectBike: $e");
-      print("📚 Stack trace: $stackTrace");
-
+    } catch (e) {
       String errorMessage = "Failed to save";
       if (e is FirebaseException) {
         errorMessage = "${e.code}: ${e.message}";

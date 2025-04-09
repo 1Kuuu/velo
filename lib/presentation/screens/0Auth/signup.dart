@@ -22,6 +22,7 @@ class _SignupPageState extends State<SignupPage> {
       TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final AuthService _authService = AuthService();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -32,27 +33,64 @@ class _SignupPageState extends State<SignupPage> {
     super.dispose();
   }
 
+  /// Shows a toast message with the given parameters
+  void _showToast({
+    required String message,
+    required IconData icon,
+    Color iconColor = Colors.red,
+  }) {
+    if (!mounted) return;
+
+    DelightToastBar(
+      builder: (context) {
+        return ToastCard(
+          title: Text(message),
+          leading: Icon(icon, color: iconColor),
+        );
+      },
+      position: DelightSnackbarPosition.top,
+      autoDismiss: true,
+      snackbarDuration: const Duration(seconds: 2),
+      animationDuration: const Duration(milliseconds: 300),
+    ).show(context);
+  }
+
+  /// Validates password strength
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Password is required';
+    }
+    if (value.length < 8) {
+      return 'Password must be at least 8 characters';
+    }
+    if (!value.contains(RegExp(r'[A-Z]'))) {
+      return 'Password must contain at least one uppercase letter';
+    }
+    if (!value.contains(RegExp(r'[0-9]'))) {
+      return 'Password must contain at least one number';
+    }
+    if (!value.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
+      return 'Password must contain at least one special character';
+    }
+    return null;
+  }
+
   /// 🔹 Email & Password Signup with Firestore Storage
   Future<void> _signup() async {
-    if (_formKey.currentState!.validate()) {
-      // Add password validation
-      if (passwordController.text.trim() !=
-          confirmPasswordController.text.trim()) {
-        DelightToastBar(
-          builder: (context) {
-            return const ToastCard(
-              title: Text('Passwords do not match!'),
-              leading: Icon(Icons.error, color: Colors.red),
-            );
-          },
-          position: DelightSnackbarPosition.top,
-          autoDismiss: true,
-          snackbarDuration: const Duration(seconds: 2),
-          animationDuration: const Duration(milliseconds: 300),
-        ).show(context);
-        return;
-      }
+    if (!_formKey.currentState!.validate()) return;
 
+    if (passwordController.text.trim() !=
+        confirmPasswordController.text.trim()) {
+      _showToast(
+        message: 'Passwords do not match!',
+        icon: Icons.error,
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
       final result = await _authService.signUpWithEmail(
         context: context,
         username: usernameController.text.trim(),
@@ -61,68 +99,67 @@ class _SignupPageState extends State<SignupPage> {
         confirmPassword: confirmPasswordController.text.trim(),
       );
 
-      print("Signup result: $result"); // Debugging
+      if (!mounted) return;
 
-      if (mounted && result == true) {
-        // ✅ Show Success Toast
-        DelightToastBar(
-          builder: (context) {
-            return const ToastCard(
-              title: Text('Signup Successful!'),
-              leading: Icon(Icons.check_circle, color: Colors.green),
-            );
-          },
-          position: DelightSnackbarPosition.top,
-          autoDismiss: true,
-          snackbarDuration: const Duration(seconds: 2),
-          animationDuration: const Duration(milliseconds: 300),
-        ).show(context);
+      if (result == true) {
+        _showToast(
+          message: 'Signup Successful!',
+          icon: Icons.check_circle,
+          iconColor: Colors.green,
+        );
 
-        // ✅ Wait before navigating
         await Future.delayed(const Duration(seconds: 2));
 
-        if (mounted) {
-          print("Navigating to login...");
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const LoginPage()),
-          );
-        }
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginPage()),
+        );
       } else {
-        print("Signup failed or returned false");
-        DelightToastBar(
-          builder: (context) {
-            return const ToastCard(
-              title: Text('Signup Failed'),
-              leading: Icon(Icons.error, color: Colors.red),
-            );
-          },
-          position: DelightSnackbarPosition.top,
-          autoDismiss: true,
-          snackbarDuration: const Duration(seconds: 2),
-          animationDuration: const Duration(milliseconds: 300),
-        ).show(context);
+        _showToast(
+          message: 'Signup Failed',
+          icon: Icons.error,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _showToast(
+        message: 'An error occurred: ${e.toString()}',
+        icon: Icons.error,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
 
   /// 🔹 Google Sign-Up with Firestore Storage
   Future<void> _signInWithGoogle() async {
-    final user = await _authService.signInWithGoogle(context);
+    setState(() => _isLoading = true);
 
-    if (mounted && user != null) {
-      DelightToastBar(
-        builder: (context) {
-          return const ToastCard(
-            title: Text('Success'),
-            leading: Icon(Icons.check_circle, color: Colors.green),
-          );
-        },
-        position: DelightSnackbarPosition.top,
-        autoDismiss: true,
-        snackbarDuration: const Duration(seconds: 2),
-        animationDuration: const Duration(milliseconds: 300),
-      ).show(context);
+    try {
+      final user = await _authService.signInWithGoogle(context);
+
+      if (!mounted) return;
+
+      if (user != null) {
+        _showToast(
+          message: 'Success',
+          icon: Icons.check_circle,
+          iconColor: Colors.green,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _showToast(
+        message: 'Google sign-in failed: ${e.toString()}',
+        icon: Icons.error,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -131,127 +168,97 @@ class _SignupPageState extends State<SignupPage> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDarkMode
-          ? const Color(0xFF121212) // Dark mode background
-          : AppColors.lightBackground,
+      backgroundColor:
+          isDarkMode ? const Color(0xFF121212) : AppColors.lightBackground,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
-          child: Stack(
-            children: [
-              const AppLogo(), // ✅ Move the logo here
-              const SizedBox(height: 24),
-              Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CustomTitleText(text: 'SIGN UP'),
-                    const SizedBox(height: 2),
-
-                    // Username Input with Validation
-                    CustomInputField(
-                      label: 'USERNAME',
-                      controller: usernameController,
-                      hintText: 'Enter your username',
-                      validator: (value) => value == null || value.isEmpty
-                          ? 'Username is required'
-                          : null,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Email Input with Validation
-                    CustomInputField(
-                      label: 'EMAIL',
-                      controller: emailController,
-                      hintText: 'Enter your email',
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Email is required';
-                        }
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                            .hasMatch(value)) {
-                          return 'Enter a valid email';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Password Input with Validation
-                    CustomInputField(
-                      label: 'PASSWORD',
-                      controller: passwordController,
-                      hintText: 'Enter your password',
-                      obscureText: true,
-                      validator: (value) => (value == null || value.length < 8)
-                          ? 'Password must be at least 8 characters'
-                          : null,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Confirm Password Input with Validation
-                    CustomInputField(
-                      label: 'CONFIRM PASSWORD',
-                      controller: confirmPasswordController,
-                      hintText: 'Re-enter your password',
-                      obscureText: true,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please confirm your password';
-                        }
-                        if (value != passwordController.text) {
-                          return 'Passwords do not match';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Signup Button
-                    Center(
-                      child: CustomButton(
-                        text: 'SIGN UP',
-                        onPressed: _signup,
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    Center(child: CustomDivider()),
-                    const SizedBox(height: 24),
-
-                    // Google Sign-Up Button
-                    Center(
-                      child: CustomButton(
-                        text: 'With Google',
-                        onPressed: _signInWithGoogle,
-                        iconPath: 'assets/images/Google.png',
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Login Navigation
-                    AccountNavigationRow(
-                      questionText: "Already have an account?",
-                      actionText: "Log In",
-                      onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const LoginPage()),
-                        );
-                      },
-                    ),
-                  ],
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const AppLogo(),
+                const SizedBox(height: 40),
+                CustomTitleText(text: 'SIGN UP'),
+                const SizedBox(height: 2),
+                CustomInputField(
+                  label: 'USERNAME',
+                  controller: usernameController,
+                  hintText: 'Enter your username',
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Username is required'
+                      : null,
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                CustomInputField(
+                  label: 'EMAIL',
+                  controller: emailController,
+                  hintText: 'Enter your email',
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Email is required';
+                    }
+                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                        .hasMatch(value)) {
+                      return 'Enter a valid email';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                CustomInputField(
+                  label: 'PASSWORD',
+                  controller: passwordController,
+                  hintText: 'Enter your password',
+                  obscureText: true,
+                  validator: _validatePassword,
+                ),
+                const SizedBox(height: 16),
+                CustomInputField(
+                  label: 'CONFIRM PASSWORD',
+                  controller: confirmPasswordController,
+                  hintText: 'Re-enter your password',
+                  obscureText: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please confirm your password';
+                    }
+                    if (value != passwordController.text) {
+                      return 'Passwords do not match';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+                Center(
+                  child: CustomButton(
+                    text: 'SIGN UP',
+                    onPressed: _isLoading ? () {} : _signup,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Center(child: CustomDivider()),
+                const SizedBox(height: 24),
+                Center(
+                  child: CustomButton(
+                    text: 'With Google',
+                    onPressed: _isLoading ? () {} : _signInWithGoogle,
+                    iconPath: 'assets/images/Google.png',
+                  ),
+                ),
+                const SizedBox(height: 24),
+                AccountNavigationRow(
+                  questionText: "Already have an account?",
+                  actionText: "Log In",
+                  onPressed: _isLoading
+                      ? () {}
+                      : () {
+                          Navigator.pushReplacementNamed(context, '/login');
+                        },
+                ),
+              ],
+            ),
           ),
         ),
       ),

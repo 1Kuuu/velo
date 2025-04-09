@@ -399,8 +399,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           .doc(user.uid)
           .set(userData, SetOptions(merge: true));
 
-      // Update Firebase Auth display name
-      await user.updateDisplayName(newName);
+      // Update Firebase Auth display name - with error handling
+      try {
+        await user.updateDisplayName(newName);
+      } catch (displayNameError) {
+        print("Error updating display name: $displayNameError");
+        // Continue with the update even if display name update fails
+      }
 
       setState(() {
         _originalName = newName;

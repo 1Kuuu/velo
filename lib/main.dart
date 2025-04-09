@@ -35,18 +35,20 @@ void main() async {
   // Initialize App Check with proper error handling
   try {
     await FirebaseAppCheck.instance.activate(
-      webProvider: ReCaptchaV3Provider('recaptcha-v3-site-key'),
       androidProvider:
           kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
-      appleProvider: AppleProvider.appAttest,
     );
 
     // Set up token refresh listener
-    FirebaseAppCheck.instance.onTokenChange.listen((token) {
-      print('App Check token refreshed');
-    }, onError: (error) {
-      print('App Check token refresh error: $error');
-    });
+    FirebaseAppCheck.instance.onTokenChange.listen(
+      (token) {
+        print('App Check token refreshed successfully');
+      },
+      onError: (error) {
+        print('App Check token refresh error: $error');
+        // Continue without App Check in case of error
+      },
+    );
   } catch (e) {
     print('Error initializing App Check: $e');
     // Continue without App Check in case of error

@@ -35,26 +35,21 @@ class _WhereScreenState extends State<WhereScreen> {
         return;
       }
 
-      // 🔹 Get only selected preferences (true values)
       final selectedLocations = locationPreferences.entries
           .where((entry) => entry.value)
           .map((entry) => entry.key)
           .toList();
 
-      // 🔹 Store preferences in Firestore
       await _firestore.collection('user_preferences').doc(userId).set({
         'location_preferences': selectedLocations,
       }, SetOptions(merge: true));
 
-      // 🔹 Save onboarding completion in SharedPreferences
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setBool('onboardingComplete', true);
 
-      // 🎉 Show success toast
       _showToast("Saved!", "Your location preferences have been saved.",
           Icons.check_circle, Colors.green);
 
-      // ✅ Navigate to WelcomeScreen
       if (mounted) {
         Navigator.pushReplacement(
           context,
@@ -62,7 +57,6 @@ class _WhereScreenState extends State<WhereScreen> {
         );
       }
     } catch (e) {
-      // ❌ Show error toast
       _showToast("Error", "Failed to save: $e", Icons.error, Colors.red);
     }
   }
