@@ -70,12 +70,31 @@ class _NewsFeedPageContentState extends State<NewsFeedPageContent>
             icon: Icons.notifications_outlined,
             onTap: () => print("Notifications Tapped"),
           ),
-          AppBarIcon(
-            icon: Icons.person_outline,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => ProfilePage()),
-            ),
+          StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(FirebaseAuth.instance.currentUser?.uid)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return AppBarIcon(
+                  icon: Icons.person_outline,
+                  onTap: () {}, // Empty callback for loading state
+                );
+              }
+
+              final userData = snapshot.data?.data() as Map<String, dynamic>?;
+              return ProfileAppBarIcon(
+                profileUrl: userData?['profileUrl'],
+                userName: userData?['userName'],
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => ProfilePage()),
+                  );
+                },
+              );
+            },
           ),
         ],
       ),

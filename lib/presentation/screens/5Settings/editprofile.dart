@@ -381,7 +381,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         await user.updatePhotoURL(updatedPhotoUrl);
       }
 
-      // Update Firestore with all user data
+      // Update both collections to maintain consistency
       final userData = {
         'userName': newName,
         'email': user.email,
@@ -390,7 +390,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
+      // Update in users collection
       await _firestore.collection('users').doc(user.uid).update(userData);
+
+      // Update in user_profile collection
+      await _firestore
+          .collection('user_profile')
+          .doc(user.uid)
+          .set(userData, SetOptions(merge: true));
 
       // Update Firebase Auth display name
       await user.updateDisplayName(newName);
@@ -405,17 +412,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _showToast(
           "Profile updated successfully!", Icons.check_circle, Colors.green);
 
-      // Pass back complete user data
-      Navigator.pop(context, {
-        'updated': true,
-        'name': newName,
-        'email': user.email,
-        'bio': newBio,
-        'profileUrl': updatedPhotoUrl,
-        'uid': user.uid
-      });
+      // Return a simple map with the updated data
+      if (mounted) {
+        Navigator.pop(context, {
+          'updated': true,
+          'name': newName,
+          'email': user.email,
+          'bio': newBio,
+          'profileUrl': updatedPhotoUrl,
+        });
+      }
     } catch (e) {
-      print("Error updating profile: $e"); // Debug print
+      print("Error updating profile: $e");
       _showToast("Error updating profile: $e", Icons.error, Colors.red);
     }
 

@@ -20,21 +20,36 @@ import 'package:velora/presentation/screens/3News/newsfeed.dart';
 import 'package:velora/presentation/screens/5Settings/editprofile.dart';
 import 'package:velora/presentation/screens/5Settings/setting_screen.dart';
 import 'package:velora/providers/language_provider.dart';
+import 'package:flutter/foundation.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  print("🔥 Initializing Firebase with debug mode...");
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Set default locale for Firebase Auth
+  FirebaseAuth.instance.setLanguageCode('en');
+
+  // Initialize App Check with proper error handling
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
     await FirebaseAppCheck.instance.activate(
-      androidProvider: AndroidProvider.debug,
-      appleProvider: AppleProvider.debug,
+      webProvider: ReCaptchaV3Provider('recaptcha-v3-site-key'),
+      androidProvider:
+          kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+      appleProvider: AppleProvider.appAttest,
     );
-    print("✅ Firebase initialized successfully");
+
+    // Set up token refresh listener
+    FirebaseAppCheck.instance.onTokenChange.listen((token) {
+      print('App Check token refreshed');
+    }, onError: (error) {
+      print('App Check token refresh error: $error');
+    });
   } catch (e) {
-    print("❌ Firebase initialization failed: $e");
+    print('Error initializing App Check: $e');
+    // Continue without App Check in case of error
   }
 
   SystemChrome.setSystemUIOverlayStyle(
@@ -65,11 +80,6 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final languageProvider = Provider.of<LanguageProvider>(context);
@@ -79,9 +89,9 @@ class _MyAppState extends State<MyApp> {
       theme: themeProvider.themeData,
       locale: languageProvider.locale,
       supportedLocales: const [
-        Locale('en'), // English
-        Locale('en', 'UK'), // English UK
-        Locale('fil'), // Filipino
+        Locale('en'),
+        Locale('en', 'UK'),
+        Locale('fil'),
       ],
       localizationsDelegates: [
         const AppLocalizationsDelegate(),
@@ -119,7 +129,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _navigateToNextScreen() async {
-    await Future.delayed(const Duration(seconds: 2)); // Show logo for 2 seconds
+    await Future.delayed(const Duration(seconds: 2));
     if (mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const AuthWrapper()),
@@ -147,22 +157,16 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print("🔐 AuthWrapper: Starting authentication check...");
     return Scaffold(
       body: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
-          // First check if we're waiting for auth state
           if (snapshot.connectionState == ConnectionState.waiting) {
-            print("⏳ AuthWrapper: Waiting for auth state...");
             return const Center(child: CircularProgressIndicator());
           }
 
-          // Check if user is not logged in
           final user = snapshot.data;
           if (user == null) {
-            print("❌ AuthWrapper: No authenticated user found");
-            // Check if onboarding is completed
             return FutureBuilder<SharedPreferences>(
                 future: SharedPreferences.getInstance(),
                 builder: (context, prefsSnapshot) {
@@ -174,18 +178,12 @@ class AuthWrapper extends StatelessWidget {
                       prefsSnapshot.data!.getBool('onboardingComplete') ??
                           false;
                   if (!onboardingComplete) {
-                    print("🎯 AuthWrapper: Starting onboarding flow");
                     return const GetStarted();
                   }
-                  print("🔑 AuthWrapper: Directing to login");
                   return const LoginPage();
                 });
           }
 
-          print("✅ AuthWrapper: User authenticated - UID: ${user.uid}");
-          print("📧 AuthWrapper: User email: ${user.email}");
-
-          // Check user's setup status in Firestore
           return FutureBuilder<DocumentSnapshot>(
             future: FirebaseFirestore.instance
                 .collection('users')
@@ -193,19 +191,14 @@ class AuthWrapper extends StatelessWidget {
                 .get(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                print("⏳ AuthWrapper: Loading Firestore user data...");
                 return const Center(child: CircularProgressIndicator());
               }
 
               if (snapshot.hasError) {
-                print(
-                    "❌ AuthWrapper: Error loading user data - ${snapshot.error}");
                 return const LoginPage();
               }
 
-              // If user document doesn't exist, create it and start setup flow
               if (!snapshot.hasData || !snapshot.data!.exists) {
-                print("📝 AuthWrapper: Creating new user document...");
                 FirebaseFirestore.instance
                     .collection('users')
                     .doc(user.uid)
@@ -219,16 +212,13 @@ class AuthWrapper extends StatelessWidget {
                   'authProvider': user.providerData.first.providerId,
                   'lastLogin': FieldValue.serverTimestamp(),
                 });
-                print("✅ AuthWrapper: Starting setup flow for new user");
-                return const WhatScreen(); // Start the What, When, Where flow
+                return const WhatScreen();
               }
 
-              // User document exists, check setup status
               final userData = snapshot.data!.data() as Map<String, dynamic>;
               final bool setupComplete = userData['setupComplete'] ?? false;
 
               if (!setupComplete) {
-                // Check if user has preferences
                 return FutureBuilder<DocumentSnapshot>(
                   future: FirebaseFirestore.instance
                       .collection('user_preferences')
@@ -241,20 +231,14 @@ class AuthWrapper extends StatelessWidget {
                     }
 
                     if (!prefSnapshot.hasData || !prefSnapshot.data!.exists) {
-                      print(
-                          "🎯 AuthWrapper: Starting What screen for preferences setup");
-                      return const WhatScreen(); // Start the What, When, Where flow
+                      return const WhatScreen();
                     }
 
-                    print(
-                        "🎯 AuthWrapper: User has preferences, showing Welcome screen");
-                    return const WelcomeScreen(); // Show welcome screen for final setup step
+                    return const WelcomeScreen();
                   },
                 );
               }
 
-              // User is fully set up, go to home
-              print("🏠 AuthWrapper: Setup complete, navigating to HomePage");
               return const HomePage();
             },
           );

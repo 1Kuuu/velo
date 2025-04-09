@@ -342,6 +342,48 @@ class AppBarIcon extends StatelessWidget {
   }
 }
 
+// ---------------------- PROFILE APP BAR ICON ----------------------
+class ProfileAppBarIcon extends StatelessWidget {
+  final VoidCallback onTap;
+  final String? profileUrl;
+  final String? userName;
+
+  const ProfileAppBarIcon({
+    super.key,
+    required this.onTap,
+    this.profileUrl,
+    this.userName,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(),
+      onPressed: onTap,
+      icon: CircleAvatar(
+        radius: 16,
+        backgroundColor: Colors.grey[200],
+        backgroundImage: profileUrl != null && profileUrl!.isNotEmpty
+            ? NetworkImage(profileUrl!)
+            : null,
+        child: profileUrl == null || profileUrl!.isEmpty
+            ? Text(
+                userName != null && userName!.isNotEmpty
+                    ? userName![0].toUpperCase()
+                    : 'U',
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              )
+            : null,
+      ),
+    );
+  }
+}
+
 // ---------------------- ANIMATED BOTTOM NAV BAR ----------------------
 class AnimatedBottomBarButton extends StatelessWidget {
   final Widget body;
@@ -909,18 +951,34 @@ class MessageInputField extends StatelessWidget {
 // USED IN TOOLBOX
 class BikeSelectionDialog extends StatelessWidget {
   final Function(String) onBikeSelected;
+  final String currentBikeType;
 
-  const BikeSelectionDialog({super.key, required this.onBikeSelected});
+  const BikeSelectionDialog({
+    super.key,
+    required this.onBikeSelected,
+    required this.currentBikeType,
+  });
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
 
+    // Get available bike types excluding the current one
+    final availableBikes = _getAvailableBikes(currentBikeType);
+
     return AlertDialog(
       backgroundColor: isDarkMode ? const Color(0xFF2D2D2D) : Colors.grey[100],
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
+      ),
+      title: Text(
+        'Change Bike Type',
+        style: AppFonts.bold.copyWith(
+          fontSize: 20,
+          color: isDarkMode ? Colors.white : Colors.black87,
+        ),
+        textAlign: TextAlign.center,
       ),
       content: SingleChildScrollView(
         child: Container(
@@ -930,22 +988,62 @@ class BikeSelectionDialog extends StatelessWidget {
           width: 535,
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildBikeOption(context, 'ROAD BIKE',
-                  'assets/images/roadbike.png', 'ROADBIKE'),
-              _buildBikeOption(context, 'MOUNTAIN BIKE',
-                  'assets/images/mountainbike.png', 'MOUNTAINBIKE'),
-              _buildBikeOption(
-                  context, 'FIXIE', 'assets/images/fixie.png', 'FIXIE'),
-            ],
+            children: availableBikes
+                .map((bike) => Column(
+                      children: [
+                        _buildBikeOption(
+                          context,
+                          bike['title']!,
+                          bike['image']!,
+                          bike['type']!,
+                          bike['description']!,
+                        ),
+                        if (bike != availableBikes.last)
+                          const SizedBox(height: 16),
+                      ],
+                    ))
+                .toList(),
           ),
         ),
       ),
     );
   }
 
+  List<Map<String, String>> _getAvailableBikes(String currentBikeType) {
+    final allBikes = [
+      {
+        'title': 'ROAD BIKE',
+        'image': 'assets/images/roadbike.png',
+        'type': 'ROADBIKE',
+        'description': 'Perfect for speed and efficiency on paved roads',
+      },
+      {
+        'title': 'MOUNTAIN BIKE',
+        'image': 'assets/images/mountainbike.png',
+        'type': 'MOUNTAINBIKE',
+        'description': 'Built for off-road trails and rough terrain',
+      },
+      {
+        'title': 'FIXIE',
+        'image': 'assets/images/fixie.png',
+        'type': 'FIXIE',
+        'description': 'Simple, lightweight, and great for urban riding',
+      },
+    ];
+
+    return allBikes
+        .where((bike) =>
+            bike['type']!.toLowerCase() != currentBikeType.toLowerCase())
+        .toList();
+  }
+
   Widget _buildBikeOption(
-      BuildContext context, String title, String imagePath, String bikeType) {
+    BuildContext context,
+    String title,
+    String imagePath,
+    String bikeType,
+    String description,
+  ) {
     final isDarkMode = Provider.of<ThemeProvider>(context).isDarkMode;
 
     return GestureDetector(
@@ -959,31 +1057,57 @@ class BikeSelectionDialog extends StatelessWidget {
           color: isDarkMode ? const Color(0xFF1A1A1A) : Colors.white,
           borderRadius: BorderRadius.circular(15),
           border: Border.all(
-            color: isDarkMode ? Colors.grey[800]! : Colors.grey[300]!,
-            width: 1,
+            color: isDarkMode ? const Color(0xFF4A3B7C) : Colors.brown,
+            width: 1.5,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: isDarkMode ? Colors.black26 : Colors.grey.withOpacity(0.2),
+              spreadRadius: 1,
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.only(left: 20, top: 10),
-              child: Text(
-                title,
-                style: AppFonts.bold.copyWith(
-                  fontSize: 16,
-                  color: isDarkMode ? Colors.white : Colors.black87,
-                ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppFonts.bold.copyWith(
+                      fontSize: 18,
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    description,
+                    style: AppFonts.regular.copyWith(
+                      fontSize: 14,
+                      color: isDarkMode ? Colors.white70 : Colors.black54,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 5),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                color: isDarkMode ? Colors.black : Colors.white,
-                child: Image.asset(
-                  imagePath,
-                  fit: BoxFit.cover,
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(15),
+                  bottomRight: Radius.circular(15),
+                ),
+                child: Container(
+                  color: isDarkMode ? Colors.black : Colors.white,
+                  child: Image.asset(
+                    imagePath,
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
             ),
@@ -999,51 +1123,118 @@ class BikePartsGrid extends StatelessWidget {
   final List<String> titles;
   final List<String> images;
   final Function(int) onPartTap;
+  final bool isDarkMode;
 
   const BikePartsGrid({
     super.key,
     required this.titles,
     required this.images,
     required this.onPartTap,
+    required this.isDarkMode,
   });
 
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
-      padding: EdgeInsets.all(8),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+      padding: const EdgeInsets.all(12),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 14,
-        mainAxisSpacing: 14,
-        childAspectRatio: 1.2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.85,
       ),
       itemCount: titles.length,
       itemBuilder: (context, index) {
-        return InkWell(
-          onTap: () => onPartTap(index),
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.brown, width: 2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(images[index], height: 60),
-                SizedBox(height: 6),
-                Text(
-                  titles[index],
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+        return Hero(
+          tag: 'part_${titles[index].toLowerCase()}',
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => onPartTap(index),
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDarkMode ? const Color(0xFF4A3B7C) : Colors.brown,
+                    width: 1.5,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isDarkMode
+                          ? Colors.black26
+                          : Colors.grey.withOpacity(0.2),
+                      spreadRadius: 1,
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-              ],
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      height: 80,
+                      width: 80,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDarkMode
+                            ? const Color(0xFF2D2D2D)
+                            : Colors.grey[100],
+                        shape: BoxShape.circle,
+                      ),
+                      child: Image.asset(
+                        images[index],
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      titles[index],
+                      style: AppFonts.bold.copyWith(
+                        fontSize: 16,
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _getPartDescription(titles[index]),
+                      textAlign: TextAlign.center,
+                      style: AppFonts.regular.copyWith(
+                        fontSize: 12,
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         );
       },
     );
+  }
+
+  String _getPartDescription(String part) {
+    switch (part.toUpperCase()) {
+      case 'HANDLE':
+        return 'Control and steering';
+      case 'WHEELS':
+        return 'Mobility and traction';
+      case 'FRAME':
+        return 'Structure and support';
+      case 'SADDLE':
+        return 'Comfort and posture';
+      case 'CRANK':
+        return 'Power transmission';
+      case 'SHIFTER':
+        return 'Gear control';
+      case 'BRAKE':
+        return 'Speed control';
+      default:
+        return '';
+    }
   }
 }
 

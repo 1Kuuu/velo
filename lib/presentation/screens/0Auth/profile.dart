@@ -105,11 +105,19 @@ class _ProfilePageState extends State<ProfilePage> {
         }
       }
 
-      // Fetch user data from the correct collection
+      // Try to get data from user_profile collection first
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
-          .collection('users')
+          .collection('user_profile')
           .doc(targetUserId)
           .get();
+
+      // If not found in user_profile, try users collection
+      if (!userDoc.exists) {
+        userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(targetUserId)
+            .get();
+      }
 
       if (!mounted || _disposed) return;
 

@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/screens/4Chat/chat.dart';
-import 'package:velora/presentation/screens/Weather/weather.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart'; // Import reusable widgets
 
 class ChatListPage extends StatelessWidget {
@@ -20,24 +19,35 @@ class ChatListPage extends StatelessWidget {
         title: "Messages",
         actions: [
           AppBarIcon(
-            icon: Icons.cloud_outlined,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => WeatherScreen()),
-              );
-            },
-          ),
-          AppBarIcon(
             icon: Icons.notifications_outlined,
             onTap: () => print("Notifications Tapped"),
           ),
-          AppBarIcon(
-            icon: Icons.person_outline,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfilePage()),
-            ),
+          StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(FirebaseAuth.instance.currentUser?.uid)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return AppBarIcon(
+                  icon: Icons.person_outline,
+                  onTap: () {}, // Empty callback for loading state
+                );
+              }
+
+              final userData = snapshot.data?.data() as Map<String, dynamic>?;
+              return ProfileAppBarIcon(
+                profileUrl: userData?['profileUrl'],
+                userName: userData?['userName'],
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const ProfilePage()),
+                  );
+                },
+              );
+            },
           ),
         ],
       ),

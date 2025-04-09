@@ -406,10 +406,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               if (result != null && result['updated'] == true && mounted) {
                 setState(() {
                   userData = {
-                    'userName': result['name'],
-                    'email': result['email'],
-                    'bio': result['bio'],
-                    'profileUrl': result['profileUrl'],
+                    'userName': result['name'] ?? userData['userName'],
+                    'email': result['email'] ?? userData['email'],
+                    'bio': result['bio'] ?? userData['bio'],
+                    'profileUrl':
+                        result['profileUrl'] ?? userData['profileUrl'],
+                    'preferences': userData['preferences'],
                   };
                 });
               }

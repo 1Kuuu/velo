@@ -33,7 +33,7 @@ class FirebaseServices {
         'createdAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     } catch (e) {
-      print("❌ Firestore Error (createUserDocument): $e");
+      // Handle error silently
     }
   }
 
@@ -42,7 +42,6 @@ class FirebaseServices {
     try {
       return await _firestore.collection(userCollection).doc(uid).get();
     } catch (e) {
-      print("❌ Firestore Error (getUserData): $e");
       return null;
     }
   }
@@ -53,7 +52,7 @@ class FirebaseServices {
     try {
       await _firestore.collection(userCollection).doc(uid).update(data);
     } catch (e) {
-      print("❌ Firestore Error (updateUserData): $e");
+      // Handle error silently
     }
   }
 
@@ -72,7 +71,7 @@ class FirebaseServices {
         'setupComplete': true,
       });
     } catch (e) {
-      print("❌ Firestore Error (completeOnboarding): $e");
+      // Handle error silently
     }
   }
 
@@ -110,11 +109,7 @@ class FirebaseServices {
       }
 
       return defaultData;
-    } on FirebaseException catch (e) {
-      print('Firebase Error (getUserProfile): ${e.code} - ${e.message}');
-      return {};
     } catch (e) {
-      print('Error (getUserProfile): $e');
       return {};
     }
   }
@@ -152,7 +147,6 @@ class FirebaseServices {
 
       return postRef.id;
     } catch (e) {
-      print('Error (createPost): $e');
       return null;
     }
   }
@@ -178,7 +172,6 @@ class FirebaseServices {
 
       return await _processPosts(postsSnapshot, uid);
     } catch (e) {
-      print('Error (getFeedPosts): $e');
       return [];
     }
   }
@@ -198,7 +191,6 @@ class FirebaseServices {
 
       return await _processPosts(postsSnapshot, _auth.currentUser!.uid);
     } catch (e) {
-      print('Error (getUserPosts): $e');
       return [];
     }
   }
@@ -235,7 +227,6 @@ class FirebaseServices {
 
       return !isLiked;
     } catch (e) {
-      print('Error (toggleLikePost): $e');
       return false;
     }
   }
