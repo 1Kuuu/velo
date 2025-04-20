@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
+import 'package:velora/core/configs/theme/app_fonts.dart';
+import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HelpSupportScreen extends StatelessWidget {
@@ -24,14 +26,8 @@ class HelpSupportScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.white,
-      appBar: AppBar(
-        title: const Text(
-          "Help & Support",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor:
-            isDarkMode ? const Color(0xFF4A3B7C) : AppColors.primary,
-        elevation: 0,
+      appBar: MyAppBar(
+        title: "Help & Support",
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -130,9 +126,8 @@ class HelpSupportScreen extends StatelessWidget {
       children: [
         Text(
           title,
-          style: TextStyle(
+          style: AppFonts.bold.copyWith(
             fontSize: 20,
-            fontWeight: FontWeight.bold,
             color: themeProvider.isDarkMode ? Colors.white : Colors.black,
           ),
         ),
@@ -155,9 +150,8 @@ class HelpSupportScreen extends StatelessWidget {
       child: ExpansionTile(
         title: Text(
           question,
-          style: TextStyle(
+          style: AppFonts.medium.copyWith(
             color: isDarkMode ? Colors.white : Colors.black,
-            fontWeight: FontWeight.w500,
           ),
         ),
         children: [
@@ -165,7 +159,7 @@ class HelpSupportScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Text(
               answer,
-              style: TextStyle(
+              style: AppFonts.regular.copyWith(
                 color: isDarkMode ? Colors.white70 : Colors.black87,
               ),
             ),
@@ -194,14 +188,13 @@ class HelpSupportScreen extends StatelessWidget {
         ),
         title: Text(
           title,
-          style: TextStyle(
+          style: AppFonts.medium.copyWith(
             color: isDarkMode ? Colors.white : Colors.black,
-            fontWeight: FontWeight.w500,
           ),
         ),
         subtitle: Text(
           subtitle,
-          style: TextStyle(
+          style: AppFonts.regular.copyWith(
             color: isDarkMode ? Colors.white70 : Colors.black87,
           ),
         ),
@@ -228,14 +221,13 @@ class HelpSupportScreen extends StatelessWidget {
         ),
         title: Text(
           title,
-          style: TextStyle(
+          style: AppFonts.medium.copyWith(
             color: isDarkMode ? Colors.white : Colors.black,
-            fontWeight: FontWeight.w500,
           ),
         ),
         subtitle: Text(
           subtitle,
-          style: TextStyle(
+          style: AppFonts.regular.copyWith(
             color: isDarkMode ? Colors.white70 : Colors.black87,
           ),
         ),

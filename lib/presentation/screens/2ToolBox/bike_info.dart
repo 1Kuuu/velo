@@ -3,6 +3,7 @@ import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/screens/Weather/weather.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
+import 'package:velora/presentation/widgets/notification_app_bar_icon.dart';
 import 'package:provider/provider.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
 
@@ -37,10 +38,7 @@ class BikeInfoScreen extends StatelessWidget {
               );
             },
           ),
-          AppBarIcon(
-            icon: Icons.notifications_outlined,
-            onTap: () => print("Notifications Tapped"),
-          ),
+          const NotificationAppBarIcon(),
           AppBarIcon(
             icon: Icons.person_outline,
             onTap: () {

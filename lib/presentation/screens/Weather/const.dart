@@ -1,2 +1,4 @@
-// ignore: constant_identifier_names
-const OPENWEATHER_API_KEY = "febe97a7956586916174fe077174c959";
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+final openWeatherKey = dotenv.env['OPENWEATHER_API_KEY'];
+final geminiKey = dotenv.env['GEMINI_API_KEY'];

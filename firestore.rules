@@ -7,7 +7,11 @@ service cloud.firestore {
     }
     
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isPublic() {
+      return true;
     }
     
     function hasValidPostFields() {
@@ -19,7 +23,7 @@ service cloud.firestore {
         && data.keys().hasOnly(required.concat(optional))
         && data.likesCount == 0
         && data.commentsCount == 0
-        && data.content.size() <= 1000  // 1000 char limit
+        && data.content.size() <= 1000
         && (data.mediaUrl == '' || data.mediaUrl.matches('https://.*'))
         && data.userId == request.auth.uid;
     }
@@ -29,83 +33,68 @@ service cloud.firestore {
       let data = request.resource.data;
       
       return data.keys().hasAll(required)
-        && data.text.size() <= 500  // 500 char limit
+        && data.text.size() <= 500
         && data.userId == request.auth.uid;
     }
 
-    // 🔒 Secure user data: Allow all authenticated users to read user documents
+    // Users collection - allow public read but secure writes
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow update: if request.auth != null && (
-        request.auth.uid == userId ||
-        // Allow updates to followers/following arrays and status
-        request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['followers', 'following', 'status'])
-      );
-      allow delete: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId;
+      allow read: if isPublic();
+      allow write: if isOwner(userId);
+      
+      // User notifications subcollection
+      match /notifications/{notificationId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
     }
 
-    // 🔒 Secure follows collection
+    // Posts collection - allow public read access
+    match /posts/{postId} {
+      allow read: if isPublic();
+      allow create: if isAuthenticated();
+      allow update, delete: if isOwner(resource.data.userId);
+      
+      match /likes/{userId} {
+        allow read: if isPublic();
+        allow write: if isAuthenticated() && isOwner(userId);
+      }
+      
+      match /comments/{commentId} {
+        allow read: if isPublic();
+        allow create: if isAuthenticated() && hasValidCommentFields();
+        allow update, delete: if isOwner(resource.data.userId);
+      }
+    }
+
+    // All other collections keep their original rules
     match /follows/{followId} {
-      allow read: if isAuthenticated();
+      allow read: if isPublic();
       allow create: if isAuthenticated() && request.resource.data.followerId == request.auth.uid;
-      allow delete: if isAuthenticated() && resource.data.followerId == request.auth.uid;
+      allow delete: if isOwner(resource.data.followerId);
     }
 
-    // 🔒 Secure user profiles
     match /user_profile/{userId} {
       allow read: if isAuthenticated();
       allow update, delete: if isAuthenticated() && isOwner(userId);
       allow create: if isAuthenticated() && isOwner(userId);
       
-      // Added rule for followers/following
       allow write: if isAuthenticated() && (
         isOwner(userId) || 
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['followers', 'following', 'status'])
       );
 
-      // Viewed posts subcollection
       match /viewed_posts/{postId} {
         allow read: if isAuthenticated() && isOwner(userId);
         allow write: if isAuthenticated() && isOwner(userId);
       }
     }
 
-    // 🔒 Secure user preferences
     match /user_preferences/{userId} {
       allow read, update, delete: if isAuthenticated() && isOwner(userId);
       allow create: if isAuthenticated() && isOwner(userId);
     }
 
-    // 🔒 Secure posts collection
-    match /posts/{postId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && hasValidPostFields();
-      allow update: if isAuthenticated() && (
-        isOwner(resource.data.userId) || 
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount', 'commentsCount'])
-      );
-      allow delete: if isAuthenticated() && isOwner(resource.data.userId);
-      
-      // Likes subcollection
-      match /likes/{userId} {
-        allow read: if isAuthenticated();
-        allow write: if isAuthenticated() && isOwner(userId);
-      }
-      
-      // Comments subcollection
-      match /comments/{commentId} {
-        allow read: if isAuthenticated();
-        allow create: if isAuthenticated() && hasValidCommentFields();
-        allow delete: if isAuthenticated() && (
-          isOwner(resource.data.userId) || 
-          isOwner(get(/databases/$(database)/documents/posts/$(postId)).data.userId)
-        );
-      }
-    }
-
-    // ✅ Allow authenticated users to access and create chats
     match /chats/{chatId} {
       allow read: if isAuthenticated() && (
         resource.data.participants.hasAny([request.auth.uid])
@@ -116,7 +105,7 @@ service cloud.firestore {
       );
       
       match /messages/{messageId} {
-        allow read: if isAuthenticated() && (
+        allow read, list: if isAuthenticated() && (
           get(/databases/$(database)/documents/chats/$(chatId)).data.participants.hasAny([request.auth.uid])
         );
         allow create: if isAuthenticated() && (
@@ -129,30 +118,29 @@ service cloud.firestore {
       }
     }
 
-    // 🔒 Secure events collection
     match /events/{eventId} {
-      // Helper function to verify event fields
       function hasValidEventFields() {
         let requiredFields = ['title', 'description', 'date', 'startTime', 'endTime', 'isAllDay', 'repeatStatus', 'color', 'userId'];
         return request.resource.data.keys().hasAll(requiredFields);
       }
 
-      // Allow authenticated users to read all events
-      allow read: if request.auth != null;
-      
-      // Allow authenticated users to create events with required fields
+      allow read: if true;  // Allow public read access to events
       allow create: if request.auth != null && 
                    hasValidEventFields() &&
                    request.resource.data.userId == request.auth.uid;
-      
-      // Allow users to update and delete only their own events
       allow update: if request.auth != null && 
                    resource.data.userId == request.auth.uid &&
                    hasValidEventFields() &&
                    request.resource.data.userId == request.auth.uid;
-                   
       allow delete: if request.auth != null && 
                    resource.data.userId == request.auth.uid;
+    }
+
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isAuthenticated();
+      allow update, delete: if isOwner(resource.data.userId);
     }
   }
 }

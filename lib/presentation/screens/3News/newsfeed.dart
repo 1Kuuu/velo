@@ -12,6 +12,7 @@ import 'package:velora/data/sources/post_service.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/screens/3News/search_view.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
+import 'package:velora/presentation/widgets/notification_app_bar_icon.dart';
 import 'package:provider/provider.dart';
 import 'package:delightful_toast/delight_toast.dart';
 import 'package:delightful_toast/toast/components/toast_card.dart';
@@ -66,10 +67,7 @@ class _NewsFeedPageContentState extends State<NewsFeedPageContent>
               MaterialPageRoute(builder: (context) => SearchView()),
             ),
           ),
-          AppBarIcon(
-            icon: Icons.notifications_outlined,
-            onTap: () => print("Notifications Tapped"),
-          ),
+          const NotificationAppBarIcon(),
           StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('users')

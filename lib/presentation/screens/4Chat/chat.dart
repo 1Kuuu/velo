@@ -6,6 +6,7 @@ import 'package:delightful_toast/delight_toast.dart';
 import 'package:delightful_toast/toast/components/toast_card.dart';
 import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
+import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
@@ -83,7 +84,6 @@ class _ChatPageContentState extends State<ChatPageContent> {
         "status": "sent",
       });
 
-      // Update to delivered after server confirmation
       docRef.update({"status": "delivered"});
       _messageController.clear();
     } catch (e) {
@@ -106,7 +106,6 @@ class _ChatPageContentState extends State<ChatPageContent> {
     var currentUser = _auth.currentUser;
     if (currentUser == null) return;
 
-    // Mark all messages from recipient as seen
     var query = FirebaseFirestore.instance
         .collection("chats/${widget.chatId}/messages")
         .where("senderId", isEqualTo: widget.recipientId)
@@ -127,11 +126,9 @@ class _ChatPageContentState extends State<ChatPageContent> {
     final isDarkMode = themeProvider.isDarkMode;
 
     return Scaffold(
-      backgroundColor:
-          isDarkMode ? const Color(0xFF1A1A1A) : AppColors.lightBackground,
+      backgroundColor: isDarkMode ? const Color(0xFF1A1A1A) : AppColors.lightBackground,
       appBar: AppBar(
-        backgroundColor:
-            isDarkMode ? const Color(0xFF4A3B7C) : AppColors.primary,
+        backgroundColor: isDarkMode ? const Color(0xFF4A3B7C) : AppColors.primary,
         elevation: 0,
         title: ChatAppBar(
           recipientName: widget.recipientName,
@@ -156,7 +153,7 @@ class _ChatPageContentState extends State<ChatPageContent> {
                   return Center(
                     child: Text(
                       "No messages yet.",
-                      style: TextStyle(
+                      style: AppFonts.regular.copyWith(
                         fontSize: 14,
                         color: isDarkMode ? Colors.white70 : Colors.black87,
                       ),
@@ -168,8 +165,7 @@ class _ChatPageContentState extends State<ChatPageContent> {
                 Map<String, List<QueryDocumentSnapshot>> groupedMessages = {};
 
                 for (var message in messages) {
-                  var timestamp =
-                      (message["timestamp"] as Timestamp?)?.toDate();
+                  var timestamp = (message["timestamp"] as Timestamp?)?.toDate();
                   if (timestamp == null) continue;
                   String dateKey = _formatDateKey(timestamp);
                   groupedMessages.putIfAbsent(dateKey, () => []).add(message);
@@ -188,8 +184,7 @@ class _ChatPageContentState extends State<ChatPageContent> {
                         DateHeader(dateKey: entry.key),
                         ...entry.value.map((msg) {
                           final data = msg.data() as Map<String, dynamic>;
-                          final isMe =
-                              data["senderId"] == _auth.currentUser?.uid;
+                          final isMe = data["senderId"] == _auth.currentUser?.uid;
                           return MessageBubble(data: data, isMe: isMe);
                         })
                       ];

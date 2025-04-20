@@ -23,7 +23,7 @@ class WeatherScreen extends StatefulWidget {
 }
 
 class _WeatherScreenState extends State<WeatherScreen> {
-  final WeatherFactory wf = WeatherFactory(OPENWEATHER_API_KEY);
+  final WeatherFactory wf = WeatherFactory(openWeatherKey ?? '');
   Timer? _timer;
   DateTime _currentTime = DateTime.now();
   Weather? _weather;

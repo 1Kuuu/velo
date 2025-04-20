@@ -20,6 +20,7 @@ import 'package:delightful_toast/toast/components/toast_card.dart';
 import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:weather/weather.dart';
 import 'dart:async';
+import 'package:velora/presentation/widgets/notification_app_bar_icon.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -71,7 +72,7 @@ class _HomePageContentState extends State<HomePageContent> {
   List<Event> _events = [];
 
   // Weather data
-  final WeatherFactory wf = WeatherFactory(OPENWEATHER_API_KEY);
+  final WeatherFactory wf = WeatherFactory(openWeatherKey ?? '');
   Weather? _currentWeather;
   Timer? _weatherTimer;
   DateTime _currentTime = DateTime.now();
@@ -276,10 +277,7 @@ class _HomePageContentState extends State<HomePageContent> {
       appBar: MyAppBar(
         title: "Home",
         actions: [
-          AppBarIcon(
-            icon: Icons.notifications_outlined,
-            onTap: () => print("Notifications Tapped"),
-          ),
+          const NotificationAppBarIcon(),
           StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('users')

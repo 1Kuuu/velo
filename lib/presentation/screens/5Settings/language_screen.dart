@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
-import 'package:velora/core/configs/theme/app_colors.dart';
+import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'package:velora/providers/language_provider.dart';
 import 'package:velora/core/configs/language/app_localizations.dart';
+import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
 class LanguageScreen extends StatefulWidget {
   const LanguageScreen({super.key});
@@ -20,25 +21,8 @@ class _LanguageScreenState extends State<LanguageScreen> {
     final localizations = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: themeProvider.isDarkMode
-            ? const Color(0xFF4A3B7C)
-            : AppColors.primary,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context, languageProvider.selectedLanguage);
-          },
-        ),
-        title: Text(
-          localizations.translate('language'),
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
+      appBar: MyAppBar(
+        title: localizations.translate('language'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -47,9 +31,8 @@ class _LanguageScreenState extends State<LanguageScreen> {
           children: [
             Text(
               localizations.translate('suggestedLanguages'),
-              style: const TextStyle(
+              style: AppFonts.regular.copyWith(
                 fontSize: 14,
-                fontWeight: FontWeight.normal,
                 color: Colors.grey,
               ),
             ),
@@ -80,7 +63,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
               padding: const EdgeInsets.symmetric(vertical: 12.0),
               child: Text(
                 localizations.translate('languageReminder'),
-                style: const TextStyle(
+                style: AppFonts.regular.copyWith(
                   fontSize: 14,
                   color: Colors.grey,
                 ),
@@ -148,14 +131,13 @@ class _LanguageScreenState extends State<LanguageScreen> {
             children: [
               Text(
                 language,
-                style: const TextStyle(
+                style: AppFonts.medium.copyWith(
                   fontSize: 16,
-                  fontWeight: FontWeight.w500,
                 ),
               ),
               Text(
                 subtitle,
-                style: const TextStyle(
+                style: AppFonts.regular.copyWith(
                   fontSize: 14,
                   color: Colors.grey,
                 ),
@@ -185,14 +167,13 @@ class _LanguageScreenState extends State<LanguageScreen> {
             children: [
               Text(
                 language,
-                style: const TextStyle(
+                style: AppFonts.medium.copyWith(
                   fontSize: 16,
-                  fontWeight: FontWeight.w500,
                 ),
               ),
               Text(
                 language,
-                style: const TextStyle(
+                style: AppFonts.regular.copyWith(
                   fontSize: 14,
                   color: Colors.grey,
                 ),
