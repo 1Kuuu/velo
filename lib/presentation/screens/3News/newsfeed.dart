@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +20,7 @@ import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:flutter/services.dart'; // Add this import for DeviceOrientation
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:intl/intl.dart';
+import 'package:photo_view/photo_view.dart';
 
 class NewsFeedPageContent extends StatefulWidget {
   const NewsFeedPageContent({super.key});
@@ -623,12 +625,15 @@ class _RideFeedItemState extends State<RideFeedItem> {
   final user = FirebaseAuth.instance.currentUser;
   bool _showComments = false;
   Map<String, dynamic>? authorData;
+  // Cached post data to prevent UI flickering and owner changes
+  late Map<String, dynamic> _cachedPostData;
   final TextEditingController _commentController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     postId = widget.ride.id;
+    _cachedPostData = widget.ride.data() as Map<String, dynamic>;
     _checkIfLiked();
     _loadAuthorData();
   }
@@ -640,8 +645,7 @@ class _RideFeedItemState extends State<RideFeedItem> {
   }
 
   Future<void> _loadAuthorData() async {
-    final postData = widget.ride.data() as Map<String, dynamic>;
-    final authorId = postData['authorId'];
+    final authorId = _cachedPostData['authorId'];
     if (authorId != null) {
       final userData = await PostService.getUserData(authorId);
       if (mounted) {
@@ -665,8 +669,21 @@ class _RideFeedItemState extends State<RideFeedItem> {
   }
 
   Future<void> _toggleLike() async {
+    // Only toggle isLiked state without refreshing the entire post
     final success = await PostService.toggleLike(postId);
-    if (mounted) setState(() => isLiked = success);
+    if (mounted) {
+      setState(() {
+        isLiked = success;
+        // Update only the likes count in the cached data
+        if (success) {
+          _cachedPostData['likesCount'] =
+              (_cachedPostData['likesCount'] ?? 0) + 1;
+        } else {
+          _cachedPostData['likesCount'] =
+              math.max<int>(0, (_cachedPostData['likesCount'] ?? 0) - 1);
+        }
+      });
+    }
   }
 
   Future<void> _deletePost() async {
@@ -692,21 +709,22 @@ class _RideFeedItemState extends State<RideFeedItem> {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
 
-    var postData = widget.ride.data() as Map<String, dynamic>;
-    String content = postData['content'] ?? '';
-    String? mediaUrl = postData['mediaUrl'];
-    String mediaType = postData['mediaType'] ?? 'none';
-    Map<String, dynamic>? rideData = postData['rideData'];
-    int likesCount = postData['likesCount'] ?? 0;
-    int commentsCount = postData['commentsCount'] ?? 0;
-    String userId = postData['userId'] ?? '';
+    // Use cached post data instead of re-reading from widget.ride
+    String content = _cachedPostData['content'] ?? '';
+    String? mediaUrl = _cachedPostData['mediaUrl'];
+    String mediaType = _cachedPostData['mediaType'] ?? 'none';
+    Map<String, dynamic>? rideData = _cachedPostData['rideData'];
+    int likesCount = _cachedPostData['likesCount'] ?? 0;
+    int commentsCount = _cachedPostData['commentsCount'] ?? 0;
+    String userId = _cachedPostData['userId'] ?? '';
 
-    // Use author data from Firestore if available
+    // Use author data from loaded data if available, fall back to cached values
     String authorName =
-        authorData?['userName'] ?? postData['authorName'] ?? 'Anonymous';
+        authorData?['userName'] ?? _cachedPostData['authorName'] ?? 'Anonymous';
     String authorAvatar =
-        authorData?['profileUrl'] ?? postData['authorAvatar'] ?? '';
-    String authorEmail = authorData?['email'] ?? postData['authorEmail'] ?? '';
+        authorData?['profileUrl'] ?? _cachedPostData['authorAvatar'] ?? '';
+    String authorEmail =
+        authorData?['email'] ?? _cachedPostData['authorEmail'] ?? '';
 
     return Card(
       margin: const EdgeInsets.all(12.0),
@@ -758,7 +776,8 @@ class _RideFeedItemState extends State<RideFeedItem> {
                             ),
                           ),
                         Text(
-                          _formatTimestamp(postData['createdAt'] as Timestamp?),
+                          _formatTimestamp(
+                              _cachedPostData['createdAt'] as Timestamp?),
                           style: AppFonts.regular.copyWith(
                             color:
                                 isDarkMode ? Colors.white60 : Colors.grey[600],
@@ -799,60 +818,49 @@ class _RideFeedItemState extends State<RideFeedItem> {
                           aspectRatio: 16 / 9,
                           child: VideoPlayer(mediaUrl),
                         )
-                      : AspectRatio(
-                          aspectRatio: 16 / 9,
-                          child: Image.network(
-                            mediaUrl,
-                            fit: BoxFit.cover,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Container(
-                                color: isDarkMode
-                                    ? Colors.grey[900]
-                                    : Colors.grey[200],
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    value: loadingProgress.expectedTotalBytes !=
-                                            null
-                                        ? loadingProgress
-                                                .cumulativeBytesLoaded /
-                                            loadingProgress.expectedTotalBytes!
-                                        : null,
+                      : GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  FullscreenImageViewer(imageUrl: mediaUrl),
+                            ),
+                          ),
+                          child: Hero(
+                            tag: 'image_$mediaUrl',
+                            child: AspectRatio(
+                              aspectRatio: 16 / 9,
+                              child: Image.network(
+                                mediaUrl,
+                                fit: BoxFit.cover,
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
                                     color: isDarkMode
-                                        ? Colors.white70
-                                        : Colors.grey[600],
-                                  ),
-                                ),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: isDarkMode
-                                    ? Colors.grey[900]
-                                    : Colors.grey[200],
-                                child: Center(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.broken_image,
-                                          color: isDarkMode
-                                              ? Colors.white70
-                                              : Colors.grey[600],
-                                          size: 32),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Failed to load image',
-                                        style: AppFonts.regular.copyWith(
-                                          color: isDarkMode
-                                              ? Colors.white70
-                                              : Colors.grey[600],
-                                        ),
+                                        ? Colors.grey[900]
+                                        : Colors.grey[200],
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress
+                                                    .expectedTotalBytes !=
+                                                null
+                                            ? loadingProgress
+                                                    .cumulativeBytesLoaded /
+                                                loadingProgress
+                                                    .expectedTotalBytes!
+                                            : null,
+                                        color: isDarkMode
+                                            ? Colors.white70
+                                            : Colors.grey[600],
                                       ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
+                                    ),
+                                  );
+                                },
+                                errorBuilder: (context, error, stackTrace) =>
+                                    _buildErrorImage(isDarkMode),
+                              ),
+                            ),
                           ),
                         ),
                 ),
@@ -1153,6 +1161,31 @@ class _RideFeedItemState extends State<RideFeedItem> {
   Future<void> _deleteComment(String commentId) async {
     final success = await PostService.deleteComment(postId, commentId);
   }
+
+  Widget _buildErrorImage(bool isDarkMode) {
+    return Container(
+      color: isDarkMode ? Colors.grey[900] : Colors.grey[200],
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.broken_image,
+              color: isDarkMode ? Colors.white70 : Colors.grey[600],
+              size: 32,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Failed to load image',
+              style: AppFonts.regular.copyWith(
+                color: isDarkMode ? Colors.white70 : Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class CommentsSection extends StatefulWidget {
@@ -1435,12 +1468,17 @@ class _CommentsSectionState extends State<CommentsSection> {
 
 class VideoControllerManager {
   static VideoControllerManager? _instance;
+  final Map<String, VideoPlayerController> _controllers = {};
   VideoPlayerController? _currentController;
   ChewieController? _currentChewieController;
 
   static VideoControllerManager get instance {
     _instance ??= VideoControllerManager();
     return _instance!;
+  }
+
+  VideoPlayerController? getCachedController(String url) {
+    return _controllers[url];
   }
 
   void setCurrentController(
@@ -1451,6 +1489,7 @@ class VideoControllerManager {
     }
     _currentController = controller;
     _currentChewieController = chewieController;
+    _controllers[controller.dataSource] = controller;
   }
 
   void pauseCurrentVideo() {
@@ -1462,7 +1501,12 @@ class VideoControllerManager {
 
   void dispose() {
     _currentController?.pause();
+    for (var controller in _controllers.values) {
+      controller.dispose();
+    }
+    _controllers.clear();
     _currentController = null;
+    _currentChewieController?.dispose();
     _currentChewieController = null;
   }
 }
@@ -1476,11 +1520,14 @@ class VideoPlayer extends StatefulWidget {
 }
 
 class _VideoPlayerState extends State<VideoPlayer> with WidgetsBindingObserver {
-  late VideoPlayerController _videoController;
+  VideoPlayerController? _videoController;
   ChewieController? _chewieController;
   bool _isInitialized = false;
   String? _errorMessage;
   bool _isDisposed = false;
+  bool _isLoading = true;
+  bool _isVideoFinished = false;
+  bool _wasFullScreen = false;
 
   @override
   void initState() {
@@ -1491,113 +1538,385 @@ class _VideoPlayerState extends State<VideoPlayer> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      _pauseVideo();
-    }
-  }
-
-  void _pauseVideo() {
-    if (!_isDisposed && _videoController.value.isPlaying) {
-      _videoController.pause();
+    if (state == AppLifecycleState.paused && _videoController != null) {
+      _videoController!.pause();
     }
   }
 
   Future<void> _initializePlayer() async {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+      _isVideoFinished = false;
+      _wasFullScreen = false;
+    });
+
     try {
+      // Check if we have a cached controller
+      final cachedController =
+          VideoControllerManager.instance.getCachedController(widget.url);
+      if (cachedController != null && !_isDisposed) {
+        _videoController = cachedController;
+        // Force reset position if video was at the end
+        if (_videoController!.value.position >=
+            _videoController!.value.duration - const Duration(seconds: 1)) {
+          _videoController!.seekTo(Duration.zero);
+        }
+        _setupVideoListeners();
+        _initializeChewieController();
+
+        // Force loading to false for cached controllers
+        if (mounted && !_isDisposed) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
       _videoController = VideoPlayerController.network(
         widget.url,
         videoPlayerOptions: VideoPlayerOptions(mixWithOthers: false),
       );
 
-      await _videoController.initialize();
+      // Add value listener to handle loading state
+      _setupVideoListeners();
 
-      if (_isDisposed) return;
+      await _videoController!.initialize();
+      if (_isDisposed || !mounted) return;
 
+      _initializeChewieController();
+      if (_videoController != null && _chewieController != null) {
+        VideoControllerManager.instance
+            .setCurrentController(_videoController!, _chewieController!);
+      }
+
+      // Force loading to false after initialization
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (error) {
+      if (!_isDisposed && mounted) {
+        setState(() {
+          _errorMessage = error.toString();
+          _isInitialized = false;
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _setupVideoListeners() {
+    if (_videoController == null) return;
+
+    // Force loading to false immediately on initialization
+    if (mounted && !_isDisposed) {
+      Future.microtask(() {
+        setState(() {
+          _isLoading = false;
+        });
+      });
+    }
+
+    // Create a separate listener function that we can reference later for removal
+    void videoListener() {
+      if (!mounted || _isDisposed) return;
+
+      // Always ensure loading is false in the listener
+      if (_isLoading) {
+        if (mounted && !_isDisposed) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      // Only update video finished state
+      bool needsUpdate = false;
+      bool newFinished = _isVideoFinished;
+
+      // Check if video has reached the end
+      final position = _videoController!.value.position;
+      final duration = _videoController!.value.duration;
+
+      // Prevent division by zero or comparison with zero duration
+      if (duration.inMilliseconds > 0) {
+        // Check if video is finished (position is at 99% or more of duration)
+        final percentComplete =
+            position.inMilliseconds / duration.inMilliseconds;
+        final isAtEnd = percentComplete >= 0.99;
+
+        // Only update if the finished state changed
+        if (isAtEnd != _isVideoFinished) {
+          newFinished = isAtEnd;
+          needsUpdate = true;
+        }
+      }
+
+      // Reset finished state when video is playing and not near end
+      if (_isVideoFinished &&
+          _videoController!.value.isPlaying &&
+          position < duration - const Duration(seconds: 3)) {
+        newFinished = false;
+        needsUpdate = true;
+      }
+
+      // Only call setState if state actually changed
+      if (needsUpdate && mounted && !_isDisposed) {
+        setState(() {
+          _isVideoFinished = newFinished;
+        });
+      }
+    }
+
+    // Store the listener function on the controller
+    _videoController!.addListener(videoListener);
+
+    // Force loading to false after a very short delay
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    });
+  }
+
+  void _initializeChewieController() {
+    if (_videoController == null || _isDisposed || !mounted) return;
+
+    try {
       _chewieController = ChewieController(
-        videoPlayerController: _videoController,
-        aspectRatio: _videoController.value.aspectRatio,
+        videoPlayerController: _videoController!,
+        aspectRatio: _videoController!.value.aspectRatio,
         autoPlay: false,
         looping: false,
+        showControlsOnInitialize: false,
         showControls: true,
-        allowPlaybackSpeedChanging: false,
+        allowPlaybackSpeedChanging: true,
         allowFullScreen: true,
-        deviceOrientationsOnEnterFullScreen: [
+        deviceOrientationsOnEnterFullScreen: const [
           DeviceOrientation.landscapeLeft,
           DeviceOrientation.landscapeRight,
         ],
-        deviceOrientationsAfterFullScreen: [DeviceOrientation.portraitUp],
+        deviceOrientationsAfterFullScreen: const [DeviceOrientation.portraitUp],
         placeholder: Container(
           color: Colors.black,
-          child: const Center(
-            child: CircularProgressIndicator(color: Colors.white),
+          // Remove loading indicator from placeholder
+          child: const Center(),
+        ),
+        errorBuilder: (context, errorMessage) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white, size: 42),
+              const SizedBox(height: 8),
+              Text(
+                'Error playing video: $errorMessage',
+                style: const TextStyle(color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+              TextButton(
+                onPressed: _initializePlayer,
+                child:
+                    const Text('Retry', style: TextStyle(color: Colors.white)),
+              ),
+            ],
           ),
         ),
-        materialProgressColors: ChewieProgressColors(
-          playedColor: AppColors.primary,
-          handleColor: AppColors.primary,
-          backgroundColor: Colors.grey,
-          bufferedColor: Colors.grey[400]!,
+        fullScreenByDefault: false,
+        allowMuting: true,
+        zoomAndPan: true,
+        // Don't show loading spinner on initialization
+        showOptions: false,
+        // Custom controls
+        customControls: const CupertinoControls(
+          backgroundColor: Color.fromRGBO(41, 41, 41, 0.7),
+          iconColor: Color.fromARGB(255, 200, 200, 200),
         ),
-        errorBuilder: (context, errorMessage) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white, size: 42),
-                const SizedBox(height: 8),
-                Text(
-                  'Error playing video: $errorMessage',
-                  style: const TextStyle(color: Colors.white),
-                  textAlign: TextAlign.center,
+        routePageBuilder: (context, animation, secondaryAnimation, provider) {
+          _wasFullScreen = true;
+          // When entering fullscreen, reset video if it was at the end
+          if (_isVideoFinished && _videoController != null) {
+            _videoController!.seekTo(Duration.zero);
+            setState(() {
+              _isVideoFinished = false;
+              _isLoading = false;
+            });
+          }
+
+          return AnimatedBuilder(
+            animation: animation,
+            builder: (BuildContext context, Widget? child) {
+              return WillPopScope(
+                // Handle back button press in fullscreen to update our state when exiting
+                onWillPop: () async {
+                  _onExitFullScreen();
+                  return true;
+                },
+                child: Scaffold(
+                  resizeToAvoidBottomInset: false,
+                  body: Container(
+                    alignment: Alignment.center,
+                    color: Colors.black,
+                    child: provider,
+                  ),
                 ),
-                TextButton(
-                  onPressed: _initializePlayer,
-                  child: const Text('Retry',
-                      style: TextStyle(color: Colors.white)),
-                ),
-              ],
-            ),
+              );
+            },
           );
         },
       );
 
-      VideoControllerManager.instance
-          .setCurrentController(_videoController, _chewieController!);
+      // Listen for fullscreen state changes
+      Future.microtask(() {
+        if (_chewieController != null) {
+          _chewieController!.addListener(_handleFullscreenChange);
+        }
+      });
 
-      if (!_isDisposed) {
+      // Add specific video completion listener
+      _videoController!.addListener(_handleVideoCompletion);
+
+      if (!_isDisposed && mounted) {
         setState(() {
           _isInitialized = true;
           _errorMessage = null;
+          _isLoading = false;
         });
       }
-    } catch (error) {
-      print('Error initializing video player: $error');
-      if (!_isDisposed) {
+    } catch (e) {
+      if (mounted) {
         setState(() {
+          _errorMessage = "Failed to initialize video: ${e.toString()}";
           _isInitialized = false;
-          _errorMessage = error.toString();
+          _isLoading = false;
         });
       }
+    }
+  }
+
+  void _handleVideoCompletion() {
+    if (!mounted || _isDisposed || _videoController == null) return;
+
+    // Check if video has reached the end
+    final position = _videoController!.value.position;
+    final duration = _videoController!.value.duration;
+
+    // If video is at the end
+    if (duration.inMilliseconds > 0 &&
+        position.inMilliseconds >= duration.inMilliseconds - 500) {
+      // Immediately pause the video to prevent loading indicators
+      _videoController!.pause();
+
+      // Force update state
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _isVideoFinished = true;
+          _isLoading = false;
+
+          // If using ChewieController, remove any loading indicators
+          if (_chewieController != null) {
+            // Force rebuild Chewie to clear any loading indicators
+            _chewieController = ChewieController(
+              videoPlayerController: _videoController!,
+              aspectRatio: _videoController!.value.aspectRatio,
+              autoPlay: false,
+              looping: false,
+              showControls: true,
+              // Use same control type as main controller
+              customControls: const CupertinoControls(
+                backgroundColor: Color.fromRGBO(41, 41, 41, 0.7),
+                iconColor: Color.fromARGB(255, 200, 200, 200),
+              ),
+              placeholder: Container(color: Colors.black),
+            );
+          }
+        });
+      }
+    }
+  }
+
+  void _handleFullscreenChange() {
+    if (_chewieController == null || !mounted || _isDisposed) return;
+
+    final isFullScreen = _chewieController!.isFullScreen;
+
+    // If we were fullscreen but now we're not, handle exit
+    if (_wasFullScreen && !isFullScreen) {
+      _onExitFullScreen();
+    }
+
+    // Update our tracking of fullscreen state
+    _wasFullScreen = isFullScreen;
+  }
+
+  void _onExitFullScreen() {
+    _wasFullScreen = false;
+    // If video was finished in fullscreen, ensure UI state reflects this
+    if (_videoController != null &&
+        _videoController!.value.position >=
+            _videoController!.value.duration - const Duration(seconds: 1)) {
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _isVideoFinished = true;
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _restartVideo() {
+    if (_videoController != null && !_isDisposed && mounted) {
+      setState(() {
+        _isVideoFinished = false;
+        _isLoading = true; // Show loading briefly while seeking
+      });
+      _videoController!.seekTo(Duration.zero);
+      _videoController!.play().then((_) {
+        if (mounted && !_isDisposed) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      });
     }
   }
 
   @override
   void dispose() {
     _isDisposed = true;
-    WidgetsBinding.instance.removeObserver(this);
-    if (_videoController ==
-        VideoControllerManager.instance._currentController) {
-      VideoControllerManager.instance.dispose();
-    }
-    _videoController.dispose();
-    _chewieController?.dispose();
-    super.dispose();
-  }
 
-  @override
-  void deactivate() {
-    _pauseVideo();
-    super.deactivate();
+    // Remove video completion listener
+    if (_videoController != null) {
+      _videoController!.removeListener(_handleVideoCompletion);
+    }
+
+    // Clear all listeners first
+    if (_chewieController != null) {
+      _chewieController!.removeListener(_handleFullscreenChange);
+      _chewieController!.dispose();
+      _chewieController = null;
+    }
+
+    if (_videoController != null) {
+      // Remove all listeners to avoid callbacks after dispose
+      _videoController!.removeListener(() {});
+
+      // Don't dispose the controller if it's cached
+      if (VideoControllerManager.instance.getCachedController(widget.url) !=
+          _videoController) {
+        _videoController!.dispose();
+      }
+      _videoController = null;
+    }
+
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   @override
@@ -1630,7 +1949,9 @@ class _VideoPlayerState extends State<VideoPlayer> with WidgetsBindingObserver {
       );
     }
 
-    if (!_isInitialized || _chewieController == null) {
+    if (!_isInitialized ||
+        _videoController == null ||
+        _chewieController == null) {
       return Container(
         color: Colors.black,
         child: const Center(
@@ -1639,45 +1960,66 @@ class _VideoPlayerState extends State<VideoPlayer> with WidgetsBindingObserver {
       );
     }
 
+    // Force isLoading to false before rendering
+    _isLoading = false;
+
     return VisibilityDetector(
       key: Key('video-${widget.url}'),
       onVisibilityChanged: (visibilityInfo) {
-        if (visibilityInfo.visibleFraction < 0.5) {
-          _pauseVideo();
+        if (visibilityInfo.visibleFraction < 0.5 && _videoController != null) {
+          _videoController!.pause();
         }
       },
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Chewie(
-            controller: _chewieController!,
+      child: Chewie(
+        controller: _chewieController!,
+      ),
+    );
+  }
+}
+
+class FullscreenImageViewer extends StatelessWidget {
+  final String imageUrl;
+
+  const FullscreenImageViewer({Key? key, required this.imageUrl})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: PhotoView(
+        imageProvider: NetworkImage(imageUrl),
+        minScale: PhotoViewComputedScale.contained,
+        maxScale: PhotoViewComputedScale.covered * 2,
+        loadingBuilder: (context, event) => Center(
+          child: CircularProgressIndicator(
+            value: event?.expectedTotalBytes != null
+                ? event!.cumulativeBytesLoaded / event.expectedTotalBytes!
+                : null,
           ),
-          if (!_videoController.value.isPlaying)
-            GestureDetector(
-              onTap: () {
-                if (!_isDisposed) {
-                  _videoController.play();
-                }
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withOpacity(0.2),
-                      Colors.black.withOpacity(0.6),
-                    ],
-                  ),
-                ),
-                child: const Icon(
-                  Icons.play_circle_outline,
-                  color: Colors.white,
-                  size: 64,
-                ),
+        ),
+        errorBuilder: (context, error, stackTrace) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white, size: 42),
+              const SizedBox(height: 8),
+              Text(
+                'Error loading image',
+                style: TextStyle(color: Colors.white),
               ),
-            ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }

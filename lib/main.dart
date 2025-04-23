@@ -30,15 +30,15 @@ Future<void> loadEnvFile() async {
     final envFile = File('.env');
     final String workingDirectory = Directory.current.path;
     print('Current working directory: $workingDirectory');
-    
+
     if (await envFile.exists()) {
       print('.env file found at: ${envFile.absolute.path}');
       final contents = await envFile.readAsString();
       print('.env file contents length: ${contents.length}');
-      
+
       await dotenv.load(fileName: ".env");
       print('.env file loaded successfully');
-      
+
       final apiKey = dotenv.env['GEMINI_API_KEY'];
       if (apiKey != null) {
         print('GEMINI_API_KEY found in .env with length: ${apiKey.length}');
@@ -194,6 +194,49 @@ class _SplashScreenState extends State<SplashScreen> {
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
+  Future<Widget> _handleUnauthenticatedUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool onboardingComplete =
+        prefs.getBool('onboardingComplete') ?? false;
+    return onboardingComplete ? const LoginPage() : const GetStarted();
+  }
+
+  Future<Widget> _handleAuthenticatedUser(User user) async {
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    // If user document doesn't exist, create it
+    if (!userDoc.exists) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'uid': user.uid,
+        'userName': user.displayName ?? 'New User',
+        'email': user.email,
+        'createdAt': FieldValue.serverTimestamp(),
+        'setupComplete': false,
+        'isAuthenticated': true,
+        'authProvider': user.providerData.first.providerId,
+        'lastLogin': FieldValue.serverTimestamp(),
+      });
+      return const WhatScreen();
+    }
+
+    final userData = userDoc.data() as Map<String, dynamic>;
+    final bool setupComplete = userData['setupComplete'] ?? false;
+
+    if (!setupComplete) {
+      final prefDoc = await FirebaseFirestore.instance
+          .collection('user_preferences')
+          .doc(user.uid)
+          .get();
+
+      return prefDoc.exists ? const WelcomeScreen() : const WhatScreen();
+    }
+
+    return const HomePage();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -206,79 +249,24 @@ class AuthWrapper extends StatelessWidget {
 
           final user = snapshot.data;
           if (user == null) {
-            return FutureBuilder<SharedPreferences>(
-                future: SharedPreferences.getInstance(),
-                builder: (context, prefsSnapshot) {
-                  if (!prefsSnapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  final bool onboardingComplete =
-                      prefsSnapshot.data!.getBool('onboardingComplete') ??
-                          false;
-                  if (!onboardingComplete) {
-                    return const GetStarted();
-                  }
-                  return const LoginPage();
-                });
+            return FutureBuilder<Widget>(
+              future: _handleUnauthenticatedUser(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                return snapshot.data ?? const LoginPage();
+              },
+            );
           }
 
-          return FutureBuilder<DocumentSnapshot>(
-            future: FirebaseFirestore.instance
-                .collection('users')
-                .doc(user.uid)
-                .get(),
+          return FutureBuilder<Widget>(
+            future: _handleAuthenticatedUser(user),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
-
-              if (snapshot.hasError) {
-                return const LoginPage();
-              }
-
-              if (!snapshot.hasData || !snapshot.data!.exists) {
-                FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(user.uid)
-                    .set({
-                  'uid': user.uid,
-                  'userName': user.displayName ?? 'New User',
-                  'email': user.email,
-                  'createdAt': FieldValue.serverTimestamp(),
-                  'setupComplete': false,
-                  'isAuthenticated': true,
-                  'authProvider': user.providerData.first.providerId,
-                  'lastLogin': FieldValue.serverTimestamp(),
-                });
-                return const WhatScreen();
-              }
-
-              final userData = snapshot.data!.data() as Map<String, dynamic>;
-              final bool setupComplete = userData['setupComplete'] ?? false;
-
-              if (!setupComplete) {
-                return FutureBuilder<DocumentSnapshot>(
-                  future: FirebaseFirestore.instance
-                      .collection('user_preferences')
-                      .doc(user.uid)
-                      .get(),
-                  builder: (context, prefSnapshot) {
-                    if (prefSnapshot.connectionState ==
-                        ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    if (!prefSnapshot.hasData || !prefSnapshot.data!.exists) {
-                      return const WhatScreen();
-                    }
-
-                    return const WelcomeScreen();
-                  },
-                );
-              }
-
-              return const HomePage();
+              return snapshot.data ?? const LoginPage();
             },
           );
         },
