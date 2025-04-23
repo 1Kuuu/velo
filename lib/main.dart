@@ -7,6 +7,7 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
 import 'package:velora/core/configs/language/app_localizations.dart';
 import 'package:velora/firebase_options.dart';
@@ -21,10 +22,47 @@ import 'package:velora/presentation/screens/5Settings/editprofile.dart';
 import 'package:velora/presentation/screens/5Settings/setting_screen.dart';
 import 'package:velora/providers/language_provider.dart';
 import 'package:flutter/foundation.dart';
+import 'package:velora/core/services/ai_chat_screen.dart';
+import 'dart:io';
+
+Future<void> loadEnvFile() async {
+  try {
+    final envFile = File('.env');
+    final String workingDirectory = Directory.current.path;
+    print('Current working directory: $workingDirectory');
+    
+    if (await envFile.exists()) {
+      print('.env file found at: ${envFile.absolute.path}');
+      final contents = await envFile.readAsString();
+      print('.env file contents length: ${contents.length}');
+      
+      await dotenv.load(fileName: ".env");
+      print('.env file loaded successfully');
+      
+      final apiKey = dotenv.env['GEMINI_API_KEY'];
+      if (apiKey != null) {
+        print('GEMINI_API_KEY found in .env with length: ${apiKey.length}');
+        if (apiKey.length < 40) {
+          print('WARNING: GEMINI_API_KEY appears to be too short');
+        }
+      } else {
+        print('ERROR: GEMINI_API_KEY not found in .env file');
+      }
+    } else {
+      print('ERROR: .env file not found. Checked in:');
+      print('- ${envFile.absolute.path}');
+      print('- $workingDirectory/.env');
+    }
+  } catch (e, stackTrace) {
+    print('Error loading .env file: $e');
+    print('Stack trace: $stackTrace');
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -46,12 +84,10 @@ void main() async {
       },
       onError: (error) {
         print('App Check token refresh error: $error');
-        // Continue without App Check in case of error
       },
     );
   } catch (e) {
     print('Error initializing App Check: $e');
-    // Continue without App Check in case of error
   }
 
   SystemChrome.setSystemUIOverlayStyle(
@@ -110,6 +146,7 @@ class _MyAppState extends State<MyApp> {
         '/settings': (context) => const SettingsScreen(),
         '/edit-profile': (context) => const EditProfileScreen(),
         '/newsfeed': (context) => const NewsFeedPageContent(),
+        '/chatscreen': (context) => const AIChatScreen(),
       },
     );
   }

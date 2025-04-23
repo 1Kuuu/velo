@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
+import 'package:velora/core/services/ai_chat_screen.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 import 'package:provider/provider.dart';
@@ -84,7 +85,12 @@ class ToolboxPageContent extends StatelessWidget {
       ),
       floatingActionButton: TheFloatingActionButton(
         svgAsset: 'assets/svg/white-m.svg',
-        onPressed: () => print("FAB Pressed"),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AIChatScreen()),
+          );
+        },
         backgroundColor: isDarkMode ? const Color(0xFF4A3B7C) : Colors.black,
         heroTag: 'openai_fab',
       ),
