@@ -131,28 +131,16 @@ service cloud.firestore {
 
     // 🔒 Secure events collection
     match /events/{eventId} {
-      // Helper function to verify event fields
-      function hasValidEventFields() {
-        let requiredFields = ['title', 'description', 'date', 'startTime', 'endTime', 'isAllDay', 'repeatStatus', 'color', 'userId'];
-        return request.resource.data.keys().hasAll(requiredFields);
-      }
-
-      // Allow authenticated users to read all events
-      allow read: if request.auth != null;
-      
-      // Allow authenticated users to create events with required fields
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
       allow create: if request.auth != null && 
-                   hasValidEventFields() &&
-                   request.resource.data.userId == request.auth.uid;
-      
-      // Allow users to update and delete only their own events
+                      request.resource.data.userId == request.auth.uid &&
+                      request.resource.data.keys().hasAll(['title', 'description', 'date', 'startTime', 'endTime', 'isAllDay', 'repeatStatus', 'color', 'userId', 'isCompleted']);
       allow update: if request.auth != null && 
-                   resource.data.userId == request.auth.uid &&
-                   hasValidEventFields() &&
-                   request.resource.data.userId == request.auth.uid;
-                   
-      allow delete: if request.auth != null && 
-                   resource.data.userId == request.auth.uid;
+                      resource.data.userId == request.auth.uid &&
+                      request.resource.data.userId == request.auth.uid &&
+                      request.resource.data.diff(resource.data).affectedKeys()
+                        .hasAny(['title', 'description', 'date', 'startTime', 'endTime', 'isAllDay', 'repeatStatus', 'color', 'distance', 'isCompleted']);
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
   }
 }

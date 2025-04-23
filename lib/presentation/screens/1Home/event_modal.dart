@@ -19,6 +19,8 @@ class Event {
   final Color color;
   final String id;
   final String userId;
+  final double? distance;
+  final bool isCompleted;
 
   Event({
     required this.title,
@@ -31,6 +33,8 @@ class Event {
     required this.color,
     required this.id,
     required this.userId,
+    this.distance,
+    this.isCompleted = false,
   });
 
   // Convert TimeOfDay to Map
@@ -61,6 +65,8 @@ class Event {
       'repeatStatus': repeatStatus,
       'color': color.value,
       'userId': userId,
+      'distance': distance,
+      'isCompleted': isCompleted,
     };
   }
 
@@ -79,6 +85,8 @@ class Event {
       repeatStatus: data['repeatStatus'] ?? 'None',
       color: Color(data['color'] as int),
       userId: data['userId'] ?? '',
+      distance: (data['distance'] as num?)?.toDouble(),
+      isCompleted: data['isCompleted'] ?? false,
     );
   }
 
@@ -93,6 +101,8 @@ class Event {
     String? repeatStatus,
     Color? color,
     String? userId,
+    double? distance,
+    bool? isCompleted,
   }) {
     return Event(
       id: id,
@@ -105,7 +115,22 @@ class Event {
       repeatStatus: repeatStatus ?? this.repeatStatus,
       color: color ?? this.color,
       userId: userId ?? this.userId,
+      distance: distance ?? this.distance,
+      isCompleted: isCompleted ?? this.isCompleted,
     );
+  }
+
+  // Helper method to check if event should be completed based on current time
+  bool shouldBeCompleted() {
+    final now = DateTime.now();
+    final eventEndTime = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      endTime.hour,
+      endTime.minute,
+    );
+    return now.isAfter(eventEndTime);
   }
 }
 
@@ -126,6 +151,7 @@ class EventModalHelper {
     required TimeOfDay startTime,
     required TimeOfDay endTime,
     required String userId,
+    String? excludeEventId, // Add parameter for event being edited
   }) async {
     // Convert TimeOfDay to DateTime for comparison
     DateTime startDateTime = DateTime(
@@ -143,6 +169,11 @@ class EventModalHelper {
 
     // Check for overlapping events
     for (var doc in snapshot.docs) {
+      // Skip the current event being edited
+      if (excludeEventId != null && doc.id == excludeEventId) {
+        continue;
+      }
+
       Event existingEvent = Event.fromFirestore(doc);
 
       DateTime existingStartDateTime = DateTime(
@@ -180,10 +211,48 @@ class EventModalHelper {
     required Function(Event) onEventCreated,
     required Function(Event) onEventUpdated,
   }) async {
+    // Check if selected date is in the past
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final selectedDay = selectedDate ?? DateTime.now();
+    final selectedDateStart =
+        DateTime(selectedDay.year, selectedDay.month, selectedDay.day);
+
+    // Only check for past dates if this is a new event (not editing)
+    if (existingEvent == null && selectedDateStart.isBefore(today)) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text(
+              'Past Date',
+              style: AppFonts.bold,
+            ),
+            content: Text(
+              'Cannot create tasks for past dates. Please select today or a future date.',
+              style: AppFonts.regular,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  'OK',
+                  style: AppFonts.medium.copyWith(color: Colors.blue),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+      return;
+    }
+
     final titleController =
         TextEditingController(text: existingEvent?.title ?? "");
     final descriptionController =
         TextEditingController(text: existingEvent?.description ?? "");
+    final distanceController =
+        TextEditingController(text: existingEvent?.distance?.toString() ?? "");
     TimeOfDay startTime =
         existingEvent?.startTime ?? const TimeOfDay(hour: 9, minute: 0);
     TimeOfDay endTime =
@@ -205,70 +274,92 @@ class EventModalHelper {
         .get();
 
     for (var doc in snapshot.docs) {
-      Event existingEvent = Event.fromFirestore(doc);
+      // Skip the current event being edited when checking latest end time
+      if (existingEvent != null && doc.id == existingEvent.id) {
+        continue;
+      }
+
+      Event currentEvent = Event.fromFirestore(doc);
       if (latestEndTime == null ||
-          (existingEvent.endTime.hour > latestEndTime.hour ||
-              (existingEvent.endTime.hour == latestEndTime.hour &&
-                  existingEvent.endTime.minute > latestEndTime.minute))) {
-        latestEndTime = existingEvent.endTime;
+          (currentEvent.endTime.hour > latestEndTime.hour ||
+              (currentEvent.endTime.hour == latestEndTime.hour &&
+                  currentEvent.endTime.minute > latestEndTime.minute))) {
+        latestEndTime = currentEvent.endTime;
       }
     }
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
         return StatefulBuilder(
-          builder: (context, setModalState) {
-            return SingleChildScrollView(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-                  left: 16,
-                  right: 16,
-                  top: 16,
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.85,
+              decoration: BoxDecoration(
+                color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text("Cancel",
-                              style:
-                                  AppFonts.regular.copyWith(color: Colors.red)),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text("Cancel",
+                            style:
+                                AppFonts.regular.copyWith(color: Colors.red)),
+                      ),
+                      Text(
+                        existingEvent != null ? "Edit Task" : "New Task",
+                        style: AppFonts.bold.copyWith(
+                          fontSize: 18,
+                          color: isDarkMode ? Colors.white : Colors.black87,
                         ),
-                        Text(
-                          existingEvent != null ? "Edit Task" : "New Task",
-                          style: AppFonts.bold.copyWith(
-                            fontSize: 18,
-                            color: isDarkMode ? Colors.white : Colors.black87,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () async {
-                            // Check if the time slot is available
-                            bool isAvailable = await isTimeSlotAvailable(
-                              date: eventDate!,
-                              startTime: startTime,
-                              endTime: endTime,
-                              userId: FirebaseAuth.instance.currentUser!.uid,
-                            );
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          // Check if the time slot is available
+                          bool isAvailable = await isTimeSlotAvailable(
+                            date: eventDate!,
+                            startTime: startTime,
+                            endTime: endTime,
+                            userId: FirebaseAuth.instance.currentUser!.uid,
+                            excludeEventId: existingEvent
+                                ?.id, // Pass the ID of event being edited
+                          );
 
-                            if (!isAvailable) {
-                              // Show an error message if the time slot is not available
+                          if (!isAvailable) {
+                            // Show an error message if the time slot is not available
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  "The selected time slot is already booked.",
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+
+                          // Parse distance
+                          double? distance;
+                          if (distanceController.text.isNotEmpty) {
+                            try {
+                              distance = double.parse(distanceController.text);
+                            } catch (e) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    "The selected time slot is already booked.",
+                                    "Please enter a valid distance.",
                                     style: TextStyle(color: Colors.white),
                                   ),
                                   backgroundColor: Colors.red,
@@ -276,121 +367,126 @@ class EventModalHelper {
                               );
                               return;
                             }
+                          }
 
-                            if (existingEvent != null) {
-                              // Update existing event
-                              final updatedEvent = existingEvent.copyWith(
-                                title: titleController.text.isEmpty
-                                    ? "Untitled Task"
-                                    : titleController.text,
-                                description: descriptionController.text,
-                                date: eventDate ?? DateTime.now(),
-                                startTime: startTime,
-                                endTime: endTime,
-                                isAllDay: isAllDay,
-                                repeatStatus: repeatStatus,
-                                color: selectedColor,
-                              );
+                          if (existingEvent != null) {
+                            // Update existing event
+                            final updatedEvent = existingEvent.copyWith(
+                              title: titleController.text.isEmpty
+                                  ? "Untitled Task"
+                                  : titleController.text,
+                              description: descriptionController.text,
+                              date: eventDate ?? DateTime.now(),
+                              startTime: startTime,
+                              endTime: endTime,
+                              isAllDay: isAllDay,
+                              repeatStatus: repeatStatus,
+                              color: selectedColor,
+                              distance: distance,
+                            );
 
-                              onEventUpdated(updatedEvent);
-                            } else {
-                              // Create a new event
-                              final newEvent = Event(
-                                id: DateTime.now()
-                                    .millisecondsSinceEpoch
-                                    .toString(),
-                                title: titleController.text.isEmpty
-                                    ? "Untitled Task"
-                                    : titleController.text,
-                                description: descriptionController.text,
-                                date: eventDate ?? DateTime.now(),
-                                startTime: startTime,
-                                endTime: endTime,
-                                isAllDay: isAllDay,
-                                repeatStatus: repeatStatus,
-                                color: selectedColor,
-                                userId: FirebaseAuth.instance.currentUser!.uid,
-                              );
+                            onEventUpdated(updatedEvent);
+                          } else {
+                            // Create a new event
+                            final newEvent = Event(
+                              id: DateTime.now()
+                                  .millisecondsSinceEpoch
+                                  .toString(),
+                              title: titleController.text.isEmpty
+                                  ? "Untitled Task"
+                                  : titleController.text,
+                              description: descriptionController.text,
+                              date: eventDate ?? DateTime.now(),
+                              startTime: startTime,
+                              endTime: endTime,
+                              isAllDay: isAllDay,
+                              repeatStatus: repeatStatus,
+                              color: selectedColor,
+                              userId: FirebaseAuth.instance.currentUser!.uid,
+                              distance: distance,
+                            );
 
-                              onEventCreated(newEvent);
-                            }
+                            onEventCreated(newEvent);
+                          }
 
-                            Navigator.pop(context);
-                          },
-                          child: Text("Save",
-                              style: AppFonts.regular
-                                  .copyWith(color: Colors.green)),
-                        ),
-                      ],
+                          Navigator.pop(context);
+                        },
+                        child: Text("Save",
+                            style:
+                                AppFonts.regular.copyWith(color: Colors.green)),
+                      ),
+                    ],
+                  ),
+
+                  // Event Title Input
+                  TextField(
+                    controller: titleController,
+                    style: AppFonts.regular.copyWith(
+                      color: isDarkMode ? Colors.white : Colors.black87,
                     ),
-
-                    // Event Title Input
-                    TextField(
-                      controller: titleController,
-                      style: AppFonts.regular.copyWith(
-                        color: isDarkMode ? Colors.white : Colors.black87,
+                    decoration: InputDecoration(
+                      hintText: "Enter event title",
+                      hintStyle: AppFonts.regular.copyWith(
+                        color: isDarkMode ? Colors.white38 : Colors.grey,
                       ),
-                      decoration: InputDecoration(
-                        hintText: "Enter event title",
-                        hintStyle: AppFonts.regular.copyWith(
-                          color: isDarkMode ? Colors.white38 : Colors.grey,
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: isDarkMode
+                              ? Colors.white24
+                              : Colors.grey.shade300,
                         ),
-                        border: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: isDarkMode
-                                ? Colors.white24
-                                : Colors.grey.shade300,
-                          ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: isDarkMode
+                              ? Colors.white24
+                              : Colors.grey.shade300,
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: isDarkMode
-                                ? Colors.white24
-                                : Colors.grey.shade300,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: isDarkMode
-                                ? Colors.white38
-                                : Colors.grey.shade400,
-                          ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: isDarkMode
+                              ? Colors.white38
+                              : Colors.grey.shade400,
                         ),
                       ),
                     ),
+                  ),
 
-                    const SizedBox(height: 10),
+                  const SizedBox(height: 10),
 
-                    // Event Details Container
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: isDarkMode
-                            ? const Color(0xFF2D2D2D)
-                            : Colors.grey[300],
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Column(
-                        children: [
-                          // Time Row
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _buildTimeButton(
-                                startTime.format(context),
-                                onTap: () async {
-                                  TimeOfDay? pickedTime = await showTimePicker(
-                                    context: context,
-                                    initialTime: startTime,
-                                  );
-                                  if (pickedTime != null) {
-                                    // Ensure the new start time is after the latest end time
-                                    if (latestEndTime != null &&
-                                        (pickedTime.hour < latestEndTime.hour ||
-                                            (pickedTime.hour ==
-                                                    latestEndTime.hour &&
-                                                pickedTime.minute <=
-                                                    latestEndTime.minute))) {
+                  // Event Details Container
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isDarkMode
+                          ? const Color(0xFF2D2D2D)
+                          : Colors.grey[300],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      children: [
+                        // Time Row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildTimeButton(
+                              startTime.format(context),
+                              onTap: () async {
+                                TimeOfDay? pickedTime = await showTimePicker(
+                                  context: context,
+                                  initialTime: startTime,
+                                );
+                                if (pickedTime != null) {
+                                  // Only check latestEndTime if this is not the first event of the day
+                                  // and we're not editing an existing event
+                                  if (latestEndTime != null &&
+                                      existingEvent == null) {
+                                    if (pickedTime.hour < latestEndTime.hour ||
+                                        (pickedTime.hour ==
+                                                latestEndTime.hour &&
+                                            pickedTime.minute <=
+                                                latestEndTime.minute)) {
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(
                                         SnackBar(
@@ -404,206 +500,273 @@ class EventModalHelper {
                                       );
                                       return;
                                     }
-                                    setModalState(() {
-                                      startTime = pickedTime;
-                                    });
                                   }
-                                },
-                                isDarkMode: isDarkMode,
-                              ),
-                              Icon(
-                                Icons.arrow_right_alt,
-                                color: isDarkMode
-                                    ? Colors.white70
-                                    : Colors.black54,
-                              ),
-                              _buildTimeButton(
-                                endTime.format(context),
-                                onTap: () async {
-                                  TimeOfDay? pickedTime = await showTimePicker(
-                                    context: context,
-                                    initialTime: endTime,
-                                  );
-                                  if (pickedTime != null) {
-                                    setModalState(() {
-                                      endTime = pickedTime;
-                                    });
-                                  }
-                                },
-                                isDarkMode: isDarkMode,
-                              ),
-                            ],
-                          ),
-
-                          // Date Picker
-                          CustomDatePicker(
-                            initialDate: eventDate!,
-                            onDateSelected: (DateTime pickedDate) {
-                              setModalState(() {
-                                eventDate = pickedDate;
-                              });
-                            },
-                            child: _buildTile(
-                              icon: Icons.calendar_today,
-                              text:
-                                  DateFormat('EEEE, MMMM d').format(eventDate!),
+                                  setModalState(() {
+                                    startTime = pickedTime;
+                                    // If end time is before new start time, adjust it
+                                    if (endTime.hour < pickedTime.hour ||
+                                        (endTime.hour == pickedTime.hour &&
+                                            endTime.minute <=
+                                                pickedTime.minute)) {
+                                      endTime = TimeOfDay(
+                                        hour: pickedTime.hour + 1,
+                                        minute: pickedTime.minute,
+                                      );
+                                    }
+                                  });
+                                }
+                              },
                               isDarkMode: isDarkMode,
                             ),
-                          ),
-
-                          // All Day Toggle
-                          _buildSwitchTile(
-                            icon: Icons.access_time,
-                            text: "All day",
-                            value: isAllDay,
-                            onChanged: (val) {
-                              setModalState(() {
-                                isAllDay = val;
-                              });
-                            },
-                            isDarkMode: isDarkMode,
-                          ),
-
-                          // Repeat Dropdown
-                          _buildDropdownTile(
-                            icon: Icons.refresh,
-                            selectedValue: repeatStatus,
-                            onChanged: (String? newValue) {
-                              if (newValue != null) {
-                                setModalState(() {
-                                  repeatStatus = newValue;
-                                });
-                              }
-                            },
-                            isDarkMode: isDarkMode,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    // Description Field
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: isDarkMode
-                            ? const Color(0xFF2D2D2D)
-                            : Colors.grey[300],
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: TextField(
-                        controller: descriptionController,
-                        style: AppFonts.regular.copyWith(
-                          color: isDarkMode ? Colors.white : Colors.black87,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: "Description",
-                          hintStyle: AppFonts.regular.copyWith(
-                            color: isDarkMode ? Colors.white38 : Colors.grey,
-                          ),
-                          border: InputBorder.none,
-                        ),
-                        maxLines: 3,
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    // Color Selection
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: isDarkMode
-                            ? const Color(0xFF2D2D2D)
-                            : Colors.grey[300],
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Select Task Color",
-                            style: AppFonts.bold.copyWith(
-                              fontSize: 15,
-                              color: isDarkMode ? Colors.white : Colors.black87,
+                            Icon(
+                              Icons.arrow_right_alt,
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black54,
                             ),
+                            _buildTimeButton(
+                              endTime.format(context),
+                              onTap: () async {
+                                TimeOfDay? pickedTime = await showTimePicker(
+                                  context: context,
+                                  initialTime: endTime,
+                                );
+                                if (pickedTime != null) {
+                                  // Ensure end time is after start time
+                                  if (pickedTime.hour < startTime.hour ||
+                                      (pickedTime.hour == startTime.hour &&
+                                          pickedTime.minute <=
+                                              startTime.minute)) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          "End time must be after start time.",
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  setModalState(() {
+                                    endTime = pickedTime;
+                                  });
+                                }
+                              },
+                              isDarkMode: isDarkMode,
+                            ),
+                          ],
+                        ),
+
+                        // Date Picker
+                        CustomDatePicker(
+                          initialDate: eventDate!,
+                          onDateSelected: (DateTime pickedDate) {
+                            setModalState(() {
+                              eventDate = pickedDate;
+                            });
+                          },
+                          child: _buildTile(
+                            icon: Icons.calendar_today,
+                            text: DateFormat('EEEE, MMMM d').format(eventDate!),
+                            isDarkMode: isDarkMode,
                           ),
-                          const SizedBox(height: 10),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              _buildColorOption(
-                                Colors.red,
-                                selectedColor,
-                                () {
-                                  setModalState(() {
-                                    selectedColor = Colors.red;
-                                  });
-                                },
-                              ),
-                              _buildColorOption(
-                                Colors.blue,
-                                selectedColor,
-                                () {
-                                  setModalState(() {
-                                    selectedColor = Colors.blue;
-                                  });
-                                },
-                              ),
-                              _buildColorOption(
-                                Colors.green,
-                                selectedColor,
-                                () {
-                                  setModalState(() {
-                                    selectedColor = Colors.green;
-                                  });
-                                },
-                              ),
-                              _buildColorOption(
-                                Colors.orange,
-                                selectedColor,
-                                () {
-                                  setModalState(() {
-                                    selectedColor = Colors.orange;
-                                  });
-                                },
-                              ),
-                              _buildColorOption(
-                                Colors.purple,
-                                selectedColor,
-                                () {
-                                  setModalState(() {
-                                    selectedColor = Colors.purple;
-                                  });
-                                },
-                              ),
-                              _buildColorOption(
-                                Colors.teal,
-                                selectedColor,
-                                () {
-                                  setModalState(() {
-                                    selectedColor = Colors.teal;
-                                  });
-                                },
-                              ),
-                              _buildColorOption(
-                                Colors.brown,
-                                selectedColor,
-                                () {
-                                  setModalState(() {
-                                    selectedColor = Colors.brown;
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                        ],
+                        ),
+
+                        // All Day Toggle
+                        _buildSwitchTile(
+                          icon: Icons.access_time,
+                          text: "All day",
+                          value: isAllDay,
+                          onChanged: (val) {
+                            setModalState(() {
+                              isAllDay = val;
+                            });
+                          },
+                          isDarkMode: isDarkMode,
+                        ),
+
+                        // Repeat Dropdown
+                        _buildDropdownTile(
+                          icon: Icons.refresh,
+                          selectedValue: repeatStatus,
+                          onChanged: (String? newValue) {
+                            if (newValue != null) {
+                              setModalState(() {
+                                repeatStatus = newValue;
+                              });
+                            }
+                          },
+                          isDarkMode: isDarkMode,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // Distance Input
+                  TextField(
+                    controller: distanceController,
+                    keyboardType:
+                        TextInputType.numberWithOptions(decimal: true),
+                    style: AppFonts.regular.copyWith(
+                      color: isDarkMode ? Colors.white : Colors.black87,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: "Enter distance (km)",
+                      prefixIcon: Icon(
+                        Icons.directions_bike,
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                      hintStyle: AppFonts.regular.copyWith(
+                        color: isDarkMode ? Colors.white38 : Colors.grey,
+                      ),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: isDarkMode
+                              ? Colors.white24
+                              : Colors.grey.shade300,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: isDarkMode
+                              ? Colors.white24
+                              : Colors.grey.shade300,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: isDarkMode
+                              ? Colors.white38
+                              : Colors.grey.shade400,
+                        ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // Description Field
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isDarkMode
+                          ? const Color(0xFF2D2D2D)
+                          : Colors.grey[300],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: TextField(
+                      controller: descriptionController,
+                      style: AppFonts.regular.copyWith(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: "Description",
+                        hintStyle: AppFonts.regular.copyWith(
+                          color: isDarkMode ? Colors.white38 : Colors.grey,
+                        ),
+                        border: InputBorder.none,
+                      ),
+                      maxLines: 3,
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // Color Selection
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isDarkMode
+                          ? const Color(0xFF2D2D2D)
+                          : Colors.grey[300],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Select Task Color",
+                          style: AppFonts.bold.copyWith(
+                            fontSize: 15,
+                            color: isDarkMode ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _buildColorOption(
+                              Colors.red,
+                              selectedColor,
+                              () {
+                                setModalState(() {
+                                  selectedColor = Colors.red;
+                                });
+                              },
+                            ),
+                            _buildColorOption(
+                              Colors.blue,
+                              selectedColor,
+                              () {
+                                setModalState(() {
+                                  selectedColor = Colors.blue;
+                                });
+                              },
+                            ),
+                            _buildColorOption(
+                              Colors.green,
+                              selectedColor,
+                              () {
+                                setModalState(() {
+                                  selectedColor = Colors.green;
+                                });
+                              },
+                            ),
+                            _buildColorOption(
+                              Colors.orange,
+                              selectedColor,
+                              () {
+                                setModalState(() {
+                                  selectedColor = Colors.orange;
+                                });
+                              },
+                            ),
+                            _buildColorOption(
+                              Colors.purple,
+                              selectedColor,
+                              () {
+                                setModalState(() {
+                                  selectedColor = Colors.purple;
+                                });
+                              },
+                            ),
+                            _buildColorOption(
+                              Colors.teal,
+                              selectedColor,
+                              () {
+                                setModalState(() {
+                                  selectedColor = Colors.teal;
+                                });
+                              },
+                            ),
+                            _buildColorOption(
+                              Colors.brown,
+                              selectedColor,
+                              () {
+                                setModalState(() {
+                                  selectedColor = Colors.brown;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             );
           },
@@ -623,10 +786,6 @@ class EventModalHelper {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.access_time,
-            color: isDarkMode ? Colors.white : Colors.black,
-          ),
           const SizedBox(width: 5),
           Text(
             time,
