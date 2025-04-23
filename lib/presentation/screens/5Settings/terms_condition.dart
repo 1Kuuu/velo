@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:provider/provider.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
-import 'package:velora/core/configs/theme/app_fonts.dart';
-import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
 class TermsConditionScreen extends StatelessWidget {
   const TermsConditionScreen({super.key});
@@ -11,32 +10,52 @@ class TermsConditionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     return Scaffold(
-      appBar: MyAppBar(
-        title: 'Terms & Condition',
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+        title: const Flexible(
+          child: Text(
+            'Terms & Condition',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        centerTitle: false,
+        backgroundColor: themeProvider.isDarkMode
+            ? const Color(0xFF4A3B7C)
+            : AppColors.primary,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: RichText(
           text: TextSpan(
-            style: AppFonts.regular.copyWith(
+            style: TextStyle(
               fontSize: 16,
               color: themeProvider.isDarkMode ? Colors.white : Colors.black,
             ),
-            children: <TextSpan>[
+            children: const <TextSpan>[
               TextSpan(
                 text: 'Terms & Condition\n',
-                style: AppFonts.bold.copyWith(fontSize: 18),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               TextSpan(
                 text: 'Effective Date: December 5th, 2024\n\n',
-                style: AppFonts.bold,
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               TextSpan(
                 text: 'Welcome to ',
               ),
               TextSpan(
                 text: 'VELORA',
-                style: AppFonts.bold,
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               TextSpan(
                 text:
@@ -44,7 +63,7 @@ class TermsConditionScreen extends StatelessWidget {
               ),
               TextSpan(
                 text: '1. Acceptance of Terms\n\n',
-                style: AppFonts.bold,
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               TextSpan(
                 text:
@@ -52,7 +71,7 @@ class TermsConditionScreen extends StatelessWidget {
               ),
               TextSpan(
                 text: '2. Account Registration\n\n',
-                style: AppFonts.bold,
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               TextSpan(
                 text:
@@ -60,7 +79,7 @@ class TermsConditionScreen extends StatelessWidget {
               ),
               TextSpan(
                 text: '3. App Features\n\n',
-                style: AppFonts.bold,
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               TextSpan(
                 text:
@@ -68,7 +87,7 @@ class TermsConditionScreen extends StatelessWidget {
               ),
               TextSpan(
                 text: '4. User Content\n\n',
-                style: AppFonts.bold,
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               TextSpan(
                 text:
@@ -76,7 +95,7 @@ class TermsConditionScreen extends StatelessWidget {
               ),
               TextSpan(
                 text: '5. Privacy\n\n',
-                style: AppFonts.bold,
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               TextSpan(
                 text:
@@ -84,7 +103,7 @@ class TermsConditionScreen extends StatelessWidget {
               ),
               TextSpan(
                 text: '6. Prohibited Activities\n\n',
-                style: AppFonts.bold,
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               TextSpan(
                 text:
@@ -92,7 +111,7 @@ class TermsConditionScreen extends StatelessWidget {
               ),
               TextSpan(
                 text: '7. Disclaimer of Warranties\n\n',
-                style: AppFonts.bold,
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               TextSpan(
                 text:
@@ -100,7 +119,7 @@ class TermsConditionScreen extends StatelessWidget {
               ),
               TextSpan(
                 text: '8. Limitation of Liability\n\n',
-                style: AppFonts.bold,
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               TextSpan(
                 text:
@@ -108,7 +127,7 @@ class TermsConditionScreen extends StatelessWidget {
               ),
               TextSpan(
                 text: '9. Termination\n\n',
-                style: AppFonts.bold,
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               TextSpan(
                 text:

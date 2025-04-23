@@ -6,9 +6,7 @@ import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
-import 'package:velora/presentation/widgets/notification_app_bar_icon.dart';
 import 'package:provider/provider.dart';
-import 'package:velora/presentation/screens/2ToolBox/ai_chat_screen.dart';
 
 class ToolboxPageContent extends StatelessWidget {
   const ToolboxPageContent({super.key});
@@ -37,7 +35,10 @@ class ToolboxPageContent extends StatelessWidget {
       appBar: MyAppBar(
         title: "Toolbox",
         actions: [
-          const NotificationAppBarIcon(),
+          AppBarIcon(
+            icon: Icons.notifications_outlined,
+            onTap: () => print("Notifications Tapped"),
+          ),
           StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('users')
@@ -83,12 +84,7 @@ class ToolboxPageContent extends StatelessWidget {
       ),
       floatingActionButton: TheFloatingActionButton(
         svgAsset: 'assets/svg/white-m.svg',
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AIChatScreen()),
-          );
-        },
+        onPressed: () => print("FAB Pressed"),
         backgroundColor: isDarkMode ? const Color(0xFF4A3B7C) : Colors.black,
         heroTag: 'openai_fab',
       ),

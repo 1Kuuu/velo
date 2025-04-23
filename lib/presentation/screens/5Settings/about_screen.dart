@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
-import 'package:velora/core/configs/theme/app_fonts.dart';
-import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -12,36 +10,59 @@ class AboutScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     return Scaffold(
-      appBar: MyAppBar(
-        title: 'About',
+      appBar: AppBar(
+        backgroundColor: themeProvider.isDarkMode
+            ? const Color(0xFF4A3B7C)
+            : AppColors.primary,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        title: const Flexible(
+          child: Text(
+            'About',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        centerTitle: false,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Welcome to VELORA',
-              style: AppFonts.bold.copyWith(
+              style: TextStyle(
                 fontSize: 20,
+                fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 12),
-            Text(
+            const Text(
               'Welcome to VELORA, the ultimate cycling companion that helps you plan, track, and share your cycling adventures. Whether you\'re an experienced cyclist or just starting out, our app is designed to empower you with the tools you need to make the most of every ride.',
-              style: AppFonts.regular.copyWith(fontSize: 14),
+              style: TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 24),
-            Text(
+            const Text(
               'What We Do?',
-              style: AppFonts.bold.copyWith(
+              style: TextStyle(
                 fontSize: 18,
+                fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 12),
-            Text(
+            const Text(
               'At VELORA we\'re passionate about cycling and the freedom it brings. Our app is built to enhance your cycling experience by offering three key features:',
-              style: AppFonts.regular.copyWith(fontSize: 14),
+              style: TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 12),
             _buildFeatureItem('Plan Your Routes',
@@ -51,10 +72,11 @@ class AboutScreen extends StatelessWidget {
             _buildFeatureItem('Share Your Journey',
                 'Share your rides, achievements, and routes with friends, family, and the cycling community. With the ability to share on social media or within the app, you can inspire others and stay connected with fellow cyclists.'),
             const SizedBox(height: 24),
-            Text(
+            const Text(
               'Why Choose VELORA?',
-              style: AppFonts.bold.copyWith(
+              style: TextStyle(
                 fontSize: 18,
+                fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 12),
@@ -67,22 +89,24 @@ class AboutScreen extends StatelessWidget {
             _buildBenefitItem('Reliable Tracking',
                 'Our precise tracking system gives you accurate data, so you can monitor your progress and make improvements over time.'),
             const SizedBox(height: 24),
-            Text(
+            const Text(
               'Join the VELORA Community',
-              style: AppFonts.bold.copyWith(
+              style: TextStyle(
                 fontSize: 18,
+                fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 12),
-            Text(
+            const Text(
               'Cycling is more than just a sport—it\'s a lifestyle. Whether you\'re commuting, training, or exploring, VELORA is here to support you on every ride. Join our growing community of cycling enthusiasts and take your cycling journey to the next level!',
-              style: AppFonts.regular.copyWith(fontSize: 14),
+              style: TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 24),
-            Text(
+            const Text(
               'Thank you for choosing VELORA. We\'re excited to be part of your cycling adventure!',
-              style: AppFonts.bold.copyWith(
+              style: TextStyle(
                 fontSize: 14,
+                fontWeight: FontWeight.bold,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -101,14 +125,15 @@ class AboutScreen extends StatelessWidget {
         children: [
           Text(
             title,
-            style: AppFonts.bold.copyWith(
+            style: const TextStyle(
               fontSize: 16,
+              fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             description,
-            style: AppFonts.regular.copyWith(fontSize: 14),
+            style: const TextStyle(fontSize: 14),
           ),
         ],
       ),
@@ -121,9 +146,9 @@ class AboutScreen extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
+          const Icon(
             Icons.check_circle,
-            color: AppColors.primary,
+            color: Color(0xFF5A2828),
             size: 20,
           ),
           const SizedBox(width: 8),
@@ -133,13 +158,14 @@ class AboutScreen extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: AppFonts.bold.copyWith(
+                  style: const TextStyle(
                     fontSize: 15,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
                   description,
-                  style: AppFonts.regular.copyWith(fontSize: 14),
+                  style: const TextStyle(fontSize: 14),
                 ),
               ],
             ),

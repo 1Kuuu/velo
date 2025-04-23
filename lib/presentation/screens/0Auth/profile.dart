@@ -13,11 +13,10 @@ import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:flutter/services.dart';
-import 'package:velora/core/configs/theme/app_colors.dart'; 
+import 'package:velora/core/configs/theme/app_colors.dart'; // Import AppColors
 import 'package:provider/provider.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
-import 'package:velora/presentation/screens/5Settings/editprofile.dart';
-import 'package:velora/data/sources/notification_service.dart';
+import 'package:velora/presentation/screens/5Settings/editprofile.dart'; // Import EditProfileScreen
 
 class ProfilePage extends StatefulWidget {
   final String? userId;
@@ -45,8 +44,6 @@ class _ProfilePageState extends State<ProfilePage> {
   final ImagePicker _picker = ImagePicker();
   final List<File> _mediaFiles = [];
   bool _disposed = false;
-  final FirebaseServices _firebaseServices = FirebaseServices();
-  final NotificationService _notificationService = NotificationService();
 
   @override
   void initState() {
@@ -74,13 +71,13 @@ class _ProfilePageState extends State<ProfilePage> {
 
     try {
       // Check if user is logged in
-      if (_firebaseServices.currentUserId == null) {
+      if (FirebaseServices.currentUserId == null) {
         Navigator.pushReplacementNamed(context, '/login');
         return;
       }
 
-      String targetUserId = widget.userId ?? _firebaseServices.currentUserId!;
-      isCurrentUser = targetUserId == _firebaseServices.currentUserId;
+      String targetUserId = widget.userId ?? FirebaseServices.currentUserId!;
+      isCurrentUser = targetUserId == FirebaseServices.currentUserId;
 
       // Get followers count
       final followers = await FirebaseFirestore.instance
@@ -95,10 +92,10 @@ class _ProfilePageState extends State<ProfilePage> {
           .get();
 
       // Check if current user is following this profile
-      if (!isCurrentUser && _firebaseServices.currentUserId != null) {
+      if (!isCurrentUser && FirebaseServices.currentUserId != null) {
         final followCheck = await FirebaseFirestore.instance
             .collection('follows')
-            .where('followerId', isEqualTo: _firebaseServices.currentUserId)
+            .where('followerId', isEqualTo: FirebaseServices.currentUserId)
             .where('followingId', isEqualTo: targetUserId)
             .get();
 
@@ -167,10 +164,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
           // Check if current user has liked this post
           bool isLiked = false;
-          if (_firebaseServices.currentUserId != null) {
+          if (FirebaseServices.currentUserId != null) {
             DocumentSnapshot likeDoc = await doc.reference
                 .collection('likes')
-                .doc(_firebaseServices.currentUserId)
+                .doc(FirebaseServices.currentUserId)
                 .get();
             if (_disposed) return;
             isLiked = likeDoc.exists;
@@ -204,12 +201,12 @@ class _ProfilePageState extends State<ProfilePage> {
     _safeSetState(() => isLoading = true);
 
     try {
-      if (_firebaseServices.currentUserId == null) return;
+      if (FirebaseServices.currentUserId == null) return;
 
       // Check if the follow relationship exists
       final followQuery = await FirebaseFirestore.instance
           .collection('follows')
-          .where('followerId', isEqualTo: _firebaseServices.currentUserId)
+          .where('followerId', isEqualTo: FirebaseServices.currentUserId)
           .where('followingId', isEqualTo: widget.userId)
           .get();
 
@@ -218,47 +215,12 @@ class _ProfilePageState extends State<ProfilePage> {
         for (var doc in followQuery.docs) {
           await doc.reference.delete();
         }
-
-        // Remove from following list
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(_firebaseServices.currentUserId)
-            .update({
-          'following': FieldValue.arrayRemove([widget.userId]),
-        });
-
-        // Remove from followers list of the user being followed
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(widget.userId)
-            .update({
-          'followers': FieldValue.arrayRemove([_firebaseServices.currentUserId]),
-        });
-
-        // Create follow notification
-        await _notificationService.createFollowNotification(widget.userId!);
       } else {
         // Add to follows collection
         await FirebaseFirestore.instance.collection('follows').add({
-          'followerId': _firebaseServices.currentUserId,
+          'followerId': FirebaseServices.currentUserId,
           'followingId': widget.userId,
           'timestamp': FieldValue.serverTimestamp(),
-        });
-
-        // Add to following list
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(_firebaseServices.currentUserId)
-            .update({
-          'following': FieldValue.arrayUnion([widget.userId]),
-        });
-
-        // Add to followers list of the user being followed
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(widget.userId)
-            .update({
-          'followers': FieldValue.arrayUnion([_firebaseServices.currentUserId]),
         });
       }
 
@@ -311,12 +273,12 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() => isLoading = true);
 
     try {
-      if (_firebaseServices.currentUserId == null) return;
+      if (FirebaseServices.currentUserId == null) return;
 
       // Get current user data
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
           .collection(FirebaseServices.userCollection)
-          .doc(_firebaseServices.currentUserId)
+          .doc(FirebaseServices.currentUserId)
           .get();
 
       if (!userDoc.exists) {
@@ -324,15 +286,16 @@ class _ProfilePageState extends State<ProfilePage> {
         return;
       }
 
-      Map<String, dynamic> currentUserData = userDoc.data() as Map<String, dynamic>;
+      Map<String, dynamic> currentUserData =
+          userDoc.data() as Map<String, dynamic>;
 
       // Create post document
       await FirebaseFirestore.instance
           .collection(PostService.postsCollection)
           .add({
         'content': _postController.text.trim(),
-        'userId': _firebaseServices.currentUserId,
-        'authorId': _firebaseServices.currentUserId,
+        'userId': FirebaseServices.currentUserId,
+        'authorId': FirebaseServices.currentUserId,
         'authorName': currentUserData['userName'] ?? 'Anonymous',
         'authorAvatar': currentUserData['profileUrl'] ?? '',
         'authorEmail': currentUserData['email'] ?? '',
@@ -357,7 +320,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _likePost(String postId) async {
-    if (postId.isEmpty || _firebaseServices.currentUserId == null) {
+    if (postId.isEmpty || FirebaseServices.currentUserId == null) {
       _showToast('Cannot like post at this time', isError: true);
       return;
     }
@@ -368,7 +331,7 @@ class _ProfilePageState extends State<ProfilePage> {
           .doc(postId);
       DocumentReference likeRef = postRef
           .collection(PostService.likesCollection)
-          .doc(_firebaseServices.currentUserId);
+          .doc(FirebaseServices.currentUserId);
 
       DocumentSnapshot likeDoc = await likeRef.get();
 
@@ -380,7 +343,7 @@ class _ProfilePageState extends State<ProfilePage> {
       } else {
         // Like the post
         await likeRef.set({
-          'userId': _firebaseServices.currentUserId,
+          'userId': FirebaseServices.currentUserId,
           'timestamp': FieldValue.serverTimestamp()
         });
         await postRef.update({'likesCount': FieldValue.increment(1)});
@@ -415,18 +378,18 @@ class _ProfilePageState extends State<ProfilePage> {
   void _navigateToEditProfile() async {
     try {
       var freshUserDoc =
-          await _firebaseServices.getUserData(_firebaseServices.currentUserId!);
+          await FirebaseServices.getUserData(FirebaseServices.currentUserId!);
       if (freshUserDoc != null && freshUserDoc.exists) {
         // Get followers count
         final followers = await FirebaseFirestore.instance
             .collection('follows')
-            .where('followingId', isEqualTo: _firebaseServices.currentUserId)
+            .where('followingId', isEqualTo: FirebaseServices.currentUserId)
             .get();
 
         // Get following count
         final following = await FirebaseFirestore.instance
             .collection('follows')
-            .where('followerId', isEqualTo: _firebaseServices.currentUserId)
+            .where('followerId', isEqualTo: FirebaseServices.currentUserId)
             .get();
 
         setState(() {
@@ -561,47 +524,25 @@ class _ProfilePageState extends State<ProfilePage> {
                       onSubmitted: (content) async {
                         if (content.trim().isEmpty) return;
                         try {
-                          // Get post data to check if user is commenting on their own post
-                          DocumentSnapshot postDoc = await FirebaseFirestore.instance
+                          await FirebaseFirestore.instance
                               .collection('posts')
                               .doc(postId)
-                              .get();
-                          
-                          if (postDoc.exists) {
-                            Map<String, dynamic> postData = postDoc.data() as Map<String, dynamic>;
-                            String postUserId = postData['userId'];
-                            
-                            // Add comment
-                            await FirebaseFirestore.instance
-                                .collection('posts')
-                                .doc(postId)
-                                .collection('comments')
-                                .add({
-                              'content': content.trim(),
-                              'userId': _firebaseServices.currentUserId,
-                              'userName': userData['userName'],
-                              'userProfileUrl': userData['profileUrl'],
-                              'timestamp': FieldValue.serverTimestamp(),
-                            });
+                              .collection('comments')
+                              .add({
+                            'content': content.trim(),
+                            'userId': FirebaseServices.currentUserId,
+                            'userName': userData['userName'],
+                            'userProfileUrl': userData['profileUrl'],
+                            'timestamp': FieldValue.serverTimestamp(),
+                          });
 
-                            // Update comments count in the post
-                            await FirebaseFirestore.instance
-                                .collection('posts')
-                                .doc(postId)
-                                .update({
-                              'commentsCount': FieldValue.increment(1),
-                            });
-                            
-                            // Create comment notification if user is not commenting on their own post
-                            if (postUserId != _firebaseServices.currentUserId) {
-                              await _notificationService.createNotification(
-                                userId: postUserId,
-                                message: '${userData['userName'] ?? 'Someone'} commented on your post',
-                                type: 'comment',
-                                postId: postId,
-                              );
-                            }
-                          }
+                          // Update comments count in the post
+                          await FirebaseFirestore.instance
+                              .collection('posts')
+                              .doc(postId)
+                              .update({
+                            'commentsCount': FieldValue.increment(1),
+                          });
                         } catch (e) {
                           _showToast('Failed to add comment: $e',
                               isError: true);
@@ -1246,7 +1187,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         .where(
                           title == 'Following' ? 'followerId' : 'followingId',
                           isEqualTo:
-                              widget.userId ?? _firebaseServices.currentUserId,
+                              widget.userId ?? FirebaseServices.currentUserId,
                         )
                         .snapshots(),
                     builder: (context, snapshot) {

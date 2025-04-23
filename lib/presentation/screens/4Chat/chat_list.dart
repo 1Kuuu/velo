@@ -4,11 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/screens/4Chat/chat.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart'; // Import reusable widgets
-import 'package:velora/presentation/widgets/notification_app_bar_icon.dart'; // Import notification icon
-import 'package:velora/core/configs/theme/app_colors.dart';
-import 'package:velora/core/configs/theme/app_fonts.dart';
-import 'package:provider/provider.dart';
-import 'package:velora/core/configs/theme/theme_provider.dart';
 
 class ChatListPage extends StatelessWidget {
   const ChatListPage({super.key});
@@ -16,15 +11,17 @@ class ChatListPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? "";
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final isDarkMode = themeProvider.isDarkMode;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDarkMode ? const Color(0xFF1A1A1A) : AppColors.lightBackground,
+      backgroundColor: isDarkMode ? Colors.black : Colors.white,
       appBar: MyAppBar(
         title: "Messages",
         actions: [
-          const NotificationAppBarIcon(),
+          AppBarIcon(
+            icon: Icons.notifications_outlined,
+            onTap: () => print("Notifications Tapped"),
+          ),
           StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('users')
@@ -62,22 +59,22 @@ class ChatListPage extends StatelessWidget {
             child: Container(
               height: 45,
               decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF2D2D2D) : Colors.grey[100],
+                color: isDarkMode ? Colors.grey[900] : Colors.grey[100],
                 borderRadius: BorderRadius.circular(12),
               ),
               child: TextField(
-                style: AppFonts.regular.copyWith(
+                style: TextStyle(
                   color: isDarkMode ? Colors.white : Colors.black,
                 ),
                 decoration: InputDecoration(
                   hintText: 'Search conversations',
-                  hintStyle: AppFonts.regular.copyWith(
-                    color: isDarkMode ? Colors.white60 : Colors.grey[600],
+                  hintStyle: TextStyle(
+                    color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
                     fontSize: 14,
                   ),
                   prefixIcon: Icon(
                     Icons.search,
-                    color: isDarkMode ? Colors.white60 : Colors.grey[600],
+                    color: isDarkMode ? Colors.grey[400] : Colors.grey[500],
                     size: 20,
                   ),
                   border: InputBorder.none,
@@ -97,35 +94,36 @@ class ChatListPage extends StatelessWidget {
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(
-                    child: CircularProgressIndicator(
-                      color: isDarkMode ? Colors.white70 : AppColors.primary,
-                    ),
-                  );
+                  return const Center(child: CircularProgressIndicator());
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 48,
-                          color: isDarkMode ? Colors.white60 : Colors.grey[400],
-                        ),
+                        Icon(Icons.chat_bubble_outline,
+                            size: 48,
+                            color: isDarkMode
+                                ? Colors.grey[600]
+                                : Colors.grey[400]),
                         const SizedBox(height: 12),
                         Text(
                           "No conversations yet",
-                          style: AppFonts.semibold.copyWith(
-                            color: isDarkMode ? Colors.white70 : Colors.grey[600],
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: isDarkMode
+                                ? Colors.grey[400]
+                                : Colors.grey[600],
                             fontSize: 16,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           "Start chatting with someone!",
-                          style: AppFonts.regular.copyWith(
-                            color: isDarkMode ? Colors.white60 : Colors.grey[400],
+                          style: TextStyle(
+                            color: isDarkMode
+                                ? Colors.grey[600]
+                                : Colors.grey[400],
                             fontSize: 14,
                           ),
                         ),
@@ -153,10 +151,12 @@ class ChatListPage extends StatelessWidget {
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
-                        color: isDarkMode ? const Color(0xFF2D2D2D) : Colors.white,
+                        color: isDarkMode ? Colors.grey[900] : Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isDarkMode ? const Color(0xFF4A3B7C) : Colors.grey[100]!,
+                          color: isDarkMode
+                              ? Colors.grey[800]!
+                              : Colors.grey[100]!,
                         ),
                       ),
                       child: Material(
@@ -206,7 +206,8 @@ class ChatListPage extends StatelessWidget {
                                               profileUrl)
                                           ? Text(
                                               ChatUtils.getInitials(name),
-                                              style: AppFonts.bold.copyWith(
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
                                                 color: Colors.white,
                                                 fontSize: 16,
                                               ),
@@ -223,7 +224,8 @@ class ChatListPage extends StatelessWidget {
                                     children: [
                                       Text(
                                         name,
-                                        style: AppFonts.semibold.copyWith(
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
                                           fontSize: 16,
                                           color: isDarkMode
                                               ? Colors.white
@@ -233,8 +235,11 @@ class ChatListPage extends StatelessWidget {
                                       const SizedBox(height: 4),
                                       Text(
                                         lastMessage,
-                                        style: AppFonts.regular.copyWith(
-                                          color: isDarkMode ? Colors.white60 : Colors.grey[600],
+                                        style: TextStyle(
+                                          color: isDarkMode
+                                              ? Colors.grey[400]
+                                              : const Color.fromRGBO(
+                                                  158, 158, 158, 1),
                                           fontSize: 14,
                                         ),
                                         maxLines: 1,
@@ -246,7 +251,9 @@ class ChatListPage extends StatelessWidget {
                                 Icon(
                                   Icons.arrow_forward_ios,
                                   size: 16,
-                                  color: isDarkMode ? Colors.white60 : Colors.grey[400],
+                                  color: isDarkMode
+                                      ? Colors.grey[600]
+                                      : Colors.grey[400],
                                 ),
                               ],
                             ),

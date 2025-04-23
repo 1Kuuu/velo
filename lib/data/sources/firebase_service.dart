@@ -1,21 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:velora/data/sources/notification_service.dart';
-
 
 class FirebaseServices {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final NotificationService _notificationService = NotificationService();
+  static final FirebaseAuth _auth = FirebaseAuth.instance;
+  static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static const String userCollection = 'user_profile';
   static const String postsCollection = 'posts';
   static const String likesCollection = 'likes';
 
   /// 🔹 Get current user ID
-  String? get currentUserId => _auth.currentUser?.uid;
+  static String? get currentUserId => _auth.currentUser?.uid;
 
   /// 🔹 Create or Update User Document
-  Future<void> createUserDocument({
+  static Future<void> createUserDocument({
     required String uid,
     required String username,
     required String email,
@@ -41,7 +38,7 @@ class FirebaseServices {
   }
 
   /// 🔹 Get User Data
-  Future<DocumentSnapshot?> getUserData(String uid) async {
+  static Future<DocumentSnapshot?> getUserData(String uid) async {
     try {
       return await _firestore.collection(userCollection).doc(uid).get();
     } catch (e) {
@@ -50,7 +47,7 @@ class FirebaseServices {
   }
 
   /// 🔹 Update User Data
-  Future<void> updateUserData(
+  static Future<void> updateUserData(
       String uid, Map<String, dynamic> data) async {
     try {
       await _firestore.collection(userCollection).doc(uid).update(data);
@@ -60,14 +57,14 @@ class FirebaseServices {
   }
 
   /// 🔹 Check if Onboarding is Complete
-  Future<bool> isOnboardingComplete() async {
+  static Future<bool> isOnboardingComplete() async {
     if (currentUserId == null) return false;
     DocumentSnapshot? userData = await getUserData(currentUserId!);
     return userData?['setupComplete'] ?? false;
   }
 
   /// 🔹 Mark Onboarding as Complete
-  Future<void> completeOnboarding() async {
+  static Future<void> completeOnboarding() async {
     if (currentUserId == null) return;
     try {
       await _firestore.collection(userCollection).doc(currentUserId).update({
@@ -79,7 +76,7 @@ class FirebaseServices {
   }
 
   /// 🔹 Get User Profile
-  Future<Map<String, dynamic>> getUserProfile([String? userId]) async {
+  static Future<Map<String, dynamic>> getUserProfile([String? userId]) async {
     try {
       if (_auth.currentUser == null) throw _authException();
 
@@ -118,7 +115,7 @@ class FirebaseServices {
   }
 
   /// 🔹 Create a New Post
-  Future<String?> createPost({
+  static Future<String?> createPost({
     required String content,
     List<String> images = const [],
     Map<String, dynamic>? activityData,
@@ -148,23 +145,6 @@ class FirebaseServices {
         'postsCount': FieldValue.increment(1),
       });
 
-      // Create notifications for followers
-      List<dynamic> followers = userData['followers'] ?? [];
-      if (followers.isNotEmpty) {
-        for (var followerId in followers) {
-          await _notificationService.createNotification(
-            userId: followerId,
-            type: 'post',
-            message: '${userData['userName'] ?? 'Someone'} created a new post',
-            postId: postRef.id,
-            additionalData: {
-              'title': 'New Post',
-              'postId': postRef.id,
-            },
-          );
-        }
-      }
-
       return postRef.id;
     } catch (e) {
       return null;
@@ -172,7 +152,7 @@ class FirebaseServices {
   }
 
   /// 🔹 Get Feed Posts
-  Future<List<Map<String, dynamic>>> getFeedPosts() async {
+  static Future<List<Map<String, dynamic>>> getFeedPosts() async {
     try {
       if (_auth.currentUser == null) throw _authException();
 
@@ -197,7 +177,7 @@ class FirebaseServices {
   }
 
   /// 🔹 Get User Posts
-  Future<List<Map<String, dynamic>>> getUserPosts(
+  static Future<List<Map<String, dynamic>>> getUserPosts(
       [String? userId]) async {
     try {
       if (_auth.currentUser == null) throw _authException();
@@ -216,7 +196,7 @@ class FirebaseServices {
   }
 
   /// 🔹 Toggle Like on a Post
-  Future<bool> toggleLikePost(String postId) async {
+  static Future<bool> toggleLikePost(String postId) async {
     try {
       if (_auth.currentUser == null) throw _authException();
 
@@ -243,33 +223,6 @@ class FirebaseServices {
             .collection(userCollection)
             .doc(uid)
             .update({'likesCount': FieldValue.increment(1)});
-            
-        // Get post data to create notification
-        DocumentSnapshot postDoc = await postRef.get();
-        if (postDoc.exists) {
-          Map<String, dynamic> postData = postDoc.data() as Map<String, dynamic>;
-          String postUserId = postData['userId'];
-          
-          // Don't create notification if user is liking their own post
-          if (postUserId != uid) {
-            // Get current user data
-            DocumentSnapshot userDoc = await _firestore.collection(userCollection).doc(uid).get();
-            Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-            
-            // Create like notification
-            await _notificationService.createNotification(
-              userId: postUserId,
-              type: 'like',
-              message: '${userData['userName'] ?? 'Someone'} liked your post',
-              postId: postId,
-              likeId: uid,
-              additionalData: {
-                'title': 'New Like',
-                'postId': postId,
-              },
-            );
-          }
-        }
       }
 
       return !isLiked;
@@ -279,7 +232,7 @@ class FirebaseServices {
   }
 
   /// 🔹 Helper: Process Posts
-  Future<List<Map<String, dynamic>>> _processPosts(
+  static Future<List<Map<String, dynamic>>> _processPosts(
       QuerySnapshot postsSnapshot, String uid) async {
     List<Map<String, dynamic>> posts = [];
 
@@ -306,7 +259,7 @@ class FirebaseServices {
   }
 
   /// 🔹 Helper: Throw Authentication Exception
-  FirebaseException _authException() {
+  static FirebaseException _authException() {
     return FirebaseException(
       plugin: 'firebase_firestore',
       code: 'unauthenticated',

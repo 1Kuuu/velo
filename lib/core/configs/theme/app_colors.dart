@@ -12,12 +12,4 @@ class AppColors {
   static const divider = greytxt;
   static const linkText = Color(0xff1E88E5);
   static const blacktxt = Color(0xff000000);
-  
-  // Text colors
-  static const lightText = Color(0xff000000);
-  static const darkText = Color(0xffFFFFFF);
-  
-  // Card colors
-  static const lightCard = Color(0xffFFFFFF);
-  static const darkCard = Color(0xff1E1E1E);
 }
