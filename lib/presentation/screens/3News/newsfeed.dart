@@ -10,8 +10,7 @@ import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
 import 'package:velora/data/sources/post_service.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
-import 'package:velora/presentation/screens/3News/search_view.dart';
-import 'package:velora/presentation/widgets/reusable_wdgts.dart';
+import 'package:velora/presentation/screens/Notifications/notifications_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:delightful_toast/delight_toast.dart';
 import 'package:delightful_toast/toast/components/toast_card.dart';
@@ -19,6 +18,11 @@ import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:flutter/services.dart'; // Add this import for DeviceOrientation
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:intl/intl.dart';
+import 'package:velora/presentation/widgets/reusable_wdgts.dart';
+import 'package:velora/presentation/screens/3News/search_view.dart';
+
+// Note: Fixed the missing AppBar and added consistent styling with search icon and notifications
+// to match other screens in the app
 
 class NewsFeedPageContent extends StatefulWidget {
   const NewsFeedPageContent({super.key});
@@ -57,45 +61,27 @@ class _NewsFeedPageContentState extends State<NewsFeedPageContent>
       backgroundColor:
           isDarkMode ? const Color(0xFF121212) : AppColors.lightBackground,
       appBar: MyAppBar(
-        title: "Velora",
+        title: "NewsFeed",
         actions: [
           AppBarIcon(
             icon: Icons.search,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => SearchView()),
-            ),
-          ),
-          AppBarIcon(
-            icon: Icons.notifications_outlined,
-            onTap: () => print("Notifications Tapped"),
-          ),
-          StreamBuilder<DocumentSnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('users')
-                .doc(FirebaseAuth.instance.currentUser?.uid)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return AppBarIcon(
-                  icon: Icons.person_outline,
-                  onTap: () {}, // Empty callback for loading state
-                );
-              }
-
-              final userData = snapshot.data?.data() as Map<String, dynamic>?;
-              return ProfileAppBarIcon(
-                profileUrl: userData?['profileUrl'],
-                userName: userData?['userName'],
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => ProfilePage()),
-                  );
-                },
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SearchView()),
               );
             },
           ),
+          AppBarIcon(
+            icon: Icons.notifications_outlined,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+              );
+            },
+          ),
+          _ProfileIcon(),
         ],
       ),
       body: Column(
@@ -143,6 +129,38 @@ class _NewsFeedPageContentState extends State<NewsFeedPageContent>
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ProfileIcon extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(FirebaseAuth.instance.currentUser?.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return AppBarIcon(
+            icon: Icons.person_outline,
+            onTap: () {},
+          );
+        }
+
+        final userData = snapshot.data?.data() as Map<String, dynamic>?;
+        return ProfileAppBarIcon(
+          profileUrl: userData?['profileUrl'],
+          userName: userData?['userName'],
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfilePage()),
+            );
+          },
+        );
+      },
     );
   }
 }

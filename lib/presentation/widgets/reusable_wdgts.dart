@@ -313,7 +313,16 @@ class MyAppBar extends StatelessWidget implements PreferredSizeWidget {
           color: Colors.white,
         ),
       ),
-      actions: actions,
+      actions: actions != null 
+        ? <Widget>[
+            ...actions!,
+            // Add a small padding at the end to prevent overflow
+            const SizedBox(width: 8),
+          ]
+        : null,
+      actionsIconTheme: const IconThemeData(
+        size: 24,
+      ),
     );
   }
 
@@ -338,6 +347,8 @@ class AppBarIcon extends StatelessWidget {
       icon: Icon(icon),
       color: Colors.white,
       onPressed: onTap,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
     );
   }
 }
@@ -358,8 +369,8 @@ class ProfileAppBarIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
       onPressed: onTap,
       icon: CircleAvatar(
         radius: 16,
@@ -1288,3 +1299,4 @@ extension StringExtension on String {
     return "${this[0].toUpperCase()}${this.substring(1).toLowerCase()}";
   }
 }
+

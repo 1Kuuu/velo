@@ -11,6 +11,7 @@ import 'package:velora/presentation/screens/4Chat/chat_list.dart';
 import 'package:velora/presentation/screens/5Settings/setting_screen.dart';
 import 'package:velora/presentation/screens/Weather/weather.dart';
 import 'package:velora/presentation/screens/Weather/const.dart';
+import 'package:velora/presentation/screens/Notifications/notifications_screen.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 import 'package:provider/provider.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
@@ -966,7 +967,12 @@ class _NotificationIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppBarIcon(
       icon: Icons.notifications_outlined,
-      onTap: () => print("Notifications Tapped"),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+        );
+      },
     );
   }
 }

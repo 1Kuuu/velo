@@ -1,14 +1,17 @@
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:velora/presentation/screens/Weather/const.dart';
-import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 
 class GeminiService {
   static final GeminiService _instance = GeminiService._internal();
   late final GenerativeModel _model;
   late final ChatSession _chatSession;
   bool _isInitialized = false;
+  bool _isInitializing = false;
+  String _lastErrorMessage = "";
 
   // Using the correct model name for Gemini API
+  //ignore: constant_identifier_names
   static const String MODEL_NAME = 'gemini-1.5-flash';
 
   factory GeminiService() {
@@ -16,37 +19,56 @@ class GeminiService {
   }
 
   GeminiService._internal() {
-    print('GeminiService: Starting initialization...');
-    print('GeminiService: Using model: $MODEL_NAME');
-    print('GeminiService: API Key provided: ${GEMINI_API_KEY.substring(0, math.min(10, GEMINI_API_KEY.length))}...');
-    _validateAndInitialize();
+    debugPrint('GeminiService: Starting initialization...');
+    debugPrint('GeminiService: Using model: $MODEL_NAME');
+    
+    if (GEMINI_API_KEY.isNotEmpty) {
+      debugPrint('GeminiService: API Key provided: ${_maskApiKey(GEMINI_API_KEY)}');
+    } else {
+      debugPrint('GeminiService: ERROR - API key is empty!');
+    }
+    
+    _initializeService();
+  }
+
+  String _maskApiKey(String key) {
+    if (key.length <= 10) return "****";
+    return "${key.substring(0, 4)}****${key.substring(key.length - 4)}";
+  }
+
+  bool isGeminiKeyValid() {
+    // Basic validation to check if API key looks reasonable
+    return GEMINI_API_KEY.isNotEmpty && 
+           GEMINI_API_KEY.length > 10 &&
+           !GEMINI_API_KEY.contains(' ');
   }
 
   bool _validateApiKey() {
-    print('GeminiService: Validating API key...');
+    debugPrint('GeminiService: Validating API key...');
     
     if (!isGeminiKeyValid()) {
-      print('GeminiService: ERROR - Invalid API key format. Please check the API key in const.dart');
-      print('GeminiService: API Key should:');
-      print('1. Start with "AI"');
-      print('2. Be at least 39 characters long');
-      print('3. Not contain any spaces or special characters');
+      _lastErrorMessage = "Invalid API key format. Please check your API key configuration.";
+      debugPrint('GeminiService: ERROR - $_lastErrorMessage');
       return false;
     }
 
-    print('GeminiService: API key validation successful');
+    debugPrint('GeminiService: API key validation successful');
     return true;
   }
 
-  Future<void> _validateAndInitialize() async {
+  Future<void> _initializeService() async {
+    if (_isInitializing) return;
+    _isInitializing = true;
+    
     try {
       if (!_validateApiKey()) {
-        print('GeminiService: Failed API key validation');
+        debugPrint('GeminiService: Failed API key validation');
         _isInitialized = false;
+        _isInitializing = false;
         return;
       }
 
-      print('GeminiService: Creating GenerativeModel...');
+      debugPrint('GeminiService: Creating GenerativeModel...');
       
       try {
         _model = GenerativeModel(
@@ -59,42 +81,49 @@ class GeminiService {
             maxOutputTokens: 2048,
           ),
         );
-        print('GeminiService: GenerativeModel created successfully');
+        debugPrint('GeminiService: GenerativeModel created successfully');
       } catch (e) {
-        print('GeminiService: Error creating GenerativeModel: $e');
+        _lastErrorMessage = "Error creating GenerativeModel: $e";
+        debugPrint('GeminiService: $_lastErrorMessage');
         _isInitialized = false;
+        _isInitializing = false;
         return;
       }
 
       // Test the API key with a simple query
-      print('GeminiService: Testing API connection...');
+      debugPrint('GeminiService: Testing API connection...');
       final testContent = Content.text('Hello');
       try {
         final response = await _model.generateContent([testContent]);
         if (response.text == null || response.text!.isEmpty) {
           throw Exception('Empty response from API');
         }
-        print('GeminiService: API test response: ${response.text}');
-        print('GeminiService: API connection test successful');
+        debugPrint('GeminiService: API test response received');
+        debugPrint('GeminiService: API connection test successful');
       } catch (e) {
-        print('GeminiService: API test failed: $e');
+        _lastErrorMessage = "API connection test failed: $e";
+        debugPrint('GeminiService: $_lastErrorMessage');
         _isInitialized = false;
+        _isInitializing = false;
         return;
       }
       
       _resetChatSession();
       _isInitialized = true;
-      print('GeminiService: Initialization complete');
+      _isInitializing = false;
+      debugPrint('GeminiService: Initialization complete');
     } catch (e, stackTrace) {
-      print('GeminiService: Initialization error: $e');
-      print('GeminiService: Stack trace: $stackTrace');
+      _lastErrorMessage = "Initialization error: $e";
+      debugPrint('GeminiService: $_lastErrorMessage');
+      debugPrint('GeminiService: Stack trace: $stackTrace');
       _isInitialized = false;
+      _isInitializing = false;
     }
   }
 
   void _resetChatSession() {
     try {
-      print('GeminiService: Starting new chat session...');
+      debugPrint('GeminiService: Starting new chat session...');
       _chatSession = _model.startChat(
         history: [
           Content.text('''
@@ -122,6 +151,7 @@ You are Velo Assistant, a highly knowledgeable cycling expert with years of expe
    - Include specific measurements and specifications when applicable
    - Explain the reasoning behind recommendations
    - Include safety warnings when necessary
+   - NEVER use asterisks (*) in your responses for formatting
 
 4. Quality Standards:
    - Double-check technical specifications
@@ -141,51 +171,93 @@ Remember: When in doubt, err on the side of caution and recommend professional s
 '''),
         ],
       );
-      print('GeminiService: Chat session started successfully');
+      debugPrint('GeminiService: Chat session started successfully');
     } catch (e, stackTrace) {
-      print('GeminiService: Chat session error: $e');
-      print('GeminiService: Stack trace: $stackTrace');
+      _lastErrorMessage = "Chat session error: $e";
+      debugPrint('GeminiService: $_lastErrorMessage');
+      debugPrint('GeminiService: Stack trace: $stackTrace');
       _isInitialized = false;
     }
   }
 
+  String getFallbackResponse(String topic) {
+    return "I'm sorry, I'm having trouble connecting to my knowledge base right now. For questions about $topic, you might want to check cycling forums or consult with your local bike shop. Please try asking me again later.";
+  }
+
   Future<String> sendMessage(String message) async {
+    if (!_isInitialized && !_isInitializing) {
+      debugPrint('GeminiService: Service not initialized, attempting to initialize...');
+      await _initializeService();
+    }
+    
     if (!_isInitialized) {
-      print('GeminiService: Service not initialized, attempting to initialize...');
-      await _validateAndInitialize();
-      if (!_isInitialized) {
-        return 'Error: The Gemini service is not properly initialized. Please check your API key in the .env file. The API key should start with "AI" and be at least 40 characters long.';
+      debugPrint('GeminiService: Still not initialized after attempt, returning error message');
+      String topic = _extractTopic(message);
+      
+      if (_lastErrorMessage.contains("API key")) {
+        return 'I apologize, but there seems to be an issue with my configuration. The API key may be invalid or missing. Please check the API key in your settings.';
+      } else if (_lastErrorMessage.contains("connection")) {
+        return 'I apologize, but I\'m having trouble connecting to the internet. Please check your connection and try again.';
+      } else {
+        return getFallbackResponse(topic);
       }
     }
 
     try {
-      print('GeminiService: Sending message to API...');
+      debugPrint('GeminiService: Sending message to API...');
       final response = await _chatSession.sendMessage(Content.text(message));
       
       if (response.text == null || response.text!.isEmpty) {
-        print('GeminiService: Received empty response');
+        debugPrint('GeminiService: Received empty response');
         return 'I apologize, but I was unable to generate a response. Please try rephrasing your question.';
       }
 
-      print('GeminiService: Successfully received response');
-      return response.text!;
+      debugPrint('GeminiService: Successfully received response');
+      // Remove any asterisks from the response
+      return response.text!.replaceAll('*', '');
     } catch (e, stackTrace) {
-      print('GeminiService: Error during message send: $e');
-      print('GeminiService: Stack trace: $stackTrace');
+      debugPrint('GeminiService: Error during message send: $e');
+      debugPrint('GeminiService: Stack trace: $stackTrace');
       
-      if (e.toString().contains('Invalid')) {
-        print('GeminiService: Invalid API key detected');
-        return 'Error: Invalid API key. Please make sure you have added a valid Gemini API key to your .env file.';
+      if (e.toString().contains("Invalid")) {
+        debugPrint('GeminiService: Invalid API key detected');
+        return 'Error: Invalid API key. Please make sure you have added a valid Gemini API key to your settings.';
+      } else if (e.toString().contains("Failed host lookup") || 
+                e.toString().contains("SocketException") ||
+                e.toString().contains("connection")) {
+        return 'I apologize, but I\'m having trouble connecting to my knowledge base. Please check your internet connection and try again.';
+      } else if (e.toString().contains("timeout")) {
+        return 'I apologize, but my response timed out. Please try asking a shorter or simpler question.';
       }
       
-      return 'I apologize, but I encountered an error. Please check your internet connection and try again.';
+      String topic = _extractTopic(message);
+      return getFallbackResponse(topic);
+    }
+  }
+
+  String _extractTopic(String message) {
+    message = message.toLowerCase();
+    
+    if (message.contains("fix") || message.contains("repair") || message.contains("broke")) {
+      return "bike repairs";
+    } else if (message.contains("tire") || message.contains("chain") || message.contains("gear")) {
+      return "bike components";
+    } else if (message.contains("training") || message.contains("exercise") || message.contains("ride")) {
+      return "cycling techniques";
+    } else {
+      return "cycling";
     }
   }
 
   bool get isInitialized => _isInitialized;
+  String get lastError => _lastErrorMessage;
 
   void resetChat() {
-    print('GeminiService: Resetting chat session...');
-    _resetChatSession();
+    debugPrint('GeminiService: Resetting chat session...');
+    if (_isInitialized) {
+      _resetChatSession();
+    } else {
+      _initializeService();
+    }
   }
 } 

@@ -69,11 +69,74 @@ class _SettingsScreenState extends State<SettingsScreen> {
           'preferences': {
             'isDarkMode': isDarkMode,
             'isNotificationsEnabled': isNotificationsEnabled,
+            'lastUpdated': FieldValue.serverTimestamp(),
           }
         });
+        
+        // Also save to user_notification_settings collection for quicker lookup
+        await _firestore.collection('user_notification_settings').doc(currentUser.uid).set({
+          'enabled': isNotificationsEnabled,
+          'lastUpdated': FieldValue.serverTimestamp(),
+          'userId': currentUser.uid,
+          'deviceTokens': FieldValue.arrayUnion(['']), // This would be populated elsewhere with actual FCM tokens
+        }, SetOptions(merge: true));
       }
     } catch (e) {
       print("Error saving preferences: $e");
+    }
+  }
+
+  Future<void> _updateNotificationSettings(bool enabled) async {
+    try {
+      User? currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return;
+      
+      // Update notification settings in dedicated collection
+      await _firestore.collection('user_notification_settings').doc(currentUser.uid).set({
+        'enabled': enabled,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      
+      if (enabled) {
+        // Show a confirmation snackbar that notifications are enabled
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Notifications enabled"),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        
+        // Re-subscribe to topics if needed
+        // This would be implemented with your FCM handling code
+        // Example: await FirebaseMessaging.instance.subscribeToTopic('all_users');
+      } else {
+        // Show a confirmation snackbar that notifications are disabled
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Notifications disabled"),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        
+        // Unsubscribe from topics if needed
+        // Example: await FirebaseMessaging.instance.unsubscribeFromTopic('all_users');
+      }
+    } catch (e) {
+      print("Error updating notification settings: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Failed to update notification settings: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -244,6 +307,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         isNotificationsEnabled = value;
                       });
                       _saveUserPreferences();
+                      _updateNotificationSettings(value);
                     },
                     icon: Icons.notifications_none,
                   ),

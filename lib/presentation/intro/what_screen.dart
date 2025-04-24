@@ -7,6 +7,8 @@ import 'package:velora/presentation/intro/when_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
+import 'package:velora/core/configs/theme/app_fonts.dart';
+import 'package:velora/core/configs/theme/app_colors.dart';
 import 'dart:async';
 
 class WhatScreen extends StatefulWidget {
@@ -132,26 +134,24 @@ class _WhatScreenState extends State<WhatScreen> {
               const SizedBox(height: 20),
               Text(
                 'WHAT',
-                style: TextStyle(
+                style: AppFonts.bold.copyWith(
                   fontSize: 36,
                   color: isDarkMode
                       ? const Color(0xFF4A3B7C)
-                      : const Color(0xFFB22222),
-                  fontWeight: FontWeight.bold,
+                      : AppColors.primary,
                 ),
               ),
               Text(
                 'TYPE OF BIKE ARE YOU USING?',
-                style: TextStyle(
+                style: AppFonts.bold.copyWith(
                   fontSize: 22,
-                  fontWeight: FontWeight.bold,
                   color: isDarkMode ? Colors.white : Colors.black,
                 ),
               ),
               const SizedBox(height: 20),
               Text(
                 'SELECT HERE:',
-                style: TextStyle(
+                style: AppFonts.regular.copyWith(
                   color: isDarkMode ? Colors.grey[400] : Colors.grey,
                   fontSize: 16,
                 ),
@@ -190,7 +190,7 @@ class _WhatScreenState extends State<WhatScreen> {
                 color: selectedBike == title
                     ? (isDarkMode
                         ? const Color(0xFF4A3B7C)
-                        : const Color(0xFFB22222))
+                        : AppColors.primary)
                     : (isDarkMode ? Colors.grey[800]! : Colors.grey),
                 width: 2,
               ),
@@ -200,9 +200,8 @@ class _WhatScreenState extends State<WhatScreen> {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
+                  style: AppFonts.bold.copyWith(
                     fontSize: 18,
-                    fontWeight: FontWeight.bold,
                     color: isDarkMode ? Colors.white : Colors.black,
                   ),
                 ),

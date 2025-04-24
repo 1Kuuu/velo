@@ -5,9 +5,10 @@ import 'package:velora/core/configs/theme/app_colors.dart';
 import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
 import 'package:velora/core/services/ai_chat_screen.dart';
-import 'package:velora/presentation/screens/0Auth/profile.dart';
+import 'package:velora/presentation/screens/Notifications/notifications_screen.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 import 'package:provider/provider.dart';
+
 
 class ToolboxPageContent extends StatelessWidget {
   const ToolboxPageContent({super.key});
@@ -15,12 +16,23 @@ class ToolboxPageContent extends StatelessWidget {
   Future<String?> getSelectedBike() async {
     var user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      var doc = await FirebaseFirestore.instance
+      // Try from users collection first (where we store bike_type initially)
+      var userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+          
+      if (userDoc.exists && userDoc.data()?['bike_type'] != null) {
+        return userDoc.data()?['bike_type'];
+      }
+      
+      // Fall back to user_preferences if not found in users collection
+      var prefDoc = await FirebaseFirestore.instance
           .collection('user_preferences')
           .doc(user.uid)
           .get();
 
-      return doc.data()?['bike_type'];
+      return prefDoc.data()?['bike_type'];
     }
     return null;
   }
@@ -37,32 +49,11 @@ class ToolboxPageContent extends StatelessWidget {
         title: "Toolbox",
         actions: [
           AppBarIcon(
-            icon: Icons.notifications_outlined,
-            onTap: () => print("Notifications Tapped"),
-          ),
-          StreamBuilder<DocumentSnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('users')
-                .doc(FirebaseAuth.instance.currentUser?.uid)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return AppBarIcon(
-                  icon: Icons.person_outline,
-                  onTap: () {}, // Empty callback for loading state
-                );
-              }
-
-              final userData = snapshot.data?.data() as Map<String, dynamic>?;
-              return ProfileAppBarIcon(
-                profileUrl: userData?['profileUrl'],
-                userName: userData?['userName'],
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => ProfilePage()),
-                  );
-                },
+            icon: Icons.notifications,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
               );
             },
           ),
@@ -72,15 +63,39 @@ class ToolboxPageContent extends StatelessWidget {
         future: getSelectedBike(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasData) {
+          
+          if (snapshot.hasData && snapshot.data != null) {
             return BikeScreens(bikeType: snapshot.data!);
           }
-          return Center(
-              child: Text("No Bike Selected",
-                  style: AppFonts.regular.copyWith(
-                      color: isDarkMode ? Colors.white : Colors.black)));
+          
+          // No bike selected - show bike selection UI instead of just an error message
+          return BikeSelectionScreen(
+            onBikeSelected: (bikeType) async {
+              // Save bike selection to both locations
+              try {
+                var user = FirebaseAuth.instance.currentUser;
+                if (user != null) {
+                  await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+                    'bike_type': bikeType,
+                    'lastUpdated': FieldValue.serverTimestamp(),
+                  }, SetOptions(merge: true));
+                  
+                  // Refresh the screen
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ToolboxPageContent()),
+                  );
+                }
+              } catch (e) {
+                print("Error saving bike selection: $e");
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Error saving selection: $e")),
+                );
+              }
+            },
+          );
         },
       ),
       floatingActionButton: TheFloatingActionButton(
@@ -1212,6 +1227,142 @@ class _SwipeableBikeSelectorState extends State<SwipeableBikeSelector> {
           ),
         ),
       ],
+    );
+  }
+}
+
+// New bike selection widget for new users
+class BikeSelectionScreen extends StatelessWidget {
+  final Function(String) onBikeSelected;
+  
+  const BikeSelectionScreen({Key? key, required this.onBikeSelected}) : super(key: key);
+  
+  @override
+  Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+    
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Select Your Bike Type",
+              style: AppFonts.bold.copyWith(
+                fontSize: 24,
+                color: isDarkMode ? Colors.white : Colors.black,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "Choose the type of bike you're using to see relevant tools and information",
+              style: AppFonts.regular.copyWith(
+                fontSize: 16,
+                color: isDarkMode ? Colors.white70 : Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 30),
+            _buildBikeOption(
+              context, 
+              "ROADBIKE", 
+              "assets/images/roadbike.png",
+              "Road bikes are optimized for speed on paved roads",
+              isDarkMode
+            ),
+            const SizedBox(height: 20),
+            _buildBikeOption(
+              context, 
+              "MOUNTAINBIKE", 
+              "assets/images/mountainbike.png",
+              "Mountain bikes are built for off-road terrain and trails",
+              isDarkMode
+            ),
+            const SizedBox(height: 20),
+            _buildBikeOption(
+              context, 
+              "FIXIE", 
+              "assets/images/fixie.png",
+              "Fixed-gear bikes (fixies) feature simple, minimalist design",
+              isDarkMode
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildBikeOption(BuildContext context, String type, String imagePath, String description, bool isDarkMode) {
+    return GestureDetector(
+      onTap: () => onBikeSelected(type),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              child: Image.asset(
+                imagePath,
+                height: 180,
+                width: double.infinity,
+                fit: BoxFit.contain,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    type,
+                    style: AppFonts.bold.copyWith(
+                      fontSize: 18,
+                      color: isDarkMode ? Colors.white : Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    description,
+                    style: AppFonts.regular.copyWith(
+                      fontSize: 14,
+                      color: isDarkMode ? Colors.white70 : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isDarkMode ? const Color(0xFF4A3B7C) : AppColors.primary,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      "Select This Bike",
+                      style: AppFonts.medium.copyWith(
+                        color: Colors.white,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

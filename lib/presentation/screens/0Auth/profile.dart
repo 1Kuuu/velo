@@ -222,6 +222,29 @@ class _ProfilePageState extends State<ProfilePage> {
           'followingId': widget.userId,
           'timestamp': FieldValue.serverTimestamp(),
         });
+        
+        // Create notification for the user being followed
+        // Get current user data for the notification
+        final currentUserDoc = await FirebaseFirestore.instance
+            .collection(FirebaseServices.userCollection)
+            .doc(FirebaseServices.currentUserId)
+            .get();
+            
+        if (currentUserDoc.exists) {
+          final userData = currentUserDoc.data() as Map<String, dynamic>?;
+          final userName = userData?['userName'] ?? 'User';
+          
+          // Add notification
+          await FirebaseFirestore.instance.collection('notifications').add({
+            'type': 'follow',
+            'senderId': FirebaseServices.currentUserId,
+            'senderName': userName,
+            'recipientId': widget.userId,
+            'message': 'started following you',
+            'timestamp': FieldValue.serverTimestamp(),
+            'isRead': false,
+          });
+        }
       }
 
       if (!_disposed) {

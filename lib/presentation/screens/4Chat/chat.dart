@@ -6,6 +6,7 @@ import 'package:delightful_toast/delight_toast.dart';
 import 'package:delightful_toast/toast/components/toast_card.dart';
 import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:velora/core/configs/theme/app_colors.dart';
+import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 
@@ -130,13 +131,20 @@ class _ChatPageContentState extends State<ChatPageContent> {
       backgroundColor:
           isDarkMode ? const Color(0xFF1A1A1A) : AppColors.lightBackground,
       appBar: AppBar(
-        backgroundColor:
-            isDarkMode ? const Color(0xFF4A3B7C) : AppColors.primary,
+        backgroundColor: isDarkMode ? const Color(0xFF4A3B7C) : AppColors.primary,
         elevation: 0,
-        title: ChatAppBar(
-          recipientName: widget.recipientName,
-          recipientProfileUrl: widget.recipientProfileUrl,
-          recipientId: widget.recipientId,
+        iconTheme: const IconThemeData(color: Colors.white),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            bottom: Radius.circular(30),
+          ),
+        ),
+        title: Text(
+          widget.recipientName,
+          style: AppFonts.bold.copyWith(
+            fontSize: 16,
+            color: Colors.white,
+          ),
         ),
       ),
       body: Column(
@@ -156,7 +164,7 @@ class _ChatPageContentState extends State<ChatPageContent> {
                   return Center(
                     child: Text(
                       "No messages yet.",
-                      style: TextStyle(
+                      style: AppFonts.regular.copyWith(
                         fontSize: 14,
                         color: isDarkMode ? Colors.white70 : Colors.black87,
                       ),

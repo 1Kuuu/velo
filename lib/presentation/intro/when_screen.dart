@@ -7,6 +7,8 @@ import 'package:velora/presentation/intro/where_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
+import 'package:velora/core/configs/theme/app_fonts.dart';
+import 'package:velora/core/configs/theme/app_colors.dart';
 
 class WhenScreen extends StatefulWidget {
   const WhenScreen({super.key});
@@ -99,19 +101,17 @@ class _WhenScreenState extends State<WhenScreen> {
               const SizedBox(height: 20),
               Text(
                 'WHEN',
-                style: TextStyle(
+                style: AppFonts.bold.copyWith(
                   fontSize: 36,
                   color: isDarkMode
                       ? const Color(0xFF4A3B7C)
-                      : const Color(0xFFB22222),
-                  fontWeight: FontWeight.bold,
+                      : AppColors.primary,
                 ),
               ),
               Text(
                 'DO YOU USUALLY RIDE?',
-                style: TextStyle(
+                style: AppFonts.bold.copyWith(
                   fontSize: 26,
-                  fontWeight: FontWeight.bold,
                   color: isDarkMode ? Colors.white : Colors.black,
                 ),
               ),
@@ -131,7 +131,7 @@ class _WhenScreenState extends State<WhenScreen> {
                         child: CheckboxListTile(
                           title: Text(
                             key,
-                            style: TextStyle(
+                            style: AppFonts.medium.copyWith(
                               fontSize: 22,
                               color: isDarkMode ? Colors.white : Colors.black,
                             ),
@@ -145,7 +145,7 @@ class _WhenScreenState extends State<WhenScreen> {
                           checkColor: Colors.white,
                           activeColor: isDarkMode
                               ? const Color(0xFF4A3B7C)
-                              : const Color(0xFFB22222),
+                              : AppColors.primary,
                         ),
                       ),
                     );
@@ -159,15 +159,15 @@ class _WhenScreenState extends State<WhenScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isDarkMode
                         ? const Color(0xFF4A3B7C)
-                        : const Color(0xFF4A1818),
+                        : AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Next',
-                    style: TextStyle(
+                    style: AppFonts.bold.copyWith(
                       fontSize: 18,
                       color: Colors.white,
                     ),

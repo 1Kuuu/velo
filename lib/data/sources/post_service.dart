@@ -203,6 +203,10 @@ class PostService {
 
       final postDoc = await postRef.get();
       if (!postDoc.exists) return false;
+      
+      // Get post data for notification
+      final postData = postDoc.data()!;
+      final postOwnerId = postData['userId'];
 
       final likeDoc = await likeRef.get();
 
@@ -214,9 +218,28 @@ class PostService {
         await likeRef.set(
             {'userId': user.uid, 'timestamp': FieldValue.serverTimestamp()});
         await postRef.update({'likesCount': FieldValue.increment(1)});
+        
+        // Create notification for the post owner (if it's not the same user)
+        if (postOwnerId != user.uid) {
+          // Get user data for the notification
+          final userData = await getUserData(user.uid);
+          
+          await _firestore.collection('notifications').add({
+            'type': 'like',
+            'senderId': user.uid,
+            'senderName': userData['userName'] ?? user.displayName ?? 'User',
+            'recipientId': postOwnerId,
+            'postId': postId,
+            'message': 'liked your post',
+            'timestamp': FieldValue.serverTimestamp(),
+            'isRead': false,
+          });
+        }
+        
         return true;
       }
     } catch (e) {
+      print('Error toggling like: $e');
       return false;
     }
   }
