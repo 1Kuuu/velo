@@ -61,8 +61,7 @@ class AuthService {
           'userName': username,
           'email': email,
           'createdAt': FieldValue.serverTimestamp(),
-          'setupComplete':
-              false, // 👈 Ensure this is false for onboarding logic
+          'setupComplete': true,
         });
 
         return true;
@@ -194,7 +193,7 @@ class AuthService {
           'userName': user.displayName ?? "Google User",
           'email': user.email,
           'createdAt': FieldValue.serverTimestamp(),
-          'setupComplete': false,
+          'setupComplete': true,
           'isAuthenticated': true,
           'authProvider': 'google',
           'lastLogin': FieldValue.serverTimestamp(),
@@ -208,7 +207,7 @@ class AuthService {
           'userName': user.displayName ?? existingData['userName'],
           'email': user.email ?? existingData['email'],
           'profileUrl': user.photoURL ?? existingData['profileUrl'],
-          'setupComplete': existingData['setupComplete'] ?? false,
+          'setupComplete': true,
           'preferences': existingData['preferences'],
           'bikeType': existingData['bikeType'],
           'experience': existingData['experience'],
@@ -263,6 +262,36 @@ class AuthService {
       return false;
     } catch (e) {
       return false;
+    }
+  }
+
+  // Create or update user document
+  Future<void> _createOrUpdateUserDocument(User user, {String? displayName}) async {
+    final userRef = _firestore.collection('users').doc(user.uid);
+    final userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      // Create new user document
+      await userRef.set({
+        'uid': user.uid,
+        'userName': displayName ?? user.displayName ?? user.email?.split('@')[0] ?? 'User',
+        'email': user.email,
+        'profileUrl': user.photoURL,
+        'createdAt': FieldValue.serverTimestamp(),
+        'lastSignInTime': user.metadata.lastSignInTime,
+        'setupComplete': true, // Skip the setup process
+        'bio': '',
+        'isAuthenticated': true,
+        'authProvider': user.providerData.first.providerId,
+      });
+    } else {
+      // Update existing user document
+      await userRef.update({
+        'lastSignInTime': user.metadata.lastSignInTime,
+        'lastLogin': FieldValue.serverTimestamp(),
+        'setupComplete': true, // Ensure setup is marked complete
+        'isAuthenticated': true,
+      });
     }
   }
 }

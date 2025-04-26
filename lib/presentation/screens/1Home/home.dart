@@ -24,14 +24,22 @@ import 'dart:async';
 import 'dart:math';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final int initialTab;
+  
+  const HomePage({super.key, this.initialTab = 0});
 
   @override
   _HomePageState createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialTab;
+  }
 
   final List<Widget> _screens = [
     const HomePageContent(),

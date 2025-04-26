@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:velora/presentation/intro/what_screen.dart';
 import 'package:velora/presentation/screens/0Auth/login.dart';
 import 'package:velora/presentation/screens/1Home/home.dart';
 
@@ -36,13 +35,22 @@ class AuthGate extends StatelessWidget {
 
             if (!userSnapshot.hasData ||
                 !(userSnapshot.data?.exists ?? false)) {
-              return const WhatScreen();
-            }
-
-            var userData = userSnapshot.data?.data() as Map<String, dynamic>?;
-
-            if (userData == null || userData['user_preference'] == null) {
-              return const WhatScreen();
+              FirebaseFirestore.instance.collection('users').doc(uid).set({
+                'uid': uid,
+                'userName': snapshot.data?.displayName ?? 'User',
+                'email': snapshot.data?.email,
+                'createdAt': FieldValue.serverTimestamp(),
+                'setupComplete': true,
+                'lastLogin': FieldValue.serverTimestamp(),
+              });
+            } else {
+              var userData = userSnapshot.data?.data() as Map<String, dynamic>?;
+              if (userData != null && !(userData['setupComplete'] ?? false)) {
+                FirebaseFirestore.instance.collection('users').doc(uid).update({
+                  'setupComplete': true,
+                  'lastLogin': FieldValue.serverTimestamp(),
+                });
+              }
             }
 
             return const HomePage();

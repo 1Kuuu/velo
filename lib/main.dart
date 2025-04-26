@@ -12,8 +12,6 @@ import 'package:velora/core/configs/theme/theme_provider.dart';
 import 'package:velora/core/configs/language/app_localizations.dart';
 import 'package:velora/firebase_options.dart';
 import 'package:velora/presentation/intro/onboarding.dart';
-import 'package:velora/presentation/intro/welcome_screen.dart';
-import 'package:velora/presentation/intro/what_screen.dart';
 import 'package:velora/presentation/screens/1Home/home.dart';
 import 'package:velora/presentation/screens/0Auth/signup.dart';
 import 'package:velora/presentation/screens/0Auth/login.dart';
@@ -246,36 +244,24 @@ class AuthWrapper extends StatelessWidget {
                   'userName': user.displayName ?? 'New User',
                   'email': user.email,
                   'createdAt': FieldValue.serverTimestamp(),
-                  'setupComplete': false,
+                  'setupComplete': true,
                   'isAuthenticated': true,
                   'authProvider': user.providerData.first.providerId,
                   'lastLogin': FieldValue.serverTimestamp(),
                 });
-                return const WhatScreen();
+                return const HomePage();
               }
 
               final userData = snapshot.data!.data() as Map<String, dynamic>;
               final bool setupComplete = userData['setupComplete'] ?? false;
 
               if (!setupComplete) {
-                return FutureBuilder<DocumentSnapshot>(
-                  future: FirebaseFirestore.instance
-                      .collection('user_preferences')
-                      .doc(user.uid)
-                      .get(),
-                  builder: (context, prefSnapshot) {
-                    if (prefSnapshot.connectionState ==
-                        ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    if (!prefSnapshot.hasData || !prefSnapshot.data!.exists) {
-                      return const WhatScreen();
-                    }
-
-                    return const WelcomeScreen();
-                  },
-                );
+                FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(user.uid)
+                    .update({'setupComplete': true});
+                
+                return const HomePage();
               }
 
               return const HomePage();

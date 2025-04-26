@@ -6,6 +6,7 @@ import 'package:velora/core/configs/theme/app_fonts.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
 import 'package:velora/core/services/ai_chat_screen.dart';
 import 'package:velora/presentation/screens/Notifications/notifications_screen.dart';
+import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 import 'package:provider/provider.dart';
 
@@ -57,6 +58,7 @@ class ToolboxPageContent extends StatelessWidget {
               );
             },
           ),
+          _ProfileIcon(),
         ],
       ),
       body: FutureBuilder<String?>(
@@ -1363,6 +1365,38 @@ class BikeSelectionScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ProfileIcon extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(FirebaseAuth.instance.currentUser?.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return AppBarIcon(
+            icon: Icons.person_outline,
+            onTap: () {},
+          );
+        }
+
+        final userData = snapshot.data?.data() as Map<String, dynamic>?;
+        return ProfileAppBarIcon(
+          profileUrl: userData?['profileUrl'],
+          userName: userData?['userName'],
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfilePage()),
+            );
+          },
+        );
+      },
     );
   }
 }

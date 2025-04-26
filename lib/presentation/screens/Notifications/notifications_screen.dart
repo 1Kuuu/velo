@@ -9,6 +9,7 @@ import 'package:velora/presentation/widgets/reusable_wdgts.dart';
 import 'package:provider/provider.dart';
 import 'package:velora/presentation/screens/0Auth/profile.dart';
 import 'package:velora/presentation/screens/3News/post_detail_screen.dart';
+import 'package:velora/presentation/screens/4Chat/chat.dart';
 
 
 class NotificationsScreen extends StatefulWidget {
@@ -490,6 +491,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           _navigateToUserProfile(notification.senderId!);
         }
         break;
+      case 'message':
+        if (notification.senderId != null) {
+          _navigateToChat(notification.senderId!, notification.senderName, notification.senderProfileUrl);
+        }
+        break;
       default:
         _showSnackBar('Unknown notification type');
     }
@@ -592,6 +598,57 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       Navigator.pop(context);
       print('Error navigating to user profile: $e');
       _showSnackBar('Could not load the user profile');
+    });
+  }
+
+  void _navigateToChat(String senderId, String senderName, String? senderProfileUrl) {
+    String currentUserId = _auth.currentUser?.uid ?? "";
+    
+    // Generate chat ID using the same method as in ChatListPage
+    List<String> ids = [currentUserId, senderId]..sort();
+    String chatId = ids.join("_");
+    
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Center(
+          child: CircularProgressIndicator(
+            color: Provider.of<ThemeProvider>(context, listen: false).isDarkMode
+                ? const Color(0xFF4A3B7C)
+                : AppColors.primary,
+          ),
+        );
+      },
+    );
+    
+    // Check if user exists first
+    _firestore.collection('users').doc(senderId).get().then((doc) {
+      // Dismiss the loading dialog
+      Navigator.pop(context);
+      
+      if (doc.exists) {
+        // Navigate to chat with this user
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatPageContent(
+              chatId: chatId,
+              recipientId: senderId,
+              recipientName: senderName,
+              recipientProfileUrl: senderProfileUrl ?? "",
+            ),
+          ),
+        );
+      } else {
+        _showSnackBar('User no longer exists');
+      }
+    }).catchError((e) {
+      // Dismiss loading dialog on error
+      Navigator.pop(context);
+      print('Error navigating to chat: $e');
+      _showSnackBar('Could not open chat');
     });
   }
 

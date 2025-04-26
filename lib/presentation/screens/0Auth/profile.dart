@@ -17,6 +17,7 @@ import 'package:velora/core/configs/theme/app_colors.dart'; // Import AppColors
 import 'package:provider/provider.dart';
 import 'package:velora/core/configs/theme/theme_provider.dart';
 import 'package:velora/presentation/screens/5Settings/editprofile.dart'; // Import EditProfileScreen
+import 'package:velora/presentation/screens/1Home/home.dart'; // Import HomePage
 
 class ProfilePage extends StatefulWidget {
   final String? userId;
@@ -231,7 +232,7 @@ class _ProfilePageState extends State<ProfilePage> {
             .get();
             
         if (currentUserDoc.exists) {
-          final userData = currentUserDoc.data() as Map<String, dynamic>?;
+          final userData = currentUserDoc.data();
           final userName = userData?['userName'] ?? 'User';
           
           // Add notification
@@ -595,7 +596,15 @@ class _ProfilePageState extends State<ProfilePage> {
                     onPressed: _navigateToEditProfile),
                 IconButton(
                     icon: const Icon(Icons.settings, color: Colors.white),
-                    onPressed: () => Navigator.pushNamed(context, '/settings')),
+                    onPressed: () {
+                      // Navigate to home page with settings tab selected
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const HomePage(initialTab: 4),
+                        ),
+                      );
+                    }),
               ]
             : [],
       ),
