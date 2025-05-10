@@ -1,121 +1,297 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/material.dart';
+import 'package:delightful_toast/delight_toast.dart';
+import 'package:delightful_toast/toast/components/toast_card.dart';
+import 'package:delightful_toast/toast/utils/enums.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-class FirebaseServices {
+class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Google Sign-In
-  Future<UserCredential?> signInWithGoogle(BuildContext context) async {
+  /// 🔹 Check if Firebase is initialized
+  Future<void> ensureInitialized() async {
+    await Firebase.initializeApp();
     try {
-      // Trigger the Google Sign-In process
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        // User canceled the sign-in
-        return null;
+      await _firestore.collection('_test_').doc('_test_').get();
+    } catch (e) {
+      // Firestore permission test failed
+    }
+  }
+
+  /// 🔹 Get current user
+  User? getCurrentUser() {
+    return _auth.currentUser;
+  }
+
+  /// 🔹 Sign up with email & password
+  Future<bool> signUpWithEmail({
+    required BuildContext context,
+    required String username,
+    required String email,
+    required String password,
+    required String confirmPassword, // 👈 Added confirmPassword parameter
+  }) async {
+    try {
+      // 🔹 Validate Password Match
+      if (password != confirmPassword) {
+        _showToast(context, "Passwords do not match!", Icons.error, Colors.red);
+        return false;
       }
 
-      // Obtain Google Sign-In authentication details
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
-      // Create new credential for Firebase
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
+      UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
       );
 
-      // Sign in to Firebase with the Google credentials
-      final UserCredential userCredential =
-          await _auth.signInWithCredential(credential);
+      if (userCredential.user != null) {
+        User user = userCredential.user!;
 
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Signed in as ${userCredential.user?.displayName}")),
+        // ✅ Update Firebase Auth profile
+        await user.updateDisplayName(username);
+        await user.reload(); // Refresh user info
+
+        // ✅ Save user info in Firestore (Unified Collection)
+        await _firestore.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'userName': username,
+          'email': email,
+          'createdAt': FieldValue.serverTimestamp(),
+          'setupComplete': true,
+        });
+
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _showToast(context, "Signup failed: $e", Icons.error, Colors.red);
+      return false;
+    }
+  }
+
+  /// 🔹 Log in with email & password
+  Future<UserCredential?> loginWithEmail({
+    required BuildContext context,
+    required String email,
+    required String password,
+  }) async {
+    try {
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
       );
 
+      _showToast(
+          context, "Login Successful!", Icons.check_circle, Colors.green);
       return userCredential;
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Google Sign-In failed: $e")),
-      );
+      _showToast(context, "Login failed: $e", Icons.error, Colors.red);
       return null;
     }
   }
 
-  /// Email & Password Login
-  static Future<void> login({
-    required BuildContext context,
-    required TextEditingController emailController,
-    required TextEditingController passwordController,
-  }) async {
-    String email = emailController.text.trim();
-    String password = passwordController.text.trim();
+  /// 🔹 Check if user is authenticated
+  bool isUserAuthenticated() {
+    return _auth.currentUser != null;
+  }
 
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill in all fields")),
-      );
-      return;
-    }
+  /// 🔹 Get authentication state stream
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
 
+  /// 🔹 Google Sign-In
+  Future<UserCredential?> signInWithGoogle(BuildContext context) async {
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
+      await _googleSignIn.signOut();
+      await _auth.signOut();
+
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return null;
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Login successful!")),
-      );
+      final UserCredential userCredential =
+          await _auth.signInWithCredential(credential);
+      final User? user = userCredential.user;
+
+      if (user != null) {
+        await _handleFirestoreUser(user);
+        if (context.mounted) {
+          _showToast(context, "Successfully signed in!", Icons.check_circle,
+              Colors.green);
+        }
+        return userCredential;
+      }
+
+      throw Exception("Failed to get user after Firebase sign in");
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login failed: $e")),
-      );
+      final currentUser = _auth.currentUser;
+      if (currentUser != null) {
+        await _handleFirestoreUser(currentUser);
+        if (context.mounted) {
+          _showToast(context, "Successfully signed in!", Icons.check_circle,
+              Colors.green);
+        }
+        return null;
+      }
+
+      if (context.mounted) {
+        _showToast(context, "Failed to sign in with Google. Please try again.",
+            Icons.error, Colors.red);
+      }
+      return null;
+    } finally {
+      await _googleSignIn.signOut();
     }
   }
 
-  /// Email & Password Signup
-  static Future<void> signup({
-    required BuildContext context,
-    required TextEditingController usernameController,
-    required TextEditingController emailController,
-    required TextEditingController passwordController,
-    required TextEditingController confirmPasswordController,
-  }) async {
-    String username = usernameController.text.trim();
-    String email = emailController.text.trim();
-    String password = passwordController.text.trim();
-    String confirmPassword = confirmPasswordController.text.trim();
+  /// 🔹 Logout function with proper cleanup
+  Future<bool> signOut(BuildContext context) async {
+    try {
+      final user = _auth.currentUser;
+      if (user != null) {
+        // Update user's last logout time in Firestore
+        await _firestore.collection('users').doc(user.uid).update({
+          'lastLogout': FieldValue.serverTimestamp(),
+          'isAuthenticated': false
+        });
+      }
 
-    if (username.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill in all fields")),
-      );
-      return;
+      // Sign out from authentication providers
+      await Future.wait([_googleSignIn.signOut(), _auth.signOut()],
+          eagerError: false);
+
+      return true;
+    } catch (e) {
+      if (context.mounted) {
+        _showToast(context, "Error signing out", Icons.error, Colors.red);
+      }
+      return false;
+    }
+  }
+
+  Future<void> _handleFirestoreUser(User user) async {
+    if (user.isAnonymous || user.uid.isEmpty) {
+      throw Exception("Invalid user state: Anonymous or empty UID");
     }
 
-    if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Passwords do not match")),
-      );
-      return;
-    }
+    final DocumentSnapshot userDoc =
+        await _firestore.collection('users').doc(user.uid).get();
 
     try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Account created successfully!")),
-      );
+      if (!userDoc.exists) {
+        await _firestore.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'userName': user.displayName ?? "Google User",
+          'email': user.email,
+          'createdAt': FieldValue.serverTimestamp(),
+          'setupComplete': true,
+          'isAuthenticated': true,
+          'authProvider': 'google',
+          'lastLogin': FieldValue.serverTimestamp(),
+          'profileUrl': user.photoURL,
+        });
+      } else {
+        final existingData = userDoc.data() as Map<String, dynamic>;
+        await _firestore.collection('users').doc(user.uid).update({
+          'lastLogin': FieldValue.serverTimestamp(),
+          'isAuthenticated': true,
+          'userName': user.displayName ?? existingData['userName'],
+          'email': user.email ?? existingData['email'],
+          'profileUrl': user.photoURL ?? existingData['profileUrl'],
+          'setupComplete': true,
+          'preferences': existingData['preferences'],
+          'bikeType': existingData['bikeType'],
+          'experience': existingData['experience'],
+          'goals': existingData['goals'],
+        });
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Signup failed: $e")),
-      );
+      throw Exception("Failed to handle Firestore user data: $e");
+    }
+  }
+
+  /// 🔹 Show DelightToastBar notifications
+  void _showToast(
+      BuildContext context, String message, IconData icon, Color color) {
+    DelightToastBar(
+      builder: (context) {
+        return ToastCard(
+          title: Text(message),
+          leading: Icon(icon, color: color),
+        );
+      },
+      position: DelightSnackbarPosition.top,
+      autoDismiss: true,
+      snackbarDuration: const Duration(seconds: 2),
+      animationDuration: const Duration(milliseconds: 300),
+    ).show(context);
+  }
+
+  /// 🔹 Update setup completion status
+  Future<void> updateSetupStatus({required bool isComplete}) async {
+    try {
+      final user = _auth.currentUser;
+      if (user != null) {
+        await _firestore.collection('users').doc(user.uid).update({
+          'setupComplete': isComplete,
+          'lastUpdated': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// 🔹 Check setup status
+  Future<bool> isSetupComplete() async {
+    try {
+      final user = _auth.currentUser;
+      if (user != null) {
+        final doc = await _firestore.collection('users').doc(user.uid).get();
+        return doc.data()?['setupComplete'] ?? false;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Create or update user document
+  Future<void> _createOrUpdateUserDocument(User user, {String? displayName}) async {
+    final userRef = _firestore.collection('users').doc(user.uid);
+    final userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      // Create new user document
+      await userRef.set({
+        'uid': user.uid,
+        'userName': displayName ?? user.displayName ?? user.email?.split('@')[0] ?? 'User',
+        'email': user.email,
+        'profileUrl': user.photoURL,
+        'createdAt': FieldValue.serverTimestamp(),
+        'lastSignInTime': user.metadata.lastSignInTime,
+        'setupComplete': true, // Skip the setup process
+        'bio': '',
+        'isAuthenticated': true,
+        'authProvider': user.providerData.first.providerId,
+      });
+    } else {
+      // Update existing user document
+      await userRef.update({
+        'lastSignInTime': user.metadata.lastSignInTime,
+        'lastLogin': FieldValue.serverTimestamp(),
+        'setupComplete': true, // Ensure setup is marked complete
+        'isAuthenticated': true,
+      });
     }
   }
 }
